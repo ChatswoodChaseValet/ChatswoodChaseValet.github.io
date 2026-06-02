@@ -1100,6 +1100,31 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
+      <div class="section-title">📷 Plate Recognition (Cloud OCR)</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="pr-quota-status">—</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+      Use <a href="https://platerecognizer.com" target="_blank" style="color:var(--maroon)">Plate Recognizer</a> for ~95% accurate plate reading (vs ~25% with offline OCR).
+      <strong>Free tier:</strong> 2,500 scans/month. Falls back to offline OCR if quota exceeded or no internet.
+    </p>
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-label">API Token</label>
+      <input type="text" id="s-pr-key" class="form-input" placeholder="Paste your Plate Recognizer token here" style="font-family:'Courier New',monospace;font-size:12px"/>
+    </div>
+    <div style="background:var(--sandstone);padding:12px;border-radius:4px;margin-bottom:14px;font-size:12px;line-height:1.6">
+      <strong>📊 Usage this month:</strong> <span id="pr-usage-display">0 scans</span> · Resets monthly<br>
+      <strong>⚠ Security:</strong> Token is visible in the dashboard's source code. Set spending cap to $0 in your Plate Recognizer account to prevent surprise charges.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="savePlateRecognizerKey()">Save Token</button>
+      <button class="btn btn-secondary" onclick="resetUsageCounter()">Reset Counter</button>
+      <button class="btn btn-secondary" onclick="testPlateRecognizer()">🧪 Test Connection</button>
+    </div>
+    <div id="pr-test-result" style="margin-top:10px;font-size:12px"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
       <div class="section-title">📱 Phone & Display</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
@@ -2714,6 +2739,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+// ═══════════════════════════════════════════════════
+// PLATE RECOGNIZER (Cloud OCR) — settings & utilities
+// ═══════════════════════════════════════════════════
+// Default key embedded so it works out of the box; staff can change it in Settings.
+const DEFAULT_PLATE_RECOGNIZER_KEY = '889300358be9caa03c3b8e0459e2d107d31a05dd';
+
+function savePlateRecognizerKey() {
+  const key = document.getElementById('s-pr-key').value.trim();
+  settings.plateRecognizerKey = key;
+  saveSettingsToStorage();
+  updatePlateRecognizerUI();
+  alert('Saved! ' + (key ? 'Cloud OCR is now active for plate scanning.' : 'Cleared — will use offline OCR.'));
+}
+
+function resetUsageCounter() {
+  if (!confirm('Reset the usage counter? (This is just a local tracker — the real quota is tracked by Plate Recognizer.)')) return;
+  settings.plateRecognizerCount = 0;
+  saveSettingsToStorage();
+  updatePlateRecognizerUI();
+}
+
+async function testPlateRecognizer() {
+  const key = (document.getElementById('s-pr-key').value || '').trim();
+  const resEl = document.getElementById('pr-test-result');
+  if (!key) {
+    resEl.innerHTML = '<span style="color:var(--red)">⚠ Enter an API token first.</span>';
+    return;
+  }
+  resEl.innerHTML = '⏳ Testing connection…';
+  try {
+    const res = await fetch('https://api.platerecognizer.com/v1/statistics/', {
+      headers: { 'Authorization': 'Token ' + key },
+    });
+    if (res.status === 401 || res.status === 403) {
+      resEl.innerHTML = '<span style="color:var(--red)">❌ Token rejected — check it\'s correct</span>';
+      return;
+    }
+    if (!res.ok) {
+      resEl.innerHTML = '<span style="color:var(--red)">❌ Error: HTTP ' + res.status + '</span>';
+      return;
+    }
+    const data = await res.json();
+    let info = '✅ <strong>Connection successful!</strong>';
+    if (data.usage) {
+      info += '<br>Calls this month: ' + (data.usage.calls || 0);
+      if (data.usage.max_calls) info += ' / ' + data.usage.max_calls;
+    }
+    resEl.innerHTML = '<span style="color:var(--green)">' + info + '</span>';
+  } catch (err) {
+    resEl.innerHTML = '<span style="color:var(--red)">❌ Network error: ' + err.message + '</span>';
+  }
+}
+
+function updatePlateRecognizerUI() {
+  const keyInput = document.getElementById('s-pr-key');
+  const usageDisplay = document.getElementById('pr-usage-display');
+  const quotaStatus = document.getElementById('pr-quota-status');
+  if (keyInput && !keyInput.value) {
+    keyInput.value = settings.plateRecognizerKey || '';
+  }
+  const count = settings.plateRecognizerCount || 0;
+  if (usageDisplay) {
+    usageDisplay.textContent = count + ' scans (local tracker)';
+  }
+  if (quotaStatus) {
+    if (settings.plateRecognizerKey) {
+      quotaStatus.textContent = '✓ Cloud OCR enabled';
+      quotaStatus.style.color = 'var(--green)';
+    } else {
+      quotaStatus.textContent = '○ Using offline OCR only';
+      quotaStatus.style.color = 'var(--text-muted)';
+    }
+  }
+}
+
 function getPeriodRange(period, offset = 0) {
   const now = new Date();
   let start, end;
@@ -2812,6 +2912,10 @@ function renderComparison() {
 function renderSettings() {
   document.getElementById('s-prefix').value = settings.prefix;
   document.getElementById('s-next').value = settings.nextNum;
+  // Populate Plate Recognizer settings
+  const prKey = document.getElementById('s-pr-key');
+  if (prKey) prKey.value = settings.plateRecognizerKey || '';
+  updatePlateRecognizerUI();
 }
 
 function saveSettings() {
@@ -3154,78 +3258,159 @@ async function capturePlate() {
     return;
   }
 
-  // Capture frame
+  // Capture frame at full resolution
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   ctx.drawImage(video, 0, 0);
-
-  // ─── IMAGE PREPROCESSING for better OCR ───
-  // 1. Crop centre region (plate is usually centred in frame)
-  // 2. Enhance contrast
-  // 3. Convert to grayscale + threshold to black/white
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-
-  // Calculate average brightness to determine threshold
-  let totalBrightness = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    totalBrightness += (data[i] + data[i+1] + data[i+2]) / 3;
-  }
-  const avgBrightness = totalBrightness / (data.length / 4);
-  const threshold = avgBrightness * 0.85; // slightly below average for plates
-
-  // Apply preprocessing: grayscale + contrast boost + threshold
-  for (let i = 0; i < data.length; i += 4) {
-    const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-    // High contrast: pixels below threshold → black, above → white
-    const val = gray < threshold ? 0 : 255;
-    data[i] = val;     // R
-    data[i+1] = val;   // G
-    data[i+2] = val;   // B
-  }
-  ctx.putImageData(imageData, 0, 0);
 
   // Show working status
   const captureBtn = document.getElementById('plate-capture-btn');
   captureBtn.disabled = true;
   captureBtn.textContent = '⏳ Reading…';
-  document.getElementById('plate-status').textContent = '🔍 Recognising plate (2-4 seconds)…';
+
+  // Try Plate Recognizer first (cloud OCR, 95%+ accuracy)
+  const apiKey = (settings.plateRecognizerKey || '').trim();
+  if (apiKey && navigator.onLine) {
+    document.getElementById('plate-status').textContent = '🔍 Reading plate (cloud OCR)…';
+    try {
+      const result = await readPlateWithCloud(canvas, apiKey);
+      if (result && result.plate) {
+        detectedPlate = result.plate;
+        document.getElementById('plate-detected').value = result.plate;
+        document.getElementById('plate-result').style.display = 'block';
+        document.getElementById('plate-use-btn').style.display = 'block';
+        document.getElementById('plate-capture-btn').style.display = 'none';
+
+        // Build status message with extra info
+        let status = '✓ Plate detected';
+        if (result.confidence) status += ' (' + Math.round(result.confidence * 100) + '% confidence)';
+        if (result.region) status += ' · ' + result.region.toUpperCase();
+        document.getElementById('plate-status').textContent = status;
+        document.getElementById('plate-status').className = 'camera-status success';
+
+        // Store vehicle info to auto-fill brand/colour
+        pendingPlateInfo = {
+          make: result.make,
+          colour: result.colour,
+          bodyType: result.bodyType,
+        };
+
+        // Track usage
+        settings.plateRecognizerCount = (settings.plateRecognizerCount || 0) + 1;
+        saveSettingsToStorage();
+        hapticFeedback('success');
+        captureBtn.disabled = false;
+        captureBtn.textContent = '📸 Capture Again';
+        return;
+      } else {
+        // Cloud OCR succeeded but found no plate — fall through to Tesseract
+        document.getElementById('plate-status').textContent = '⚠ Cloud OCR found no plate — trying offline OCR…';
+      }
+    } catch (err) {
+      // Cloud failed — fall back to Tesseract
+      document.getElementById('plate-status').textContent = '⚠ Cloud OCR failed (' + err.message + ') — using offline OCR…';
+    }
+  }
+
+  // Fall back to Tesseract (offline, 70-85% accurate)
+  await capturePlateFallback(canvas);
+  captureBtn.disabled = false;
+  captureBtn.textContent = '📸 Capture Again';
+}
+
+// ───── Plate Recognizer cloud OCR ─────
+async function readPlateWithCloud(canvas, apiKey) {
+  // Convert canvas to blob
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+  const form = new FormData();
+  form.append('upload', blob, 'plate.jpg');
+  form.append('regions', 'au'); // Optimise for Australian plates
+
+  const res = await fetch('https://api.platerecognizer.com/v1/plate-reader/', {
+    method: 'POST',
+    headers: { 'Authorization': 'Token ' + apiKey },
+    body: form,
+  });
+
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('Invalid API key — check Settings');
+    }
+    if (res.status === 429) {
+      throw new Error('Monthly quota exceeded — using offline OCR');
+    }
+    throw new Error('Status ' + res.status);
+  }
+
+  const data = await res.json();
+  if (!data.results || data.results.length === 0) {
+    return null; // No plate found
+  }
+
+  // Take the highest-confidence result
+  const best = data.results.sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+
+  return {
+    plate: (best.plate || '').toUpperCase(),
+    confidence: best.score,
+    region: best.region?.code,
+    make: best.vehicle?.type,
+    colour: null, // basic free tier doesn't return colour
+    bodyType: best.vehicle?.type,
+  };
+}
+
+// ───── Tesseract fallback (existing offline OCR) ─────
+async function capturePlateFallback(canvas) {
+  // Image preprocessing for better OCR (existing code)
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  let totalBrightness = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    totalBrightness += (data[i] + data[i+1] + data[i+2]) / 3;
+  }
+  const avgBrightness = totalBrightness / (data.length / 4);
+  const threshold = avgBrightness * 0.85;
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+    const val = gray < threshold ? 0 : 255;
+    data[i] = val; data[i+1] = val; data[i+2] = val;
+  }
+  ctx.putImageData(imageData, 0, 0);
+
+  document.getElementById('plate-status').textContent = '🔍 Reading plate (offline OCR, 2-4s)…';
 
   try {
     if (typeof Tesseract === 'undefined') {
       throw new Error('OCR library not loaded yet — please wait and try again');
     }
-
-    // Run Tesseract OCR with optimised settings for license plates
     const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-      tessedit_pageseg_mode: '7', // Treat image as a single text line
+      tessedit_pageseg_mode: '7',
       preserve_interword_spaces: '0',
     });
-
-    // Clean up the recognised text — pick the most plate-like sequence
     const plate = extractPlate(text);
-
     if (plate) {
       detectedPlate = plate;
-      document.getElementById('plate-detected').textContent = plate;
+      document.getElementById('plate-detected').value = plate;
       document.getElementById('plate-result').style.display = 'block';
       document.getElementById('plate-use-btn').style.display = 'block';
       document.getElementById('plate-capture-btn').style.display = 'none';
-      document.getElementById('plate-status').textContent = '✓ Plate detected — verify and tap "Use This Plate"';
+      document.getElementById('plate-status').textContent = '✓ Plate detected (offline OCR) — verify and edit if needed';
       document.getElementById('plate-status').className = 'camera-status success';
     } else {
-      document.getElementById('plate-status').textContent = '⚠ Could not read plate clearly — try again with better lighting/angle';
+      document.getElementById('plate-status').textContent = '⚠ Could not read plate — try better angle/lighting';
       document.getElementById('plate-status').className = 'camera-status error';
     }
   } catch (err) {
     document.getElementById('plate-status').textContent = 'Error: ' + err.message;
     document.getElementById('plate-status').className = 'camera-status error';
-  } finally {
-    captureBtn.disabled = false;
-    captureBtn.textContent = '📸 Capture Again';
   }
 }
+
+// Stores vehicle info from Plate Recognizer to auto-fill brand/colour later
+let pendingPlateInfo = null;
 
 function extractPlate(rawText) {
   // Aussie plates are usually 5-7 alphanumeric chars
@@ -3245,11 +3430,29 @@ function extractPlate(rawText) {
 }
 
 function useDetectedPlate() {
-  if (!detectedPlate) return;
-  document.getElementById('f-rego').value = detectedPlate;
+  // Get from the editable field (allows last-minute corrections)
+  const plate = (document.getElementById('plate-detected').value || detectedPlate || '').trim().toUpperCase();
+  if (!plate) return;
+  document.getElementById('f-rego').value = plate;
   closePlateScan();
   // Trigger customer lookup
-  lookupCustomerByRego(detectedPlate);
+  lookupCustomerByRego(plate);
+
+  // Auto-fill any vehicle info from Plate Recognizer
+  if (pendingPlateInfo) {
+    // Map detected make to closest brand option
+    if (pendingPlateInfo.make && !document.getElementById('f-brand').value) {
+      const brandSelect = document.getElementById('f-brand');
+      const detectedLower = pendingPlateInfo.make.toLowerCase();
+      for (const opt of brandSelect.options) {
+        if (opt.value.toLowerCase() === detectedLower) {
+          brandSelect.value = opt.value;
+          break;
+        }
+      }
+    }
+    pendingPlateInfo = null;
+  }
 }
 
 function closePlateScan() {
@@ -3827,6 +4030,11 @@ function updateHapticsUI() {
 // INIT
 // ═══════════════════════════════════════════════════
 loadData();
+// Set default Plate Recognizer key if not already configured
+if (!settings.plateRecognizerKey) {
+  settings.plateRecognizerKey = DEFAULT_PLATE_RECOGNIZER_KEY;
+  saveSettingsToStorage();
+}
 updateClock();
 setInterval(updateClock, 1000);
 applyDarkMode();
