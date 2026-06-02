@@ -408,6 +408,52 @@ tr:hover td{background:var(--bg)}
   50% { opacity: 0.6 }
 }
 
+/* ─── WELCOME BACK POPUP ─── */
+.welcome-popup {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(42, 38, 32, 0.7);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+.welcome-popup.show {
+  display: flex;
+}
+.welcome-box {
+  background: linear-gradient(135deg, #fff 0%, #fffcf2 100%);
+  border-radius: 12px;
+  max-width: 520px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+  border-top: 6px solid var(--maroon);
+  animation: welcomeSlideIn 0.4s cubic-bezier(.22,.95,.49,1);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.welcome-tier-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+@keyframes welcomeSlideIn {
+  from { opacity: 0; transform: translateY(-20px) scale(0.95) }
+  to { opacity: 1; transform: translateY(0) scale(1) }
+}
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+body.dark-mode .welcome-box {
+  background: linear-gradient(135deg, #2a2620 0%, #3a342a 100%);
+}
+
 /* ─── DARK MODE ─── */
 body.dark-mode {
   --maroon: #8a2531;
@@ -3604,9 +3650,9 @@ function lookupCustomerByRego(rego) {
   fillIfEmpty('f-model', last.model);
   fillIfEmpty('f-colour', last.colour);
 
-  // Update banner
+  // Update banner (subtle persistent reminder at top of form)
   let badge = visitCount === 1 ? '🌟 Returning customer · 2nd visit' :
-              visitCount < 5 ? `🌟 Returning customer · ${visitCount + 1}th visit (${ordinal(visitCount + 1)})` :
+              visitCount < 5 ? `🌟 Returning customer · ${ordinal(visitCount + 1)} visit` :
               visitCount < 10 ? `🌟 Loyal customer · ${visitCount} previous visits` :
               `⭐ VIP customer · ${visitCount} previous visits`;
   document.getElementById('cb-title').textContent = badge;
@@ -3617,6 +3663,154 @@ function lookupCustomerByRego(rego) {
 
   banner.style.display = 'block';
   banner.dataset.rego = rego;
+
+  // ★ SHOW PROMINENT WELCOME POPUP ★
+  showWelcomePopup(last, visitCount, daysSince, totalSpent, matches);
+}
+
+function showWelcomePopup(last, visitCount, daysSince, totalSpent, allVisits) {
+  // Don't show if user dismissed it for this rego already (avoid annoying re-popups)
+  const popup = document.getElementById('welcome-popup');
+  if (popup.dataset.dismissedRego === last.rego) return;
+
+  // Build a warm greeting based on the time of day
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  // Figure out tier and emoji
+  let tierLabel, tierEmoji, tierColor;
+  if (visitCount >= 10) {
+    tierLabel = 'VIP CUSTOMER';
+    tierEmoji = '⭐';
+    tierColor = '#c79c2a';
+  } else if (visitCount >= 5) {
+    tierLabel = 'LOYAL CUSTOMER';
+    tierEmoji = '🌟';
+    tierColor = '#8b6f47';
+  } else {
+    tierLabel = 'RETURNING CUSTOMER';
+    tierEmoji = '🚗';
+    tierColor = 'var(--maroon)';
+  }
+
+  // Customer name with title (Mr./Ms.) — use what's stored, otherwise just first name
+  const nameRaw = (last.name || '').trim();
+  let greeting;
+  if (nameRaw) {
+    // If name already has Mr/Ms/Mrs/Dr title, use as-is. Otherwise use full name.
+    greeting = `${timeOfDay}, ${nameRaw}!`;
+  } else {
+    greeting = `${timeOfDay}! Welcome back.`;
+  }
+
+  // Format last visit nicely
+  let lastVisitText;
+  if (daysSince === 0) {
+    lastVisitText = 'You were just here today!';
+  } else if (daysSince === 1) {
+    lastVisitText = 'You were here yesterday.';
+  } else if (daysSince < 7) {
+    lastVisitText = `Last visit: ${daysSince} days ago`;
+  } else if (daysSince < 30) {
+    const weeks = Math.floor(daysSince / 7);
+    lastVisitText = `Last visit: ${weeks} week${weeks !== 1 ? 's' : ''} ago`;
+  } else if (daysSince < 365) {
+    const months = Math.floor(daysSince / 30);
+    lastVisitText = `Last visit: ${months} month${months !== 1 ? 's' : ''} ago`;
+  } else {
+    lastVisitText = `Last visit: ${fmtDate(new Date(last.timeIn))}`;
+  }
+
+  // Build conversation prompts based on what we know
+  const prompts = [];
+  if (visitCount >= 10) {
+    prompts.push(`💬 "Always lovely to see you again, ${nameRaw || 'sir/madam'}!"`);
+  } else if (visitCount >= 5) {
+    prompts.push(`💬 "Welcome back! Great to see you again."`);
+  } else {
+    prompts.push(`💬 "Welcome back! Hope your last visit went well."`);
+  }
+
+  if (last.brand) {
+    prompts.push(`🚗 "Same lovely ${last.brand}${last.model ? ' ' + last.model : ''} today?"`);
+  }
+
+  if (daysSince > 60) {
+    prompts.push(`💬 "It's been a while — we've missed you!"`);
+  } else if (daysSince === 0) {
+    prompts.push(`💬 "Back so soon? Hope you had a great time at the Chase."`);
+  }
+
+  // Most recent bay (sometimes customers like the same bay)
+  if (last.bay) {
+    prompts.push(`🅿️ Previous bay: ${last.bay}`);
+  }
+
+  // Last notes if any
+  const recentNote = allVisits.find(v => v.notes && v.notes.trim())?.notes;
+  if (recentNote) {
+    prompts.push(`📝 Previous note: "${recentNote}"`);
+  }
+
+  // Populate the popup
+  document.getElementById('welcome-tier-emoji').textContent = tierEmoji;
+  document.getElementById('welcome-tier-label').textContent = tierLabel;
+  document.getElementById('welcome-tier-label').style.color = tierColor;
+  document.getElementById('welcome-tier-label').style.borderColor = tierColor;
+  document.getElementById('welcome-greeting').textContent = greeting;
+
+  document.getElementById('welcome-stats').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:14px 0">
+      <div style="padding:10px;background:var(--sandstone);border-radius:6px">
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--bronze);font-weight:600">Visits</div>
+        <div style="font-size:24px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1;margin-top:3px">${visitCount + 1}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${ordinal(visitCount + 1)} today</div>
+      </div>
+      <div style="padding:10px;background:var(--sandstone);border-radius:6px">
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--bronze);font-weight:600">Lifetime</div>
+        <div style="font-size:24px;font-weight:bold;color:var(--green);font-family:'Courier New',monospace;line-height:1;margin-top:3px">${fmtMoney(totalSpent)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">spent here</div>
+      </div>
+      <div style="padding:10px;background:var(--sandstone);border-radius:6px">
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--bronze);font-weight:600">Last Visit</div>
+        <div style="font-size:14px;font-weight:bold;color:var(--text);line-height:1.2;margin-top:6px">${lastVisitText.replace('Last visit: ', '')}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('welcome-vehicle').innerHTML = last.brand
+    ? `<strong>${last.brand}${last.model ? ' ' + last.model : ''}</strong>${last.colour ? ' · ' + last.colour : ''} · <span style="font-family:'Courier New',monospace">${last.rego}</span>`
+    : `<span style="font-family:'Courier New',monospace">${last.rego}</span>`;
+
+  document.getElementById('welcome-prompts').innerHTML = prompts.map(p =>
+    `<div style="padding:8px 12px;background:var(--bg);border-left:3px solid var(--bronze);margin-bottom:6px;border-radius:3px;font-size:13px;line-height:1.4">${p}</div>`
+  ).join('');
+
+  // Reset dismiss state
+  popup.dataset.rego = last.rego;
+  popup.classList.add('show');
+
+  // Vibrate to alert staff (subtle but noticeable)
+  hapticFeedback('success');
+}
+
+function dismissWelcomePopup() {
+  const popup = document.getElementById('welcome-popup');
+  // Remember dismissal for this rego so it doesn't pop again during the same entry
+  if (popup.dataset.rego) {
+    popup.dataset.dismissedRego = popup.dataset.rego;
+  }
+  popup.classList.remove('show');
+}
+
+function welcomePopupShowDetail() {
+  const popup = document.getElementById('welcome-popup');
+  const rego = popup.dataset.rego;
+  if (!rego) return;
+  // Set the banner's rego so showCustomerDetail can find them
+  document.getElementById('customer-banner').dataset.rego = rego;
+  dismissWelcomePopup();
+  showCustomerDetail();
 }
 
 function ordinal(n) {
@@ -4296,6 +4490,30 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="customer-modal-body" style="font-size:13px"></div>
     <div class="btn-row" style="justify-content:flex-end;margin-top:16px">
       <button class="btn btn-primary" onclick="closeCustomerModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- WELCOME BACK POPUP — prominent display for returning customers -->
+<div class="welcome-popup" id="welcome-popup">
+  <div class="welcome-box">
+    <div class="welcome-tier-badge">
+      <span id="welcome-tier-emoji" style="font-size:24px">🌟</span>
+      <span id="welcome-tier-label" style="font-weight:bold;letter-spacing:2px;font-size:11px;padding:4px 10px;border:2px solid;border-radius:20px;text-transform:uppercase">RETURNING CUSTOMER</span>
+    </div>
+
+    <div id="welcome-greeting" style="font-family:Georgia,serif;font-size:28px;color:var(--maroon);line-height:1.2;margin-top:14px;margin-bottom:6px;font-weight:normal">Good afternoon!</div>
+
+    <div id="welcome-vehicle" style="font-size:13px;color:var(--text-muted);margin-bottom:8px">—</div>
+
+    <div id="welcome-stats"></div>
+
+    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px;margin-top:6px">💡 Conversation Starters</div>
+    <div id="welcome-prompts"></div>
+
+    <div class="btn-row" style="justify-content:flex-end;margin-top:18px">
+      <button class="btn btn-secondary" onclick="welcomePopupShowDetail()">📋 Full History</button>
+      <button class="btn btn-primary" onclick="dismissWelcomePopup()">✓ Got It</button>
     </div>
   </div>
 </div>
