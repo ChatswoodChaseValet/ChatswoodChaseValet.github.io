@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0047)file:///C:/Users/Mick/Downloads/index_v2_3.html -->
+<!-- saved from url=(0047)file:///C:/Users/Mick/Downloads/index_v2_4.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -818,7 +818,7 @@ body.dark-mode .scan-banner {
 
   <div class="header-date">
     <div id="header-date">Wednesday 03 June 2026</div>
-    <div class="header-clock" id="header-clock">11:02</div>
+    <div class="header-clock" id="header-clock">11:09</div>
     <div id="online-indicator" style="font-size: 10px; letter-spacing: 1px; margin-top: 2px; color: rgb(126, 201, 127);">● Online</div>
   <div id="user-badge" style="font-size: 10px; letter-spacing: 1px; margin-top: 2px; color: rgb(240, 217, 168); cursor: pointer;">👤 Mick (Admin) <span style="opacity:.6">(tap to logout)</span></div></div>
 </div>
@@ -1237,7 +1237,7 @@ body.dark-mode .scan-banner {
   <div class="section">
     <div class="section-header">
       <div class="section-title">⚡ Quick Pickup</div>
-      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="qp-count">0 cars</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="qp-count">2 cars</div>
     </div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
       Tap card to checkout · 👉 Swipe right to mark out · 👈 Swipe left to request pickup<br>
@@ -1246,12 +1246,58 @@ body.dark-mode .scan-banner {
     <div style="margin-bottom:14px">
       <input type="text" id="qp-search" class="form-input" placeholder="🔍 Filter: ticket, rego, bay, name…" oninput="renderQuickPickup()" autocomplete="off">
     </div>
-    <div id="qp-cards" style="display:flex;flex-direction:column;gap:10px">
-      <div class="empty">
-        <div class="empty-icon">🅿️</div>
-        <div>No active vehicles</div>
+    <div id="qp-cards" style="display:flex;flex-direction:column;gap:10px"><div class="qp-card" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)" style="background:#fff;border:1px solid var(--border);border-left:6px solid #c79c2a;border-radius:8px;padding:14px;cursor:pointer;transition:transform .1s,box-shadow .1s;box-shadow:0 1px 3px rgba(0,0,0,.05)" onmousedown="this.style.transform=&#39;scale(.98)&#39;" onmouseup="this.style.transform=&#39;&#39;" ontouchstart="this.style.transform=&#39;scale(.98)&#39;" ontouchend="this.style.transform=&#39;&#39;">
+      
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-family:&#39;Courier New&#39;,monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">A-002</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Mick</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--bronze);font-weight:600">Bay</div>
+          <div style="font-size:24px;font-weight:bold;color:var(--maroon);line-height:1">12</div>
+        </div>
       </div>
-    </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:10px">
+        <div><span style="color:var(--text-muted);font-size:11px">BRAND</span><br><b>Tesla</b></div>
+        <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:&#39;Courier New&#39;,monospace">FSN10T</b></div>
+        <div><span style="color:var(--text-muted);font-size:11px">IN AT</span><br>08:54</div>
+        <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:#c79c2a">2h 15m</b></div>
+      </div>
+      
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="tel:0433273377" class="btn btn-secondary" style="flex:0 0 auto;padding:14px 16px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" onclick="event.stopPropagation()" title="Call 0433273377">📞</a>
+        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" style="flex:1;padding:14px 10px;font-size:13px">⏱ Request</button>
+        <button class="btn btn-primary" onclick="event.stopPropagation();checkout(&#39;1780440912814-jpdl0f&#39;)" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · $23.00</button>
+      </div>
+    </div><div class="qp-card" onclick="checkout(&#39;1780444884018-mefkxu&#39;)" style="background:#fff;border:1px solid var(--border);border-left:6px solid var(--green);border-radius:8px;padding:14px;cursor:pointer;transition:transform .1s,box-shadow .1s;box-shadow:0 1px 3px rgba(0,0,0,.05)" onmousedown="this.style.transform=&#39;scale(.98)&#39;" onmouseup="this.style.transform=&#39;&#39;" ontouchstart="this.style.transform=&#39;scale(.98)&#39;" ontouchend="this.style.transform=&#39;&#39;">
+      
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-family:&#39;Courier New&#39;,monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">A-004</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Kowit</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--bronze);font-weight:600">Bay</div>
+          <div style="font-size:24px;font-weight:bold;color:var(--maroon);line-height:1">B4</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:10px">
+        <div><span style="color:var(--text-muted);font-size:11px">BRAND</span><br><b>Subaru</b></div>
+        <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:&#39;Courier New&#39;,monospace">BGR25T</b></div>
+        <div><span style="color:var(--text-muted);font-size:11px">IN AT</span><br>09:57</div>
+        <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:var(--green)">1h 12m</b></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewPhoto(&#39;1780444884018-mefkxu&#39;)" title="View photo">📸 Photo</button>
+          
+        </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="tel:0422790986" class="btn btn-secondary" style="flex:0 0 auto;padding:14px 16px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" onclick="event.stopPropagation()" title="Call 0422790986">📞</a>
+        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" style="flex:1;padding:14px 10px;font-size:13px">⏱ Request</button>
+        <button class="btn btn-primary" onclick="event.stopPropagation();checkout(&#39;1780444884018-mefkxu&#39;)" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · $20.00</button>
+      </div>
+    </div></div>
   </div>
 </div>
 
@@ -1260,7 +1306,7 @@ body.dark-mode .scan-banner {
   <div class="section">
     <div class="section-header">
       <div class="section-title">Currently On Site</div>
-      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="active-count">0 vehicles</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="active-count">2 vehicles</div>
     </div>
     <div class="table-wrap">
       <table>
@@ -1277,9 +1323,35 @@ body.dark-mode .scan-banner {
             <th>Action</th>
           </tr>
         </thead>
-        <tbody id="active-tbody">
-          <tr><td colspan="9" class="empty" style="border-bottom:none">No active vehicles</td></tr>
-        </tbody>
+        <tbody id="active-tbody"><tr class="active" style="">
+      <td class="ticket-num">A-002</td>
+      <td>08:54</td>
+      <td><span style="color:#7a5a00;background:#fff3d4;font-weight:bold;padding:3px 8px;border-radius:3px;border:1px solid #e8c99c">2h 15m</span></td>
+      <td><b>Tesla</b></td>
+      <td>Y</td>
+      <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
+      <td><b>12</b></td>
+      <td style="font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$23.00</td>
+      <td>
+        <a href="tel:0433273377" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call 0433273377">📞</a>
+        <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" title="Customer asked for car">⏱ Request</button>
+        <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)" style="margin-left:4px">✓ Mark Out</button>
+      </td>
+    </tr><tr class="active" style="">
+      <td class="ticket-num">A-004</td>
+      <td>09:57</td>
+      <td><span style="color:var(--green);font-weight:bold">1h 12m</span></td>
+      <td><b>Subaru</b></td>
+      <td>—</td>
+      <td style="font-family:&#39;Courier New&#39;,monospace">BGR25T</td>
+      <td><b>B4</b></td>
+      <td style="font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$20.00</td>
+      <td>
+        <a href="tel:0422790986" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call 0422790986">📞</a>
+        <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" title="Customer asked for car">⏱ Request</button>
+        <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780444884018-mefkxu&#39;)" style="margin-left:4px">✓ Mark Out</button>
+      </td>
+    </tr></tbody>
       </table>
     </div>
   </div>
@@ -1290,7 +1362,7 @@ body.dark-mode .scan-banner {
   <div class="section">
     <div class="section-header">
       <div class="section-title">Full Log</div>
-      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="log-count">0 entries total</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="log-count">4 entries total</div>
     </div>
     <div class="filters">
       <div class="filter-field">
@@ -1322,9 +1394,83 @@ body.dark-mode .scan-banner {
             <th></th>
           </tr>
         </thead>
-        <tbody id="log-tbody">
-          <tr><td colspan="12" class="empty" style="border-bottom:none">No entries yet</td></tr>
-        </tbody>
+        <tbody id="log-tbody"><tr class="active">
+      <td class="ticket-num">A-004</td>
+      <td>03 June 2026</td>
+      <td>09:57</td>
+      <td>—</td>
+      <td>—</td>
+      <td><b>Subaru</b></td>
+      <td>—</td>
+      <td>Gold</td>
+      <td style="font-family:&#39;Courier New&#39;,monospace">BGR25T</td>
+      <td>B4</td>
+      <td><span class="status-pill status-active">On Site</span></td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="viewPhoto(&#39;1780444884018-mefkxu&#39;)" style="margin-right:4px" title="View car photo">📸</button>
+        
+        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780444884018-mefkxu&#39;)" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780444884018-mefkxu&#39;)">✓ Out</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780444884018-mefkxu&#39;)" style="margin-left:4px">✕</button>
+      </td>
+    </tr><tr class="">
+      <td class="ticket-num">A-003</td>
+      <td>03 June 2026</td>
+      <td>09:18</td>
+      <td>09:19</td>
+      <td>1m</td>
+      <td><b>Toyota</b></td>
+      <td>Rav4</td>
+      <td>Silver</td>
+      <td style="font-family:&#39;Courier New&#39;,monospace">ECC67N</td>
+      <td>10</td>
+      <td><span class="status-pill status-completed">Completed</span></td>
+      <td>
+        
+        
+        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780442364755-mrli6x&#39;)" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-secondary btn-sm" onclick="undoCheckout(&#39;1780442364755-mrli6x&#39;)">↶ Undo</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780442364755-mrli6x&#39;)" style="margin-left:4px">✕</button>
+      </td>
+    </tr><tr class="active">
+      <td class="ticket-num">A-002</td>
+      <td>03 June 2026</td>
+      <td>08:54</td>
+      <td>—</td>
+      <td>—</td>
+      <td><b>Tesla</b></td>
+      <td>Y</td>
+      <td>White</td>
+      <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
+      <td>12</td>
+      <td><span class="status-pill status-active">On Site</span></td>
+      <td>
+        
+        
+        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780440912814-jpdl0f&#39;)" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)">✓ Out</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780440912814-jpdl0f&#39;)" style="margin-left:4px">✕</button>
+      </td>
+    </tr><tr class="">
+      <td class="ticket-num">A-001</td>
+      <td>03 June 2026</td>
+      <td>08:51</td>
+      <td>08:54</td>
+      <td>3m</td>
+      <td><b>Tesla</b></td>
+      <td>Y</td>
+      <td>White</td>
+      <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
+      <td>12</td>
+      <td><span class="status-pill status-completed">Completed</span></td>
+      <td>
+        
+        
+        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780440821974-zxjpct&#39;)" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-secondary btn-sm" onclick="undoCheckout(&#39;1780440821974-zxjpct&#39;)">↶ Undo</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780440821974-zxjpct&#39;)" style="margin-left:4px">✕</button>
+      </td>
+    </tr></tbody>
       </table>
     </div>
   </div>
@@ -5480,6 +5626,17 @@ function handleRealtimeSettingsChange(payload) {
 }
 
 function refreshActiveViews() {
+  // Re-render whichever views are mounted. We render all of them because
+  // when a non-active view becomes active via tab click, it should already
+  // be up to date — avoids stale data flashing when switching tabs.
+  try { renderDashboard(); } catch(e) {}
+  try { renderActive(); } catch(e) {}
+  try { renderQuickPickup(); } catch(e) {}
+  try { renderLog(); } catch(e) {}
+}
+
+function refreshActiveViewOnly() {
+  // For situations where we only want to refresh the currently visible view
   const views = ['dashboard','quick-pickup','active','log','reports'];
   views.forEach(name => {
     const v = document.getElementById('view-' + name);
@@ -5676,6 +5833,7 @@ function showCloudLoadStatus(msg, type) {
 async function forceReloadFromCloud() {
   showCloudLoadStatus('⏳ Reloading from cloud…', 'success');
   await loadFromCloud();
+  // Re-render every view so whatever tab the user is on shows fresh data
   refreshActiveViews();
 }
 
@@ -5860,8 +6018,12 @@ function initializeUI() {
   updateHapticsUI();
   updateOnlineStatus();
   loadHandoverNotes();
+  // Render ALL views so any active tab is current
   renderDashboard();
   prepareNewEntry();
+  renderActive();
+  renderQuickPickup();
+  renderLog();
   setReportRange(7);
   restoreAutoSave();
 
