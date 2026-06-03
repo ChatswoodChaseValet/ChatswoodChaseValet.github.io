@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0047)file:///C:/Users/Mick/Downloads/index_v2_2.html -->
+<!-- saved from url=(0047)file:///C:/Users/Mick/Downloads/index_v2_3.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -818,7 +818,7 @@ body.dark-mode .scan-banner {
 
   <div class="header-date">
     <div id="header-date">Wednesday 03 June 2026</div>
-    <div class="header-clock" id="header-clock">10:49</div>
+    <div class="header-clock" id="header-clock">11:02</div>
     <div id="online-indicator" style="font-size: 10px; letter-spacing: 1px; margin-top: 2px; color: rgb(126, 201, 127);">● Online</div>
   <div id="user-badge" style="font-size: 10px; letter-spacing: 1px; margin-top: 2px; color: rgb(240, 217, 168); cursor: pointer;">👤 Mick (Admin) <span style="opacity:.6">(tap to logout)</span></div></div>
 </div>
@@ -1521,6 +1521,13 @@ body.dark-mode .scan-banner {
           <div style="font-size:12px;color:var(--text-muted)">Required when opening dashboard (4-6 digits)</div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="changePIN()">🔢 Change PIN</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
+        <div>
+          <div style="font-weight:600;font-size:13px">Force Reload from Cloud</div>
+          <div style="font-size:12px;color:var(--text-muted)">Fetches the latest data from cloud database (use if dashboard looks out-of-date)</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="forceReloadFromCloud()">🔄 Reload</button>
       </div>
     </div>
   </div>
@@ -5620,16 +5627,56 @@ async function completeLogin() {
 
 async function loadFromCloud() {
   try {
-    entries = await cloudLoadAllEntries();
+    const cloudEntries = await cloudLoadAllEntries();
     cloudSettings = await cloudLoadSettings();
+    entries = cloudEntries;
     settings.prefix = cloudSettings.ticket_prefix || 'A-';
-    settings.nextNum = cloudSettings.next_ticket_num || 1;
+    if (cloudSettings.next_ticket_num !== undefined && cloudSettings.next_ticket_num !== null) {
+      settings.nextNum = cloudSettings.next_ticket_num;
+    }
     // Cache locally for offline
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    // Show visible confirmation banner
+    showCloudLoadStatus('✓ Loaded ' + entries.length + ' entries from cloud', 'success');
   } catch (e) {
-    console.warn('Cloud load failed, using local cache:', e);
+    console.error('Cloud load failed:', e);
     loadData(); // Fall back to local cache
+    showCloudLoadStatus('⚠ Could not load from cloud: ' + (e.message || 'Unknown error') + ' — showing local cache (' + entries.length + ' entries)', 'error');
   }
+}
+
+function showCloudLoadStatus(msg, type) {
+  // Create or update a small banner near the top
+  let banner = document.getElementById('cloud-load-status');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'cloud-load-status';
+    banner.style.cssText = 'position:fixed;top:8px;right:8px;padding:8px 14px;border-radius:4px;font-size:12px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.2);max-width:380px';
+    document.body.appendChild(banner);
+  }
+  if (type === 'success') {
+    banner.style.background = '#2a5a2a';
+    banner.style.color = '#c5e6c5';
+  } else {
+    banner.style.background = '#a83838';
+    banner.style.color = '#fff';
+  }
+  banner.textContent = msg;
+  banner.style.display = 'block';
+  // Auto-hide success after 4 seconds, errors stay until dismissed
+  if (type === 'success') {
+    setTimeout(() => { if (banner) banner.style.display = 'none'; }, 4000);
+  } else {
+    banner.style.cursor = 'pointer';
+    banner.title = 'Click to dismiss';
+    banner.onclick = () => banner.style.display = 'none';
+  }
+}
+
+async function forceReloadFromCloud() {
+  showCloudLoadStatus('⏳ Reloading from cloud…', 'success');
+  await loadFromCloud();
+  refreshActiveViews();
 }
 
 function retryConnection() {
@@ -6322,4 +6369,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-</body></html>
+<div id="cloud-load-status" style="position: fixed; top: 8px; right: 8px; padding: 8px 14px; border-radius: 4px; font-size: 12px; z-index: 200; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px; max-width: 380px; background: rgb(42, 90, 42); color: rgb(197, 230, 197); display: none;">✓ Loaded 4 entries from cloud</div></body></html>
