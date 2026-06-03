@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0047)file:///C:/Users/Mick/Downloads/index_v2_1.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chatswood Chase Valet Dashboard</title>
 <style>
@@ -735,10 +735,10 @@ body.dark-mode .scan-banner {
 <!-- ════════════════════════════════════════════
      LOGIN OVERLAY — shown until authenticated
      ════════════════════════════════════════════ -->
-<div id="login-overlay">
+<div id="login-overlay" style="display: none;">
   <div class="login-card">
     <svg width="48" height="48" viewBox="0 0 100 100" style="margin-bottom:10px">
-      <circle cx="50" cy="50" r="46" fill="none" stroke="#8b6f47" stroke-width="2"/>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#8b6f47" stroke-width="2"></circle>
       <text x="50" y="64" text-anchor="middle" font-family="Georgia,serif" font-size="36" fill="#6b1d24">C</text>
     </svg>
     <div style="font-family:Georgia,serif;font-size:22px;color:#6b1d24;letter-spacing:2px;font-weight:normal">CHATSWOOD CHASE</div>
@@ -750,9 +750,7 @@ body.dark-mode .scan-banner {
 
     <div id="login-stage-pin" class="login-stage" style="display:none">
       <div style="font-size:14px;color:#2a2620;margin-bottom:14px;font-weight:600">Enter Access PIN</div>
-      <input type="password" id="login-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"
-             class="login-input" placeholder="• • • •"
-             style="font-size:24px;letter-spacing:8px;text-align:center"/>
+      <input type="password" id="login-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" class="login-input" placeholder="• • • •" style="font-size:24px;letter-spacing:8px;text-align:center">
       <div id="login-pin-error" class="login-error"></div>
       <button class="login-btn" onclick="checkPIN()">Continue</button>
     </div>
@@ -769,7 +767,7 @@ body.dark-mode .scan-banner {
       <div style="font-size:14px;color:#2a2620;margin-bottom:8px;font-weight:600">
         Signing in as <span id="login-selected-user" style="color:#6b1d24"></span>
       </div>
-      <input type="password" id="login-password" autocomplete="current-password" class="login-input" placeholder="Password"/>
+      <input type="password" id="login-password" autocomplete="current-password" class="login-input" placeholder="Password">
       <div id="login-password-error" class="login-error"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="login-btn-secondary" onclick="backToUserSelect()" style="flex:1">← Back</button>
@@ -799,17 +797,17 @@ body.dark-mode .scan-banner {
 <div class="header">
   <div class="header-left">
     <svg width="34" height="34" viewBox="0 0 100 100" style="flex-shrink:0">
-      <circle cx="50" cy="50" r="46" fill="none" stroke="#e8c99c" stroke-width="2"/>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#e8c99c" stroke-width="2"></circle>
       <text x="50" y="64" text-anchor="middle" font-family="Georgia,serif" font-size="36" fill="#e8c99c">C</text>
     </svg>
     <div>
       <div class="header-title">CHATSWOOD CHASE VALET</div>
-      <div class="header-subtitle">— Dashboard & Records —</div>
+      <div class="header-subtitle">— Dashboard &amp; Records —</div>
     </div>
   </div>
 
   <div class="quick-search">
-    <input type="text" id="quick-search" placeholder="🔍 Quick lookup: ticket #, rego, bay…" autocomplete="off"/>
+    <input type="text" id="quick-search" placeholder="🔍 Quick lookup: ticket #, rego, bay…" autocomplete="off">
     <div class="quick-results" id="quick-results"></div>
   </div>
 
@@ -819,21 +817,21 @@ body.dark-mode .scan-banner {
   </div>
 
   <div class="header-date">
-    <div id="header-date">—</div>
-    <div class="header-clock" id="header-clock">—</div>
-    <div id="online-indicator" style="font-size:10px;letter-spacing:1px;margin-top:2px">● Online</div>
-  </div>
+    <div id="header-date">Wednesday 03 June 2026</div>
+    <div class="header-clock" id="header-clock">10:41</div>
+    <div id="online-indicator" style="font-size: 10px; letter-spacing: 1px; margin-top: 2px; color: rgb(126, 201, 127);">● Online</div>
+  <div id="user-badge" style="font-size: 10px; letter-spacing: 1px; margin-top: 2px; color: rgb(240, 217, 168); cursor: pointer;">👤 Mick (Admin) <span style="opacity:.6">(tap to logout)</span></div></div>
 </div>
 
 <!-- TABS -->
 <div class="tabs">
-  <button class="tab active" onclick="showView('dashboard')">📊 Dashboard</button>
-  <button class="tab" onclick="showView('new-entry')">🚗 New Entry</button>
-  <button class="tab" onclick="showView('quick-pickup')">⚡ Quick Pickup</button>
-  <button class="tab" onclick="showView('active')">🅿️ Active Cars</button>
-  <button class="tab" onclick="showView('log')">📋 Full Log</button>
-  <button class="tab" onclick="showView('reports')">📈 Reports</button>
-  <button class="tab" onclick="showView('settings')">⚙️ Settings</button>
+  <button class="tab active" onclick="showView(&#39;dashboard&#39;)">📊 Dashboard</button>
+  <button class="tab" onclick="showView(&#39;new-entry&#39;)">🚗 New Entry</button>
+  <button class="tab" onclick="showView(&#39;quick-pickup&#39;)">⚡ Quick Pickup</button>
+  <button class="tab" onclick="showView(&#39;active&#39;)">🅿️ Active Cars</button>
+  <button class="tab" onclick="showView(&#39;log&#39;)">📋 Full Log</button>
+  <button class="tab" onclick="showView(&#39;reports&#39;)">📈 Reports</button>
+  <button class="tab" onclick="showView(&#39;settings&#39;)">⚙️ Settings</button>
 </div>
 
 <div class="main">
@@ -843,17 +841,17 @@ body.dark-mode .scan-banner {
   <div class="stats-row">
     <div class="stat-card maroon">
       <div class="stat-label">Today — Cars In</div>
-      <div class="stat-value" id="stat-today-in">0</div>
-      <div class="stat-sub" id="stat-today-date">—</div>
+      <div class="stat-value" id="stat-today-in">4</div>
+      <div class="stat-sub" id="stat-today-date">03 June 2026</div>
     </div>
     <div class="stat-card green">
       <div class="stat-label">Today — Cars Out</div>
-      <div class="stat-value" id="stat-today-out">0</div>
+      <div class="stat-value" id="stat-today-out">2</div>
       <div class="stat-sub">Vehicles returned</div>
     </div>
     <div class="stat-card bronze">
       <div class="stat-label">Currently On Site</div>
-      <div class="stat-value" id="stat-active">0</div>
+      <div class="stat-value" id="stat-active">2</div>
       <div class="stat-sub">Awaiting pickup</div>
     </div>
     <div class="stat-card" id="stat-pickup-card" style="display:none">
@@ -863,12 +861,12 @@ body.dark-mode .scan-banner {
     </div>
     <div class="stat-card">
       <div class="stat-label">Today's Revenue</div>
-      <div class="stat-value" id="stat-revenue" style="color:var(--green)">$0</div>
+      <div class="stat-value" id="stat-revenue" style="color:var(--green)">$40.00</div>
       <div class="stat-sub">From completed pickups</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Avg Stay Today</div>
-      <div class="stat-value" id="stat-avg-stay">—</div>
+      <div class="stat-value" id="stat-avg-stay">2m</div>
       <div class="stat-sub">From completed trips</div>
     </div>
   </div>
@@ -888,14 +886,30 @@ body.dark-mode .scan-banner {
   <div class="section">
     <div class="section-header">
       <div class="section-title">Today's Top Brands</div>
-      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="brand-today-summary"></div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="brand-today-summary">4 cars · 3 brands</div>
     </div>
     <div id="brand-today-list">
-      <div class="empty">
-        <div class="empty-icon">🚗</div>
-        <div>No cars logged yet today</div>
+    <div class="brand-row">
+      <div class="brand-name">Tesla</div>
+      <div class="brand-bar-wrap">
+        <div class="brand-bar" style="width:100%"></div>
       </div>
+      <div class="brand-count">2</div>
     </div>
+    <div class="brand-row">
+      <div class="brand-name">Subaru</div>
+      <div class="brand-bar-wrap">
+        <div class="brand-bar" style="width:50%"></div>
+      </div>
+      <div class="brand-count">1</div>
+    </div>
+    <div class="brand-row">
+      <div class="brand-name">Toyota</div>
+      <div class="brand-bar-wrap">
+        <div class="brand-bar" style="width:50%"></div>
+      </div>
+      <div class="brand-count">1</div>
+    </div></div>
   </div>
 
   <div class="section">
@@ -903,7 +917,7 @@ body.dark-mode .scan-banner {
       <div class="section-title">Recent Activity</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" onclick="printDailySummary()">🖨 Print Today's Summary</button>
-        <button class="btn btn-secondary btn-sm" onclick="showView('log')">View All →</button>
+        <button class="btn btn-secondary btn-sm" onclick="showView(&#39;log&#39;)">View All →</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -920,8 +934,42 @@ body.dark-mode .scan-banner {
           </tr>
         </thead>
         <tbody id="recent-tbody">
-          <tr><td colspan="7" class="empty" style="border-bottom:none">No entries yet</td></tr>
-        </tbody>
+      <tr class="active">
+        <td class="ticket-num">A-004</td>
+        <td>09:57</td>
+        <td><b>Subaru</b> </td>
+        <td style="font-family:&#39;Courier New&#39;,monospace">BGR25T</td>
+        <td>B4</td>
+        <td><span class="status-pill status-active">On Site</span></td>
+        <td>—</td>
+      </tr>
+      <tr class="">
+        <td class="ticket-num">A-003</td>
+        <td>09:18</td>
+        <td><b>Toyota</b> <span style="color:var(--text-muted)">Rav4</span></td>
+        <td style="font-family:&#39;Courier New&#39;,monospace">ECC67N</td>
+        <td>10</td>
+        <td><span class="status-pill status-completed">Completed</span></td>
+        <td>09:19</td>
+      </tr>
+      <tr class="active">
+        <td class="ticket-num">A-002</td>
+        <td>08:54</td>
+        <td><b>Tesla</b> <span style="color:var(--text-muted)">Y</span></td>
+        <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
+        <td>12</td>
+        <td><span class="status-pill status-active">On Site</span></td>
+        <td>—</td>
+      </tr>
+      <tr class="">
+        <td class="ticket-num">A-001</td>
+        <td>08:51</td>
+        <td><b>Tesla</b> <span style="color:var(--text-muted)">Y</span></td>
+        <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
+        <td>12</td>
+        <td><span class="status-pill status-completed">Completed</span></td>
+        <td>08:54</td>
+      </tr></tbody>
       </table>
     </div>
   </div>
@@ -962,12 +1010,12 @@ body.dark-mode .scan-banner {
         <label class="form-label">
           Ticket Number
           <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">
-            <input type="checkbox" id="f-ticket-manual" onchange="toggleManualTicket()" style="vertical-align:middle;margin-right:3px"/>
+            <input type="checkbox" id="f-ticket-manual" onchange="toggleManualTicket()" style="vertical-align:middle;margin-right:3px">
             <label for="f-ticket-manual" style="cursor:pointer">edit manually</label>
           </span>
         </label>
         <div style="display:flex;gap:6px">
-          <input type="text" id="f-ticket" class="form-input" readonly style="background:var(--sandstone);font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);flex:1"/>
+          <input type="text" id="f-ticket" class="form-input" readonly="" style="background:var(--sandstone);font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon);flex:1">
           <button type="button" class="btn btn-secondary btn-sm" onclick="useAutoTicket()" id="auto-ticket-btn" style="white-space:nowrap;display:none">⟳ Auto</button>
         </div>
       </div>
@@ -975,18 +1023,18 @@ body.dark-mode .scan-banner {
         <label class="form-label">
           Time In
           <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">
-            <input type="checkbox" id="f-time-manual" onchange="toggleManualTime()" style="vertical-align:middle;margin-right:3px"/>
+            <input type="checkbox" id="f-time-manual" onchange="toggleManualTime()" style="vertical-align:middle;margin-right:3px">
             <label for="f-time-manual" style="cursor:pointer">edit manually</label>
           </span>
         </label>
         <div style="display:flex;gap:6px">
-          <input type="time" id="f-time" class="form-input" readonly style="background:var(--sandstone);flex:1"/>
+          <input type="time" id="f-time" class="form-input" readonly="" style="background:var(--sandstone);flex:1">
           <button type="button" class="btn btn-secondary btn-sm" onclick="useNow()" id="now-btn" style="white-space:nowrap;display:none">⟳ Now</button>
         </div>
       </div>
       <div class="form-field">
         <label class="form-label">Parking Bay<span class="required">*</span></label>
-        <input type="text" id="f-bay" class="form-input" placeholder="e.g. B-12" autocomplete="off"/>
+        <input type="text" id="f-bay" class="form-input" placeholder="e.g. B-12" autocomplete="off">
       </div>
     </div>
 
@@ -1084,11 +1132,11 @@ body.dark-mode .scan-banner {
       </div>
       <div class="form-field">
         <label class="form-label">Model</label>
-        <input type="text" id="f-model" class="form-input" placeholder="e.g. Camry" autocomplete="off"/>
+        <input type="text" id="f-model" class="form-input" placeholder="e.g. Camry" autocomplete="off">
       </div>
       <div class="form-field">
         <label class="form-label">Colour</label>
-        <input type="text" id="f-colour" class="form-input" placeholder="e.g. Silver" autocomplete="off"/>
+        <input type="text" id="f-colour" class="form-input" placeholder="e.g. Silver" autocomplete="off">
       </div>
     </div>
 
@@ -1099,29 +1147,29 @@ body.dark-mode .scan-banner {
           <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">📷 Snap · 🎤 Voice · ⌨️ Type</span>
         </label>
         <div style="display:flex;gap:6px">
-          <input type="text" id="f-rego" class="form-input" placeholder="e.g. ABC 123" autocomplete="off" style="text-transform:uppercase;flex:1"/>
+          <input type="text" id="f-rego" class="form-input" placeholder="e.g. ABC 123" autocomplete="off" style="text-transform:uppercase;flex:1">
           <button type="button" class="btn btn-secondary btn-sm" onclick="startVoicePlate()" title="Voice-to-text plate entry" style="white-space:nowrap" id="voice-btn">🎤</button>
           <button type="button" class="btn btn-secondary btn-sm" onclick="openPlateScan()" title="Use camera to scan number plate" style="white-space:nowrap">📷 Snap</button>
         </div>
       </div>
       <div class="form-field">
         <label class="form-label">Customer Name</label>
-        <input type="text" id="f-name" class="form-input" placeholder="Optional" autocomplete="off"/>
+        <input type="text" id="f-name" class="form-input" placeholder="Optional" autocomplete="off">
       </div>
       <div class="form-field">
         <label class="form-label">Phone</label>
-        <input type="tel" id="f-phone" class="form-input" placeholder="Optional" autocomplete="off"/>
+        <input type="tel" id="f-phone" class="form-input" placeholder="Optional" autocomplete="off">
       </div>
       <div class="form-field">
         <label class="form-label">Attendant (taking car)</label>
-        <input type="text" id="f-attendant" class="form-input" placeholder="e.g. JD" autocomplete="off" maxlength="6" style="text-transform:uppercase"/>
+        <input type="text" id="f-attendant" class="form-input" placeholder="e.g. JD" autocomplete="off" maxlength="6" style="text-transform:uppercase">
       </div>
     </div>
 
     <div class="form-grid">
       <div class="form-field" style="grid-column:1/-1">
         <label class="form-label">Notes</label>
-        <input type="text" id="f-notes" class="form-input" placeholder="Optional — damage observations, special instructions, etc." autocomplete="off"/>
+        <input type="text" id="f-notes" class="form-input" placeholder="Optional — damage observations, special instructions, etc." autocomplete="off">
       </div>
     </div>
 
@@ -1130,7 +1178,7 @@ body.dark-mode .scan-banner {
       <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;flex:1 1 100%">Optional extras for legal protection</div>
       <button type="button" class="btn btn-secondary btn-sm" onclick="takeCarPhoto()" id="photo-btn">📸 Photo of Car</button>
       <button type="button" class="btn btn-secondary btn-sm" onclick="captureGPS()" id="gps-btn">📍 Save Bay Location</button>
-      <input type="file" id="f-photo-input" accept="image/*" capture="environment" style="display:none" onchange="onCarPhotoSelected(event)"/>
+      <input type="file" id="f-photo-input" accept="image/*" capture="environment" style="display:none" onchange="onCarPhotoSelected(event)">
       <span id="photo-status" style="font-size:12px;color:var(--text-muted);font-style:italic"></span>
       <span id="gps-status" style="font-size:12px;color:var(--text-muted);font-style:italic"></span>
     </div>
@@ -1152,25 +1200,25 @@ body.dark-mode .scan-banner {
       <div>
         <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:10px">Parking Time Charges</div>
         <table style="width:100%;font-size:12px">
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">0 — 2 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold;color:var(--green)">FREE</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">2 — 2.5 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$3</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">2.5 — 3 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$5</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">3 — 3.5 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$7</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">3.5 — 4 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$10</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">4 — 4.5 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$20</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">4.5 — 5 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$25</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">5 — 5.5 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$30</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">5.5 — 6 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$35</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">6 — 6.5 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$40</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">6.5 — 7 hrs</td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold">$45</td></tr>
-          <tr><td style="padding:4px 0"><b>7+ hrs (daily max)</b></td><td style="text-align:right;font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">$80</td></tr>
-        </table>
+          <tbody><tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">0 — 2 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--green)">FREE</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">2 — 2.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$3</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">2.5 — 3 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$5</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">3 — 3.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$7</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">3.5 — 4 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$10</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">4 — 4.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$20</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">4.5 — 5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$25</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">5 — 5.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$30</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">5.5 — 6 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$35</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">6 — 6.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$40</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">6.5 — 7 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$45</td></tr>
+          <tr><td style="padding:4px 0"><b>7+ hrs (daily max)</b></td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$80</td></tr>
+        </tbody></table>
       </div>
       <div>
         <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:10px">Valet Service</div>
         <div style="background:var(--sandstone);padding:14px;border-radius:4px;border-left:3px solid var(--maroon);margin-bottom:14px">
           <div style="font-size:13px;line-height:1.7">
-            <strong>Valet fee:</strong> <span style="font-family:'Courier New',monospace;color:var(--maroon);font-weight:bold">$20 per day</span><br>
+            <strong>Valet fee:</strong> <span style="font-family:&#39;Courier New&#39;,monospace;color:var(--maroon);font-weight:bold">$20 per day</span><br>
             <strong>First 2 hours:</strong> <span style="color:var(--green);font-weight:bold">Complimentary parking</span><br>
             <strong>After 2 hours:</strong> Standard parking rates apply <em style="color:var(--text-muted)">in addition to $20 valet fee</em>
           </div>
@@ -1196,7 +1244,7 @@ body.dark-mode .scan-banner {
       Long-stay cars highlighted · Sorted by pickup-requested first, then longest stay.
     </div>
     <div style="margin-bottom:14px">
-      <input type="text" id="qp-search" class="form-input" placeholder="🔍 Filter: ticket, rego, bay, name…" oninput="renderQuickPickup()" autocomplete="off"/>
+      <input type="text" id="qp-search" class="form-input" placeholder="🔍 Filter: ticket, rego, bay, name…" oninput="renderQuickPickup()" autocomplete="off">
     </div>
     <div id="qp-cards" style="display:flex;flex-direction:column;gap:10px">
       <div class="empty">
@@ -1247,11 +1295,11 @@ body.dark-mode .scan-banner {
     <div class="filters">
       <div class="filter-field">
         <label class="form-label">Date</label>
-        <input type="date" id="log-date" class="form-input" onchange="renderLog()"/>
+        <input type="date" id="log-date" class="form-input" onchange="renderLog()">
       </div>
       <div class="filter-field" style="flex:1;min-width:200px">
         <label class="form-label">Search</label>
-        <input type="text" id="log-search" class="form-input" placeholder="Ticket, rego, brand…" oninput="renderLog()"/>
+        <input type="text" id="log-search" class="form-input" placeholder="Ticket, rego, brand…" oninput="renderLog()">
       </div>
       <button class="btn btn-secondary" onclick="clearLogFilters()">Clear Filters</button>
       <button class="btn btn-secondary" onclick="exportCSV()">⤓ Export CSV</button>
@@ -1287,42 +1335,42 @@ body.dark-mode .scan-banner {
   <div class="filters">
     <div class="filter-field">
       <label class="form-label">From</label>
-      <input type="date" id="report-from" class="form-input" onchange="renderReports()"/>
+      <input type="date" id="report-from" class="form-input" onchange="renderReports()">
     </div>
     <div class="filter-field">
       <label class="form-label">To</label>
-      <input type="date" id="report-to" class="form-input" onchange="renderReports()"/>
+      <input type="date" id="report-to" class="form-input" onchange="renderReports()">
     </div>
     <button class="btn btn-secondary" onclick="setReportRange(7)">Last 7 Days</button>
     <button class="btn btn-secondary" onclick="setReportRange(30)">Last 30 Days</button>
-    <button class="btn btn-secondary" onclick="setReportRange('month')">This Month</button>
-    <button class="btn btn-secondary" onclick="setReportRange('all')">All Time</button>
+    <button class="btn btn-secondary" onclick="setReportRange(&#39;month&#39;)">This Month</button>
+    <button class="btn btn-secondary" onclick="setReportRange(&#39;all&#39;)">All Time</button>
   </div>
 
   <div class="stats-row">
     <div class="stat-card maroon">
       <div class="stat-label">Total Cars</div>
-      <div class="stat-value" id="rep-total">0</div>
-      <div class="stat-sub" id="rep-range">—</div>
+      <div class="stat-value" id="rep-total">4</div>
+      <div class="stat-sub" id="rep-range">2026-05-28 → 2026-06-03</div>
     </div>
     <div class="stat-card green">
       <div class="stat-label">Completed</div>
-      <div class="stat-value" id="rep-completed">0</div>
+      <div class="stat-value" id="rep-completed">2</div>
       <div class="stat-sub">Picked up</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Total Revenue</div>
-      <div class="stat-value" id="rep-revenue" style="color:var(--green)">$0</div>
+      <div class="stat-value" id="rep-revenue" style="color:var(--green)">$40.00</div>
       <div class="stat-sub">Valet + parking fees</div>
     </div>
     <div class="stat-card bronze">
       <div class="stat-label">Daily Average</div>
-      <div class="stat-value" id="rep-avg">0</div>
+      <div class="stat-value" id="rep-avg">0.6</div>
       <div class="stat-sub">Cars per day</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Unique Brands</div>
-      <div class="stat-value" id="rep-brands">0</div>
+      <div class="stat-value" id="rep-brands">3</div>
       <div class="stat-sub">Different makes</div>
     </div>
   </div>
@@ -1332,8 +1380,27 @@ body.dark-mode .scan-banner {
       <div class="section-title">Brand Breakdown</div>
     </div>
     <div id="rep-brand-list">
-      <div class="empty">No data in this range</div>
+    <div class="brand-row">
+      <div class="brand-name">Tesla</div>
+      <div class="brand-bar-wrap">
+        <div class="brand-bar" style="width:100%"></div>
+      </div>
+      <div class="brand-count">2</div>
     </div>
+    <div class="brand-row">
+      <div class="brand-name">Subaru</div>
+      <div class="brand-bar-wrap">
+        <div class="brand-bar" style="width:50%"></div>
+      </div>
+      <div class="brand-count">1</div>
+    </div>
+    <div class="brand-row">
+      <div class="brand-name">Toyota</div>
+      <div class="brand-bar-wrap">
+        <div class="brand-bar" style="width:50%"></div>
+      </div>
+      <div class="brand-count">1</div>
+    </div></div>
   </div>
 
   <div class="section">
@@ -1341,17 +1408,20 @@ body.dark-mode .scan-banner {
       <div class="section-title">Daily Volume</div>
     </div>
     <div id="rep-daily-list">
-      <div class="empty">No data in this range</div>
-    </div>
+      <div class="brand-row">
+        <div class="brand-name" style="font-family:&#39;Courier New&#39;,monospace;font-size:12px">02 June 2026</div>
+        <div class="brand-bar-wrap">
+          <div class="brand-bar" style="width:100%;background:linear-gradient(90deg,var(--bronze),var(--bronze-light))"></div>
+        </div>
+        <div class="brand-count">4</div>
+      </div></div>
   </div>
 
   <div class="section">
     <div class="section-header">
-      <div class="section-title">💳 Discounts & Validations Summary</div>
+      <div class="section-title">💳 Discounts &amp; Validations Summary</div>
     </div>
-    <div id="rep-discount-summary">
-      <div class="empty">No discounts in this range</div>
-    </div>
+    <div id="rep-discount-summary"><div class="empty">No discounts in this range</div></div>
   </div>
 
   <div class="section">
@@ -1364,8 +1434,65 @@ body.dark-mode .scan-banner {
       </select>
     </div>
     <div id="rep-comparison">
-      <div class="empty">Loading comparison…</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+      <strong>This Week:</strong> 01/06/2026 → 07/06/2026<br>
+      <strong>Last Week:</strong> 25/05/2026 → 31/05/2026
     </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div style="background:var(--sandstone);padding:14px;border-radius:6px;border-left:3px solid var(--green)">
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Cars Logged</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
+        <div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">4</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs 0 previously</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;color:var(--green);font-weight:bold">↑</div>
+          <div style="font-size:11px;color:var(--green);font-weight:600">New</div>
+        </div>
+      </div>
+    </div>
+      <div style="background:var(--sandstone);padding:14px;border-radius:6px;border-left:3px solid var(--green)">
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Revenue</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
+        <div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">$40.00</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs $0.00 previously</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;color:var(--green);font-weight:bold">↑</div>
+          <div style="font-size:11px;color:var(--green);font-weight:600">New</div>
+        </div>
+      </div>
+    </div>
+      <div style="background:var(--sandstone);padding:14px;border-radius:6px;border-left:3px solid var(--text-muted)">
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Tips</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
+        <div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">$0.00</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs $0.00 previously</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;color:var(--text-muted);font-weight:bold">—</div>
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600"></div>
+        </div>
+      </div>
+    </div>
+      <div style="background:var(--sandstone);padding:14px;border-radius:6px;border-left:3px solid var(--green)">
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Unique Brands</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
+        <div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">3</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs 0 previously</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;color:var(--green);font-weight:bold">↑</div>
+          <div style="font-size:11px;color:var(--green);font-weight:600">New</div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -1374,7 +1501,7 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
-      <div class="section-title">☁️ Cloud Sync & Security</div>
+      <div class="section-title">☁️ Cloud Sync &amp; Security</div>
       <div style="font-size:11px;color:var(--green);font-weight:600">● Connected</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
@@ -1421,7 +1548,7 @@ body.dark-mode .scan-banner {
     </p>
 
     <div style="background:var(--sandstone);padding:14px;border-radius:4px;border-left:3px solid var(--maroon);margin-bottom:14px">
-      <div id="auto-save-status" style="font-size:14px;font-weight:600;font-family:'Courier New',monospace">Loading…</div>
+      <div id="auto-save-status" style="font-size: 14px; font-weight: 600; font-family: &quot;Courier New&quot;, monospace; color: var(--text-muted);">○ Auto-save off — using browser storage only</div>
     </div>
 
     <div class="btn-row">
@@ -1450,7 +1577,7 @@ body.dark-mode .scan-banner {
     </p>
     <div id="retailers-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
     <div style="display:flex;gap:8px">
-      <input type="text" id="new-retailer-input" class="form-input" placeholder="e.g. David Jones" style="flex:1" maxlength="50"/>
+      <input type="text" id="new-retailer-input" class="form-input" placeholder="e.g. David Jones" style="flex:1" maxlength="50">
       <button class="btn btn-primary btn-sm" onclick="addRetailer()">+ Add</button>
     </div>
   </div>
@@ -1461,12 +1588,12 @@ body.dark-mode .scan-banner {
       <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="pr-quota-status">—</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
-      Use <a href="https://platerecognizer.com" target="_blank" style="color:var(--maroon)">Plate Recognizer</a> for ~95% accurate plate reading (vs ~25% with offline OCR).
+      Use <a href="https://platerecognizer.com/" target="_blank" style="color:var(--maroon)">Plate Recognizer</a> for ~95% accurate plate reading (vs ~25% with offline OCR).
       <strong>Free tier:</strong> 2,500 scans/month. Falls back to offline OCR if quota exceeded or no internet.
     </p>
     <div class="form-field" style="margin-bottom:14px">
       <label class="form-label">API Token</label>
-      <input type="text" id="s-pr-key" class="form-input" placeholder="Paste your Plate Recognizer token here" style="font-family:'Courier New',monospace;font-size:12px"/>
+      <input type="text" id="s-pr-key" class="form-input" placeholder="Paste your Plate Recognizer token here" style="font-family:&#39;Courier New&#39;,monospace;font-size:12px">
     </div>
     <div style="background:var(--sandstone);padding:12px;border-radius:4px;margin-bottom:14px;font-size:12px;line-height:1.6">
       <strong>📊 Usage this month:</strong> <span id="pr-usage-display">0 scans</span> · Resets monthly<br>
@@ -1482,7 +1609,7 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
-      <div class="section-title">📱 Phone & Display</div>
+      <div class="section-title">📱 Phone &amp; Display</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
@@ -1504,7 +1631,7 @@ body.dark-mode .scan-banner {
           <div style="font-weight:600;font-size:13px">Vibration Feedback</div>
           <div style="font-size:11px;color:var(--text-muted)">Subtle vibrate on save/scan/error</div>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-haptics" onclick="toggleHaptics()">📳 Vibration: ON</button>
+        <button class="btn btn-secondary btn-sm" id="btn-haptics" onclick="toggleHaptics()" style="background: var(--green); color: rgb(255, 255, 255);">📳 Vibration: ON</button>
       </div>
     </div>
   </div>
@@ -1516,11 +1643,11 @@ body.dark-mode .scan-banner {
     <div class="form-grid">
       <div class="form-field">
         <label class="form-label">Current Ticket Prefix</label>
-        <input type="text" id="s-prefix" class="form-input" placeholder="e.g. A-"/>
+        <input type="text" id="s-prefix" class="form-input" placeholder="e.g. A-">
       </div>
       <div class="form-field">
         <label class="form-label">Next Ticket Number</label>
-        <input type="number" id="s-next" class="form-input" min="1"/>
+        <input type="number" id="s-next" class="form-input" min="1">
       </div>
     </div>
     <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
@@ -1537,8 +1664,8 @@ body.dark-mode .scan-banner {
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="exportCSV()">⤓ Export Full Log (CSV)</button>
       <button class="btn btn-secondary" onclick="exportJSON()">⤓ Export Backup (JSON)</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">⤒ Import Backup (JSON)</button>
-      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)"/>
+      <button class="btn btn-secondary" onclick="document.getElementById(&#39;import-file&#39;).click()">⤒ Import Backup (JSON)</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
     </div>
     <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.6">
@@ -1794,8 +1921,9 @@ function loadData() {
 let entriesSyncQueue = new Set();
 let entriesDeleteQueue = new Set();
 let syncDebounceTimer = null;
+let isCloudSyncing = false;
 
-function saveData(changedId) {
+function saveData(changedId, opts) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
   doAutoSave();
   // Queue for cloud sync
@@ -1806,45 +1934,71 @@ function saveData(changedId) {
       // Bulk save - just sync everything not yet synced
       entries.forEach(e => entriesSyncQueue.add(e.id));
     }
-    debouncedCloudSync();
+    // Critical operations (checkout, delete, new entry) sync immediately
+    if (opts && opts.immediate) {
+      // Cancel any pending debounce and sync right now
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+      doCloudSync();
+    } else {
+      debouncedCloudSync();
+    }
   }
 }
 
 function deleteEntryFromCloud(id) {
   if (supa && currentUser) {
     entriesDeleteQueue.add(id);
-    debouncedCloudSync();
+    // Deletes always sync immediately
+    if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+    doCloudSync();
   }
 }
 
 function debouncedCloudSync() {
   if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
-  syncDebounceTimer = setTimeout(doCloudSync, 500);
+  // Shortened from 500ms to 200ms so a quick refresh won't usually beat it
+  syncDebounceTimer = setTimeout(doCloudSync, 200);
 }
 
 async function doCloudSync() {
   if (!supa || !currentUser) return;
+  if (isCloudSyncing) return; // Prevent overlapping syncs
+  isCloudSyncing = true;
+  try {
+    // Process deletes first
+    const deletes = [...entriesDeleteQueue];
+    entriesDeleteQueue.clear();
+    for (const id of deletes) {
+      try {
+        await cloudDeleteEntry(id);
+      } catch (e) { /* will retry via offline queue */ }
+    }
 
-  // Process deletes first
-  const deletes = [...entriesDeleteQueue];
-  entriesDeleteQueue.clear();
-  for (const id of deletes) {
-    try {
-      await cloudDeleteEntry(id);
-    } catch (e) { /* will retry via offline queue */ }
-  }
-
-  // Process upserts
-  const upserts = [...entriesSyncQueue];
-  entriesSyncQueue.clear();
-  for (const id of upserts) {
-    const entry = entries.find(e => e.id === id);
-    if (!entry) continue;
-    try {
-      await cloudUpsertEntry(entry);
-    } catch (e) { /* will retry via offline queue */ }
+    // Process upserts
+    const upserts = [...entriesSyncQueue];
+    entriesSyncQueue.clear();
+    for (const id of upserts) {
+      const entry = entries.find(e => e.id === id);
+      if (!entry) continue;
+      try {
+        await cloudUpsertEntry(entry);
+      } catch (e) { /* will retry via offline queue */ }
+    }
+  } finally {
+    isCloudSyncing = false;
   }
 }
+
+// Warn the user if they try to leave/refresh while there are unsaved cloud writes
+window.addEventListener('beforeunload', (e) => {
+  const pending = entriesSyncQueue.size + entriesDeleteQueue.size;
+  if (pending > 0 || isCloudSyncing) {
+    // This forces the browser to show a "Are you sure?" dialog
+    e.preventDefault();
+    e.returnValue = 'Changes are still saving to the cloud. Wait a moment before refreshing.';
+    return e.returnValue;
+  }
+});
 
 function saveSettingsToStorage() {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -2140,7 +2294,7 @@ function saveEntry() {
       }
     }
   }
-  saveData(entry.id);
+  saveData(entry.id, { immediate: true });
   saveSettingsToStorage();
   cloudAudit('create', 'entry', entry.id, { ticket: entry.ticket, rego: entry.rego });
 
@@ -2570,7 +2724,7 @@ function confirmCheckout() {
   e.discountTotal = discountTotal;
   settings.lastAttendant = attOut;
 
-  saveData(e.id);
+  saveData(e.id, { immediate: true });
   saveSettingsToStorage();
   closeCheckoutModal();
   hapticFeedback('success');
@@ -2629,7 +2783,7 @@ function undoCheckout(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
   e.timeOut = null;
-  saveData(id);
+  saveData(id, { immediate: true });
   cloudAudit('undo_checkout', 'entry', id, { ticket: e.ticket });
   renderDashboard();
   renderActive();
@@ -2704,7 +2858,7 @@ function editEntryTime(id) {
 
   e.timeIn = newInDate.toISOString();
   if (newOutDate) e.timeOut = newOutDate.toISOString();
-  saveData(e.id);
+  saveData(e.id, { immediate: true });
   cloudAudit('edit_time', 'entry', e.id, { ticket: e.ticket });
   renderDashboard();
   renderActive();
@@ -2910,7 +3064,7 @@ function togglePickupRequest(id) {
     // Cancel pickup request
     e.pickupRequested = null;
     e.pickupETA = null;
-    saveData(id);
+    saveData(id, { immediate: true });
     cloudAudit('cancel_pickup', 'entry', id, { ticket: e.ticket });
     renderActive();
     renderQuickPickup();
@@ -2950,7 +3104,7 @@ function confirmPickupETA(minutes) {
   const now = new Date();
   e.pickupRequested = now.toISOString();
   e.pickupETA = new Date(now.getTime() + mins * 60000).toISOString();
-  saveData(id);
+  saveData(id, { immediate: true });
   closeETAModal();
   hapticFeedback('success');
   cloudAudit('request_pickup', 'entry', id, { ticket: e.ticket, etaMinutes: mins });
@@ -5838,7 +5992,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- CHECKOUT MODAL -->
 <div class="modal" id="checkout-modal">
   <div class="modal-box" style="max-width:560px">
-    <div class="modal-title">Checkout — <span id="checkout-ticket" style="font-family:'Courier New',monospace"></span></div>
+    <div class="modal-title">Checkout — <span id="checkout-ticket" style="font-family:&#39;Courier New&#39;,monospace"></span></div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px" id="checkout-info">—</div>
 
     <div style="background:var(--sandstone);padding:14px;border-radius:4px;margin-bottom:16px" id="checkout-summary-box">
@@ -5857,14 +6011,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="checkout-discount-lines"></div>
       <div style="display:flex;justify-content:space-between;font-size:16px;color:var(--maroon);padding-top:6px;border-top:1px solid #d4c8b3">
         <span id="checkout-total-label"><b>TOTAL DUE:</b></span>
-        <strong id="checkout-total" style="font-family:'Courier New',monospace">—</strong>
+        <strong id="checkout-total" style="font-family:&#39;Courier New&#39;,monospace">—</strong>
       </div>
     </div>
 
     <!-- DISCOUNTS SECTION -->
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <label class="form-label" style="margin:0">💳 Discounts & Validations</label>
+        <label class="form-label" style="margin:0">💳 Discounts &amp; Validations</label>
         <button type="button" class="btn btn-secondary btn-sm" onclick="addDiscount()">+ Add Discount</button>
       </div>
       <div id="discount-list" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -5874,11 +6028,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="form-grid" style="margin-bottom:14px">
       <div class="form-field">
         <label class="form-label">Override Total Fee</label>
-        <input type="number" id="checkout-fee-override" class="form-input" placeholder="Optional — leave blank to use calculated" step="0.01" min="0" oninput="updateCheckoutTotalDisplay()"/>
+        <input type="number" id="checkout-fee-override" class="form-input" placeholder="Optional — leave blank to use calculated" step="0.01" min="0" oninput="updateCheckoutTotalDisplay()">
       </div>
       <div class="form-field">
         <label class="form-label">Tip</label>
-        <input type="number" id="checkout-tip" class="form-input" placeholder="$0.00" step="0.01" min="0"/>
+        <input type="number" id="checkout-tip" class="form-input" placeholder="$0.00" step="0.01" min="0">
       </div>
     </div>
 
@@ -5903,7 +6057,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="form-field">
         <label class="form-label">Attendant (returning car)</label>
-        <input type="text" id="checkout-attendant-out" class="form-input" placeholder="e.g. JD" maxlength="6" style="text-transform:uppercase"/>
+        <input type="text" id="checkout-attendant-out" class="form-input" placeholder="e.g. JD" maxlength="6" style="text-transform:uppercase">
       </div>
     </div>
 
@@ -5919,7 +6073,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="camera-box">
     <div style="font-family:Georgia,serif;font-size:18px;color:var(--maroon);margin-bottom:10px;letter-spacing:1.5px;text-transform:uppercase">📷 Camera Scanner</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;text-align:center">Point your camera at a ticket QR code</div>
-    <video id="camera-video" class="camera-video" playsinline></video>
+    <video id="camera-video" class="camera-video" playsinline=""></video>
     <canvas id="camera-canvas" style="display:none"></canvas>
     <div class="camera-status" id="camera-status">Initialising camera…</div>
     <div class="btn-row">
@@ -5934,12 +6088,12 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="camera-box">
     <div style="font-family:Georgia,serif;font-size:18px;color:var(--maroon);margin-bottom:6px;letter-spacing:1.5px;text-transform:uppercase">📷 Snap Number Plate</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;text-align:center">Frame the plate clearly, then tap Capture</div>
-    <video id="plate-video" class="camera-video" playsinline></video>
+    <video id="plate-video" class="camera-video" playsinline=""></video>
     <canvas id="plate-canvas" style="display:none"></canvas>
     <div class="camera-status" id="plate-status">Initialising camera…</div>
     <div id="plate-result" style="display:none;background:var(--sandstone);padding:12px;border-radius:4px;text-align:center;margin-bottom:12px;width:100%">
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Detected plate — edit if wrong</div>
-      <input type="text" id="plate-detected" style="font-size:24px;font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);letter-spacing:3px;text-align:center;text-transform:uppercase;background:#fff;border:2px solid var(--bronze);border-radius:4px;padding:6px 10px;width:90%;max-width:280px" oninput="this.value=this.value.toUpperCase()"/>
+      <input type="text" id="plate-detected" style="font-size:24px;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon);letter-spacing:3px;text-align:center;text-transform:uppercase;background:#fff;border:2px solid var(--bronze);border-radius:4px;padding:6px 10px;width:90%;max-width:280px" oninput="this.value=this.value.toUpperCase()">
       <div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-style:italic">💡 Common OCR mix-ups: E↔F · O↔0 · 1↔I · 8↔B · 5↔S</div>
     </div>
     <div class="btn-row">
@@ -5987,13 +6141,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <!-- Populated dynamically from settings -->
         </select>
       </div>
-      <div class="form-field" style="margin-bottom:14px" id="discount-retailer-other-wrap" style="display:none">
+      <div class="form-field" style="margin-bottom:14px" id="discount-retailer-other-wrap">
         <label class="form-label">Retailer Name</label>
-        <input type="text" id="discount-retailer-other" class="form-input" placeholder="e.g. The Body Shop"/>
+        <input type="text" id="discount-retailer-other" class="form-input" placeholder="e.g. The Body Shop">
       </div>
       <div class="form-field" style="margin-bottom:14px">
         <label class="form-label">Amount ($)</label>
-        <input type="number" id="discount-validation-amount" class="form-input" placeholder="e.g. 10" step="0.50" min="0"/>
+        <input type="number" id="discount-validation-amount" class="form-input" placeholder="e.g. 10" step="0.50" min="0">
       </div>
     </div>
 
@@ -6014,11 +6168,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="discount-custom-amount-fields" class="discount-type-fields" style="display:none">
       <div class="form-field" style="margin-bottom:14px">
         <label class="form-label">Amount ($)</label>
-        <input type="number" id="discount-custom-amount" class="form-input" placeholder="e.g. 5" step="0.50" min="0"/>
+        <input type="number" id="discount-custom-amount" class="form-input" placeholder="e.g. 5" step="0.50" min="0">
       </div>
       <div class="form-field" style="margin-bottom:14px">
         <label class="form-label">Reason</label>
-        <input type="text" id="discount-custom-amount-reason" class="form-input" placeholder="e.g. Goodwill, long wait, manager approval"/>
+        <input type="text" id="discount-custom-amount-reason" class="form-input" placeholder="e.g. Goodwill, long wait, manager approval">
       </div>
     </div>
 
@@ -6026,11 +6180,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="discount-custom-percent-fields" class="discount-type-fields" style="display:none">
       <div class="form-field" style="margin-bottom:14px">
         <label class="form-label">Percentage Off</label>
-        <input type="number" id="discount-custom-percent" class="form-input" placeholder="e.g. 15" step="1" min="0" max="100"/>
+        <input type="number" id="discount-custom-percent" class="form-input" placeholder="e.g. 15" step="1" min="0" max="100">
       </div>
       <div class="form-field" style="margin-bottom:14px">
         <label class="form-label">Reason</label>
-        <input type="text" id="discount-custom-percent-reason" class="form-input" placeholder="e.g. First-time customer, promo"/>
+        <input type="text" id="discount-custom-percent-reason" class="form-input" placeholder="e.g. First-time customer, promo">
       </div>
     </div>
 
@@ -6038,7 +6192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="discount-comp-fields" class="discount-type-fields" style="display:none">
       <div class="form-field" style="margin-bottom:14px">
         <label class="form-label">Reason</label>
-        <input type="text" id="discount-comp-reason" class="form-input" placeholder="e.g. Hotel guest, VIP, comp from management"/>
+        <input type="text" id="discount-comp-reason" class="form-input" placeholder="e.g. Hotel guest, VIP, comp from management">
       </div>
     </div>
 
@@ -6057,15 +6211,15 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="modal-title" id="staff-modal-title">Add Staff Member</div>
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Username (login)</label>
-      <input type="text" id="staff-username" class="form-input" placeholder="e.g. john" maxlength="20" autocomplete="off" style="text-transform:lowercase"/>
+      <input type="text" id="staff-username" class="form-input" placeholder="e.g. john" maxlength="20" autocomplete="off" style="text-transform:lowercase">
     </div>
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Display Name</label>
-      <input type="text" id="staff-display-name" class="form-input" placeholder="e.g. John Smith" maxlength="50" autocomplete="off"/>
+      <input type="text" id="staff-display-name" class="form-input" placeholder="e.g. John Smith" maxlength="50" autocomplete="off">
     </div>
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Password</label>
-      <input type="text" id="staff-password" class="form-input" placeholder="At least 6 characters" minlength="6" autocomplete="off"/>
+      <input type="text" id="staff-password" class="form-input" placeholder="At least 6 characters" minlength="6" autocomplete="off">
     </div>
     <div class="form-field" style="margin-bottom:14px">
       <label class="form-label">Role</label>
@@ -6111,7 +6265,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="modal-box" style="max-width:420px">
     <div class="modal-title">⏱ Pickup Requested</div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
-      Ticket <strong id="eta-ticket" style="font-family:'Courier New',monospace;color:var(--maroon)">—</strong><br>
+      Ticket <strong id="eta-ticket" style="font-family:&#39;Courier New&#39;,monospace;color:var(--maroon)">—</strong><br>
       <span id="eta-info">—</span>
     </div>
     <div style="font-size:13px;margin-bottom:10px">When is the customer arriving?</div>
@@ -6125,7 +6279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="form-field" style="margin-bottom:14px">
       <label class="form-label">Or enter custom minutes:</label>
-      <input type="number" id="eta-minutes" class="form-input" min="0" max="240" value="10" style="text-align:center;font-size:18px"/>
+      <input type="number" id="eta-minutes" class="form-input" min="0" max="240" value="10" style="text-align:center;font-size:18px">
     </div>
     <div class="btn-row" style="justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeETAModal()">Cancel</button>
@@ -6134,9 +6288,10 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./index_v2_files/jsQR.min.js.download"></script>
+<script src="./index_v2_files/tesseract.min.js.download"></script>
+<script src="./index_v2_files/supabase-js@2"></script>
 
-</body>
-</html>
+
+
+</body></html>
