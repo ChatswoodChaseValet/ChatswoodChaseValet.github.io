@@ -6573,9 +6573,13 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
-<script src="./index_v2_files/jsQR.min.js.download"></script>
-<script src="./index_v2_files/tesseract.min.js.download"></script>
-<script src="./index_v2_files/supabase-js@2"></script>
+<!-- Third-party libraries. Previously these pointed at ./index_v2_files/*
+     paths from a "Save complete webpage" export that was never committed —
+     fresh browsers got 404s and the app froze at "Connecting to cloud
+     database...". Pinned CDN versions for stability. -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 
 
 
