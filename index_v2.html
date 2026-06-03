@@ -2118,24 +2118,27 @@ async function doCloudSync() {
   if (isCloudSyncing) return; // Prevent overlapping syncs
   isCloudSyncing = true;
   try {
-    // Process deletes first
-    const deletes = [...entriesDeleteQueue];
-    entriesDeleteQueue.clear();
-    for (const id of deletes) {
-      try {
-        await cloudDeleteEntry(id);
-      } catch (e) { /* will retry via offline queue */ }
-    }
-
-    // Process upserts
-    const upserts = [...entriesSyncQueue];
-    entriesSyncQueue.clear();
-    for (const id of upserts) {
-      const entry = entries.find(e => e.id === id);
-      if (!entry) continue;
-      try {
-        await cloudUpsertEntry(entry);
-      } catch (e) { /* will retry via offline queue */ }
+    // Loop until both queues are empty. Items can be added to the queue
+    // while we're awaiting a network round-trip — without this loop, those
+    // items get orphaned (the second-of-two quick checkouts would never
+    // sync, then on refresh the cloud reverts to the old state).
+    while (entriesDeleteQueue.size > 0 || entriesSyncQueue.size > 0) {
+      const deletes = [...entriesDeleteQueue];
+      entriesDeleteQueue.clear();
+      for (const id of deletes) {
+        try {
+          await cloudDeleteEntry(id);
+        } catch (e) { /* logged + queued for retry by cloudDeleteEntry */ }
+      }
+      const upserts = [...entriesSyncQueue];
+      entriesSyncQueue.clear();
+      for (const id of upserts) {
+        const entry = entries.find(e => e.id === id);
+        if (!entry) continue;
+        try {
+          await cloudUpsertEntry(entry);
+        } catch (e) { /* logged + queued for retry by cloudUpsertEntry */ }
+      }
     }
   } finally {
     isCloudSyncing = false;
@@ -5491,19 +5494,46 @@ async function cloudUpsertEntry(entry) {
   const dbRow = jsToDb(entry);
   const { error } = await supa.from('entries').upsert(dbRow);
   if (error) {
-    // Queue for retry
+    console.error('[cloud upsert failed]', error.message, '·', error.code, error);
+    reportSyncFailure('upsert', error);
     pendingWrites.push({ op: 'upsert', data: entry, ts: Date.now() });
     localStorage.setItem('pending_writes', JSON.stringify(pendingWrites));
     throw error;
+  } else {
+    clearSyncFailure();
   }
 }
 
 async function cloudDeleteEntry(id) {
   const { error } = await supa.from('entries').delete().eq('id', id);
   if (error) {
+    console.error('[cloud delete failed]', error.message, '·', error.code, error);
+    reportSyncFailure('delete', error);
     pendingWrites.push({ op: 'delete', id, ts: Date.now() });
     localStorage.setItem('pending_writes', JSON.stringify(pendingWrites));
     throw error;
+  } else {
+    clearSyncFailure();
+  }
+}
+
+// Surface persistent sync errors to the user. The previous behaviour was to
+// silently queue failures forever; a schema mismatch (e.g. missing column)
+// could leave every write failing without a single visible signal.
+let _lastSyncError = null;
+function reportSyncFailure(op, error) {
+  _lastSyncError = error;
+  // Use the same banner element as the cloud-load status.
+  const msg = `⚠ Cloud ${op} failed: ${error.message || 'unknown error'}${error.code ? ' (' + error.code + ')' : ''}. Check DevTools console.`;
+  showCloudLoadStatus(msg, 'error');
+}
+function clearSyncFailure() {
+  if (_lastSyncError) {
+    _lastSyncError = null;
+    const banner = document.getElementById('cloud-load-status');
+    if (banner && banner.textContent && banner.textContent.includes('Cloud ')) {
+      banner.style.display = 'none';
+    }
   }
 }
 
