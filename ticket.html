@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6b1d24">
+<title>Your Valet Ticket — Chatswood Chase</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(135deg,#6b1d24 0%,#4a1419 100%);
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+    color:#2a2620;
+  }
+  .card{
+    background:#fff;
+    border-radius:16px;
+    padding:28px 24px 32px;
+    max-width:380px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 16px 50px rgba(0,0,0,.35);
+  }
+  .logo{
+    width:56px;height:56px;
+    border:2px solid #8b6f47;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:Georgia,serif;font-size:30px;color:#6b1d24;
+    margin:0 auto 12px;
+  }
+  h1{
+    font-family:Georgia,serif;
+    font-size:20px;font-weight:normal;
+    color:#6b1d24;letter-spacing:2px;margin:0 0 4px;
+  }
+  .subtitle{
+    font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    color:#8b6f47;margin-bottom:24px;
+  }
+  .ticket-label{
+    font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    color:#8b6f47;margin-bottom:4px;
+  }
+  .ticket-number{
+    font-family:'Courier New',monospace;
+    font-size:42px;font-weight:bold;
+    color:#6b1d24;letter-spacing:4px;
+    margin-bottom:20px;
+  }
+  .qr-wrap{
+    background:#fff;
+    padding:12px;
+    display:inline-block;
+    border:1px solid #d4c8b3;
+    border-radius:8px;
+    margin-bottom:18px;
+  }
+  .qr-wrap canvas, .qr-wrap img{display:block;margin:0 auto}
+  .instructions{
+    font-size:14px;color:#5a4f42;line-height:1.5;
+    margin-bottom:8px;
+  }
+  .tip{
+    font-size:12px;color:#8b6f47;
+    background:#f3eddf;border-radius:6px;
+    padding:10px 14px;
+    margin-top:14px;
+  }
+  .error{
+    font-size:14px;color:#a83838;
+    background:#fbe5e5;border-radius:6px;
+    padding:14px;
+  }
+  /* iOS: allow saving the QR section as image via long-press */
+  .qr-wrap canvas{user-select:none;-webkit-user-select:none;-webkit-touch-callout:default}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">C</div>
+  <h1>CHATSWOOD CHASE</h1>
+  <div class="subtitle">Valet Ticket</div>
+
+  <div id="content">
+    <div class="ticket-label">Your Ticket</div>
+    <div class="ticket-number" id="ticket">—</div>
+    <div class="qr-wrap" id="qr-wrap">
+      <div id="qr">Generating…</div>
+    </div>
+    <div class="instructions">
+      Show this QR code to our valet staff when you return for your car.
+    </div>
+    <div class="tip">💡 Tip: take a screenshot or bookmark this page so you can find it later.</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var ticket = (params.get('t') || '').trim().toUpperCase();
+  var content = document.getElementById('content');
+
+  // Basic validation — accept letters/digits/dashes only, max 16 chars
+  if (!ticket || !/^[A-Z0-9-]{1,16}$/.test(ticket)) {
+    content.innerHTML = '<div class="error">⚠ This link is missing or has an invalid ticket number. Please ask the valet staff for a fresh link.</div>';
+    return;
+  }
+
+  document.getElementById('ticket').textContent = ticket;
+  document.title = 'Ticket ' + ticket + ' — Chatswood Chase Valet';
+
+  try {
+    // qrcode-generator: typeNumber=0 (auto), errorCorrectionLevel='M'
+    var qr = qrcode(0, 'M');
+    qr.addData(ticket);
+    qr.make();
+    // cellSize=8 px, margin=2 cells — comfortable scan size on a phone
+    document.getElementById('qr').outerHTML = qr.createImgTag(8, 16);
+  } catch (e) {
+    document.getElementById('qr').textContent = 'Could not generate QR code: ' + (e.message || e);
+  }
+})();
+</script>
+</body>
+</html>

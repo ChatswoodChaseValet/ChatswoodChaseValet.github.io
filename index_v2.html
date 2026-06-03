@@ -3234,11 +3234,51 @@ function renderActive() {
       <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(fees.total)}</td>
       <td>
         ${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call ${e.phone}">📞</a>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">📱 QR</button>
         ${pickupBtn}
         <button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')" style="margin-left:4px">✓ Mark Out</button>
       </td>
     </tr>`;
   }).join('');
+}
+
+// Open the OS share sheet (or SMS deep-link as fallback) with a link
+// to the customer-facing ticket.html page for this entry.
+async function sendQRSms(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  // location.pathname is e.g. "/Valet/index_v2.html" — strip the file to get "/Valet/"
+  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  const url = base + 'ticket.html?t=' + encodeURIComponent(e.ticket);
+  const msg = 'Chatswood Chase Valet — ticket ' + e.ticket + '. Show this when you return to collect your car: ' + url;
+
+  // Prefer SMS deep-link when we have a phone number (one tap to a pre-filled message).
+  // iOS expects sms:NUMBER&body=... while Android/W3C is sms:NUMBER?body=...
+  if (e.phone) {
+    const phone = e.phone.replace(/\s+/g, '');
+    const isApple = /(iPhone|iPad|iPod|Mac OS)/i.test(navigator.userAgent);
+    const sep = isApple ? '&' : '?';
+    location.href = 'sms:' + phone + sep + 'body=' + encodeURIComponent(msg);
+    return;
+  }
+
+  // No phone on entry — try Web Share API (lets user pick any channel)
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Ticket ' + e.ticket, text: msg });
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // user cancelled
+    }
+  }
+
+  // Last resort: copy to clipboard so the operator can paste anywhere
+  try {
+    await navigator.clipboard.writeText(url);
+    alert('No phone on this entry. Customer link copied to clipboard:\n\n' + url);
+  } catch (err) {
+    prompt('Copy this link to send to customer:', url);
+  }
 }
 
 function togglePickupRequest(id) {
@@ -3383,6 +3423,7 @@ function renderQuickPickup() {
     const callBtn = e.phone
       ? `<a href="tel:${e.phone}" class="btn btn-secondary" style="flex:0 0 auto;padding:14px 16px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" onclick="event.stopPropagation()" title="Call ${e.phone}">📞</a>`
       : '';
+    const qrBtn = `<button class="btn btn-secondary" style="flex:0 0 auto;padding:14px 14px;font-size:14px" onclick="event.stopPropagation();sendQRSms('${e.id}')" title="Send QR ticket link to customer">📱 QR</button>`;
 
     const extrasRow = (e.photo || e.gps)
       ? `<div style="display:flex;gap:6px;margin-bottom:8px">
@@ -3412,6 +3453,7 @@ function renderQuickPickup() {
       ${extrasRow}
       <div style="display:flex;gap:8px;align-items:center">
         ${callBtn}
+        ${qrBtn}
         <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest('${e.id}')" style="flex:1;padding:14px 10px;font-size:13px">${e.pickupRequested ? '✓ Requested' : '⏱ Request'}</button>
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout('${e.id}')" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · ${fmtMoney(fees.total)}</button>
       </div>
@@ -4304,12 +4346,58 @@ function processScannedCode(code) {
     flashScanStatus('⚠ Ticket "' + code + '" not found', 'error');
     return;
   }
-  if (!entry.timeOut) {
-    flashScanStatus('✓ Scanned ' + code + ' — opening checkout', 'success');
-    setTimeout(() => checkout(entry.id), 400);
+  // Surface the bay number front-and-centre. The modal handles both active
+  // and already-checked-out cases (it disables Mark Out for the latter).
+  showScanResult(entry);
+}
+
+function showScanResult(entry) {
+  const m = document.getElementById('scan-result-modal');
+  m.dataset.entryId = entry.id;
+  document.getElementById('scan-result-ticket').textContent = entry.ticket;
+  document.getElementById('scan-result-bay').textContent = entry.bay || '—';
+  document.getElementById('scan-result-brand').textContent = entry.brand || '—';
+  document.getElementById('scan-result-model').textContent = entry.model || '';
+  document.getElementById('scan-result-rego').textContent = entry.rego || '';
+  const customerEl = document.getElementById('scan-result-customer');
+  customerEl.textContent = entry.name ? 'Customer: ' + entry.name : '';
+  customerEl.style.display = entry.name ? '' : 'none';
+  const endTime = entry.timeOut ? new Date(entry.timeOut) : new Date();
+  const dur = endTime - new Date(entry.timeIn);
+  document.getElementById('scan-result-duration').textContent = (entry.timeOut ? 'Was parked ' : 'Parked ') + fmtDuration(dur);
+
+  const status = document.getElementById('scan-result-status');
+  const btn = document.getElementById('scan-result-primary-btn');
+  if (entry.timeOut) {
+    status.innerHTML = '<div style="background:#e0eee0;color:#2a5a2a;padding:10px;border-radius:6px;font-size:13px">✓ <b>Already collected</b> at ' + fmtTime(new Date(entry.timeOut)) + '</div>';
+    btn.textContent = 'View Details';
+    btn.dataset.mode = 'view';
   } else {
-    flashScanStatus('ℹ ' + code + ' already checked out', 'info');
-    document.getElementById('log-search').value = code;
+    status.innerHTML = '';
+    btn.textContent = '✓ Mark Out';
+    btn.dataset.mode = 'checkout';
+  }
+  m.classList.add('show');
+  if (typeof hapticFeedback === 'function') hapticFeedback('success');
+}
+
+function closeScanResult() {
+  document.getElementById('scan-result-modal').classList.remove('show');
+}
+
+function proceedFromScanResult() {
+  const m = document.getElementById('scan-result-modal');
+  const id = m.dataset.entryId;
+  const mode = document.getElementById('scan-result-primary-btn').dataset.mode;
+  closeScanResult();
+  const entry = entries.find(e => e.id === id);
+  if (!entry) return;
+  if (mode === 'checkout') {
+    checkout(id);
+  } else {
+    // Already checked out — jump to log view, filtered to this ticket
+    const logSearch = document.getElementById('log-search');
+    if (logSearch) logSearch.value = entry.ticket;
     showView('log');
     renderLog();
   }
@@ -6599,6 +6687,34 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="btn-row" style="justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeETAModal()">Cancel</button>
       <button class="btn btn-primary" onclick="confirmPickupETA()">✓ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCAN RESULT MODAL — shown after a QR scan resolves to a known ticket.
+     Surfaces the BAY number prominently so staff can fetch the car fast. -->
+<div class="modal" id="scan-result-modal">
+  <div class="modal-box" style="max-width:520px;text-align:center">
+    <div style="font-size:11px;letter-spacing:3px;color:#8b6f47;text-transform:uppercase;margin-bottom:6px">Vehicle Located</div>
+    <div id="scan-result-ticket" style="font-family:'Courier New',monospace;font-size:22px;color:var(--maroon);font-weight:bold;letter-spacing:3px;margin-bottom:14px">—</div>
+
+    <div style="background:var(--sandstone);border-radius:10px;padding:22px 16px;margin-bottom:16px">
+      <div style="font-size:11px;letter-spacing:3px;color:#8b6f47;text-transform:uppercase">Parked in Bay</div>
+      <div id="scan-result-bay" style="font-family:Georgia,serif;font-size:90px;font-weight:bold;color:var(--maroon);line-height:1;margin:6px 0">—</div>
+    </div>
+
+    <div style="font-size:18px;color:#2a2620;margin-bottom:4px">
+      <b id="scan-result-brand">—</b> <span id="scan-result-model" style="color:var(--text-muted)"></span>
+    </div>
+    <div id="scan-result-rego" style="font-family:'Courier New',monospace;font-size:16px;color:#5a4f42;letter-spacing:2px;margin-bottom:4px">—</div>
+    <div id="scan-result-customer" style="font-size:14px;color:#5a4f42;margin-bottom:4px"></div>
+    <div id="scan-result-duration" style="font-size:13px;color:#8b6f47;margin-bottom:14px"></div>
+
+    <div id="scan-result-status" style="margin-bottom:14px"></div>
+
+    <div class="btn-row" style="justify-content:center;gap:10px">
+      <button class="btn btn-secondary" onclick="closeScanResult()">Cancel</button>
+      <button class="btn btn-primary" id="scan-result-primary-btn" onclick="proceedFromScanResult()" style="flex:2">✓ Mark Out</button>
     </div>
   </div>
 </div>
