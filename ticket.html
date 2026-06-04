@@ -61,6 +61,21 @@
     margin-bottom:18px;
   }
   .qr-wrap canvas, .qr-wrap img{display:block;margin:0 auto}
+  .details{
+    margin-bottom:16px;
+  }
+  .detail-plate{
+    font-family:'Courier New',monospace;
+    font-size:24px;font-weight:bold;letter-spacing:2px;
+    color:#2a2620;
+    display:inline-block;
+    border:2px solid #2a2620;border-radius:6px;
+    padding:4px 14px;background:#f3eddf;
+  }
+  .detail-time{
+    font-size:13px;color:#8b6f47;
+    margin-top:8px;
+  }
   .instructions{
     font-size:14px;color:#5a4f42;line-height:1.5;
     margin-bottom:8px;
@@ -92,6 +107,7 @@
     <div class="qr-wrap" id="qr-wrap">
       <div id="qr">Generating…</div>
     </div>
+    <div class="details" id="details"></div>
     <div class="instructions">
       Show this QR code to our valet staff when you return for your car.
     </div>
@@ -114,6 +130,34 @@
 
   document.getElementById('ticket').textContent = ticket;
   document.title = 'Ticket ' + ticket + ' — Chatswood Chase Valet';
+
+  // Plate + check-in time shown under the QR (from ?r= and ?ci= params).
+  // Rendered via textContent so user-supplied values can't inject markup.
+  var rego = (params.get('r') || '').trim().toUpperCase();
+  var ciRaw = (params.get('ci') || '').trim();
+  var details = document.getElementById('details');
+  details.innerHTML = '';
+
+  if (rego && /^[A-Z0-9 -]{1,12}$/.test(rego)) {
+    var plate = document.createElement('div');
+    plate.className = 'detail-plate';
+    plate.textContent = rego;
+    details.appendChild(plate);
+  }
+
+  if (ciRaw) {
+    var d = new Date(ciRaw);
+    if (!isNaN(d.getTime())) {
+      var when = d.toLocaleString('en-AU', {
+        weekday: 'short', day: 'numeric', month: 'short',
+        hour: 'numeric', minute: '2-digit', hour12: true
+      });
+      var t = document.createElement('div');
+      t.className = 'detail-time';
+      t.textContent = 'Checked in ' + when;
+      details.appendChild(t);
+    }
+  }
 
   try {
     // qrcode-generator: typeNumber=0 (auto), errorCorrectionLevel='M'

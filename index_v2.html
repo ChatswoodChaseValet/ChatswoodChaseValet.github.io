@@ -2526,6 +2526,12 @@ function saveEntry() {
 
   resetForm();
   prepareNewEntry();
+
+  // If the customer gave a mobile number, send them their QR ticket
+  // straight away (opens Messages pre-filled — operator taps Send).
+  if (entry.phone) {
+    sendQRSms(entry.id);
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -3283,12 +3289,20 @@ function renderActive() {
 
 // Open the OS share sheet (or SMS deep-link as fallback) with a link
 // to the customer-facing ticket.html page for this entry.
+// Build the customer-facing ticket URL, carrying the plate (r) and
+// check-in time (ci) so ticket.html can show them under the QR code.
+function buildTicketUrl(e) {
+  // location.pathname is e.g. "/Valet/index_v2.html" — strip the file to get "/Valet/"
+  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  return base + 'ticket.html?t=' + encodeURIComponent(e.ticket)
+    + '&r=' + encodeURIComponent(e.rego || '')
+    + '&ci=' + encodeURIComponent(e.timeIn || '');
+}
+
 async function sendQRSms(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
-  // location.pathname is e.g. "/Valet/index_v2.html" — strip the file to get "/Valet/"
-  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
-  const url = base + 'ticket.html?t=' + encodeURIComponent(e.ticket);
+  const url = buildTicketUrl(e);
   const msg = 'Chatswood Chase Valet — ticket ' + e.ticket + '. Show this when you return to collect your car: ' + url;
 
   // Prefer SMS deep-link when we have a phone number (one tap to a pre-filled message).
