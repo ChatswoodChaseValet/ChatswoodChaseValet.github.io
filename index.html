@@ -584,6 +584,7 @@ body.dark-mode .scan-banner {
   <button class="tab" onclick="showView('quick-pickup')">⚡ Quick Pickup</button>
   <button class="tab" onclick="showView('active')">🅿️ Active Cars</button>
   <button class="tab" onclick="showView('log')">📋 Full Log</button>
+  <button class="tab" onclick="showView('customers')">👥 Customers</button>
   <button class="tab" onclick="showView('reports')">📈 Reports</button>
   <button class="tab" onclick="showView('settings')">⚙️ Settings</button>
 </div>
@@ -1030,6 +1031,40 @@ body.dark-mode .scan-banner {
         </thead>
         <tbody id="log-tbody">
           <tr><td colspan="13" class="empty" style="border-bottom:none">No entries yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ───────── CUSTOMER DATABASE VIEW ───────── -->
+<div class="view" id="view-customers">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Customer Database</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="customers-count">0 customers</div>
+    </div>
+    <div class="filters">
+      <div class="filter-field" style="flex:1;min-width:200px">
+        <label class="form-label">Search</label>
+        <input type="text" id="customers-search" class="form-input" placeholder="Name, rego, phone, brand…" oninput="renderCustomers()"/>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Vehicle</th>
+            <th>Rego</th>
+            <th>Visits</th>
+            <th>Lifetime</th>
+            <th>Last Visit</th>
+          </tr>
+        </thead>
+        <tbody id="customers-tbody">
+          <tr><td colspan="7" class="empty" style="border-bottom:none">No customers yet</td></tr>
         </tbody>
       </table>
     </div>
@@ -1583,7 +1618,7 @@ function showView(name) {
   document.getElementById('view-' + name).classList.add('active');
   // Find tab and activate
   const tabs = document.querySelectorAll('.tab');
-  const names = ['dashboard','new-entry','quick-pickup','active','log','reports','settings'];
+  const names = ['dashboard','new-entry','quick-pickup','active','log','customers','reports','settings'];
   const i = names.indexOf(name);
   if (i >= 0 && tabs[i]) tabs[i].classList.add('active');
 
@@ -1592,6 +1627,7 @@ function showView(name) {
   if (name === 'quick-pickup') renderQuickPickup();
   if (name === 'active') renderActive();
   if (name === 'log') renderLog();
+  if (name === 'customers') renderCustomers();
   if (name === 'reports') renderReports();
   if (name === 'settings') renderSettings();
 }
@@ -4006,9 +4042,8 @@ function dismissCustomerBanner() {
   document.getElementById('customer-banner').style.display = 'none';
 }
 
-function showCustomerDetail() {
-  const banner = document.getElementById('customer-banner');
-  const rego = banner.dataset.rego;
+function showCustomerDetail(regoArg) {
+  const rego = regoArg || document.getElementById('customer-banner').dataset.rego;
   if (!rego) return;
   const matches = findCustomerByRego(rego);
   if (!matches) return;
@@ -4090,6 +4125,73 @@ function showCustomerDetail() {
 
 function closeCustomerModal() {
   document.getElementById('customer-modal').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════
+// CUSTOMER DATABASE
+// Aggregates all entries into unique customers keyed by rego
+// ═══════════════════════════════════════════════════
+function buildCustomerList() {
+  const groups = {};
+  entries.forEach(e => {
+    const key = normaliseRego(e.rego);
+    if (!key) return;
+    (groups[key] = groups[key] || []).push(e);
+  });
+  return Object.keys(groups).map(key => {
+    const visits = groups[key].sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
+    const last = visits[0];
+    return {
+      rego: last.rego,
+      name: last.name || '',
+      phone: last.phone || '',
+      brand: last.brand || '',
+      model: last.model || '',
+      visitCount: visits.length,
+      lifetime: visits.reduce((s, e) => s + (e.totalFee || 0), 0),
+      lastVisit: last.timeIn
+    };
+  }).sort((a, b) => new Date(b.lastVisit) - new Date(a.lastVisit));
+}
+
+function renderCustomers() {
+  let customers = buildCustomerList();
+  const search = document.getElementById('customers-search').value.trim().toLowerCase();
+  if (search) {
+    customers = customers.filter(c =>
+      c.name.toLowerCase().includes(search) ||
+      normaliseRego(c.rego).includes(normaliseRego(search)) ||
+      c.phone.toLowerCase().includes(search) ||
+      c.brand.toLowerCase().includes(search) ||
+      c.model.toLowerCase().includes(search)
+    );
+  }
+
+  document.getElementById('customers-count').textContent =
+    `${customers.length} customer${customers.length !== 1 ? 's' : ''}${search ? ' (filtered)' : ''}`;
+
+  const tbody = document.getElementById('customers-tbody');
+  if (customers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty" style="border-bottom:none">' +
+      (search ? 'No matching customers' : 'No customers yet') + '</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = customers.map(c => {
+    const last = new Date(c.lastVisit);
+    const daysSince = Math.floor((new Date() - last) / 86400000);
+    const lastText = daysSince === 0 ? 'Today' : daysSince === 1 ? 'Yesterday' : fmtDate(last);
+    const vehicle = (c.brand + (c.model ? ' ' + c.model : '')).trim() || '—';
+    return `<tr style="cursor:pointer" onclick="showCustomerDetail('${c.rego.replace(/'/g, "\\'")}')">
+      <td><b>${c.name || '—'}</b></td>
+      <td>${c.phone ? `<a href="tel:${c.phone}" onclick="event.stopPropagation()">${c.phone}</a>` : '—'}</td>
+      <td>${vehicle}</td>
+      <td style="font-family:'Courier New',monospace">${c.rego}</td>
+      <td><b>${c.visitCount}</b></td>
+      <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(c.lifetime)}</td>
+      <td>${lastText}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════
