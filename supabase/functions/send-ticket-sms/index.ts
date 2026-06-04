@@ -18,8 +18,9 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const USERNAME = Deno.env.get("CLICKSEND_USERNAME") ?? "";
 const API_KEY = Deno.env.get("CLICKSEND_API_KEY") ?? "";
-// Alphanumeric sender ID — max 11 chars, free in Australia, one-way only.
-const SENDER = Deno.env.get("CLICKSEND_SENDER") ?? "ChatswdVlt";
+// Optional alphanumeric sender ID — max 11 chars. Leave the secret unset
+// to send from ClickSend's shared number (no sender-ID registration needed).
+const SENDER = Deno.env.get("CLICKSEND_SENDER") ?? "";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -72,7 +73,13 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: [{ source: "valet", from: SENDER, to: number, body: message }],
+        messages: [
+          // Only include `from` when a registered sender ID is configured;
+          // otherwise ClickSend uses a shared number (no nag, still delivers).
+          SENDER
+            ? { source: "valet", from: SENDER, to: number, body: message }
+            : { source: "valet", to: number, body: message },
+        ],
       }),
     });
     const data = await res.json();
