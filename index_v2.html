@@ -2578,6 +2578,30 @@ function dismissSaveToast() {
   if (toast) toast.classList.remove('show');
 }
 
+// Lightweight transient toast (reuses the save-toast styling/element)
+// for one-line confirmations like "Ticket texted to customer".
+function quickToast(text) {
+  let toast = document.getElementById('save-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'save-toast';
+    toast.className = 'save-toast';
+    document.body.appendChild(toast);
+  }
+  toast.style.background = '';
+  toast.style.borderLeftColor = '';
+  toast.innerHTML = `
+    <div class="save-toast-icon">✓</div>
+    <div class="save-toast-content">
+      <div class="save-toast-title">${text}</div>
+    </div>
+    <button class="save-toast-close" onclick="dismissSaveToast()">✕</button>
+  `;
+  toast.classList.add('show');
+  if (toast.dismissTimer) clearTimeout(toast.dismissTimer);
+  toast.dismissTimer = setTimeout(dismissSaveToast, 4000);
+}
+
 function resetForm() {
   ['f-bay','f-model','f-colour','f-rego','f-name','f-phone','f-notes'].forEach(id => {
     document.getElementById(id).value = '';
@@ -3303,9 +3327,29 @@ async function sendQRSms(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
   const url = buildTicketUrl(e);
-  const msg = 'Chatswood Chase Valet — ticket ' + e.ticket + '. Show this when you return to collect your car: ' + url;
+  // Plain hyphen (not an em-dash) keeps the SMS in the cheaper GSM-7
+  // encoding, so it stays fewer billable segments.
+  const msg = 'Chatswood Chase Valet ticket ' + e.ticket + '. Your QR + car details: ' + url;
 
-  // Prefer SMS deep-link when we have a phone number (one tap to a pre-filled message).
+  // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
+  //    If it isn't deployed/configured yet, or the send fails, we quietly
+  //    fall back to opening the Messages app below (one-tap send).
+  if (e.phone && supa) {
+    try {
+      const { data, error } = await supa.functions.invoke('send-ticket-sms', {
+        body: { to: e.phone, message: msg }
+      });
+      if (!error && data && data.ok) {
+        quickToast('📱 Ticket texted to ' + e.phone);
+        hapticFeedback('success');
+        return;
+      }
+    } catch (err) {
+      // network/function error — fall through to the manual composer
+    }
+  }
+
+  // 2) Fallback: open the operator's Messages app pre-filled (one tap to send).
   // iOS expects sms:NUMBER&body=... while Android/W3C is sms:NUMBER?body=...
   if (e.phone) {
     const phone = e.phone.replace(/\s+/g, '');
