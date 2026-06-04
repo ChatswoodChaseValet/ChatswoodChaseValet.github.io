@@ -971,6 +971,7 @@ body.dark-mode .scan-banner {
         <thead>
           <tr>
             <th>Ticket</th>
+            <th>Customer</th>
             <th>Time In</th>
             <th>Duration</th>
             <th>Brand</th>
@@ -982,7 +983,7 @@ body.dark-mode .scan-banner {
           </tr>
         </thead>
         <tbody id="active-tbody">
-          <tr><td colspan="9" class="empty" style="border-bottom:none">No active vehicles</td></tr>
+          <tr><td colspan="10" class="empty" style="border-bottom:none">No active vehicles</td></tr>
         </tbody>
       </table>
     </div>
@@ -1013,6 +1014,7 @@ body.dark-mode .scan-banner {
         <thead>
           <tr>
             <th>Ticket</th>
+            <th>Customer</th>
             <th>Date</th>
             <th>Time In</th>
             <th>Time Out</th>
@@ -1027,7 +1029,7 @@ body.dark-mode .scan-banner {
           </tr>
         </thead>
         <tbody id="log-tbody">
-          <tr><td colspan="12" class="empty" style="border-bottom:none">No entries yet</td></tr>
+          <tr><td colspan="13" class="empty" style="border-bottom:none">No entries yet</td></tr>
         </tbody>
       </table>
     </div>
@@ -2076,7 +2078,7 @@ function renderActive() {
     `${active.length} vehicle${active.length !== 1 ? 's' : ''}`;
   const tbody = document.getElementById('active-tbody');
   if (active.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty" style="border-bottom:none">No active vehicles — all cars have been picked up</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty" style="border-bottom:none">No active vehicles — all cars have been picked up</td></tr>';
     return;
   }
   const now = new Date();
@@ -2133,6 +2135,7 @@ function renderActive() {
 
     return `<tr class="active" style="${rowStyle}">
       <td class="ticket-num">${e.ticket}</td>
+      <td>${e.name || '—'}</td>
       <td>${fmtTime(new Date(e.timeIn))}</td>
       <td><span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span></td>
       <td><b>${e.brand}</b></td>
@@ -2529,7 +2532,7 @@ function renderLog() {
 
   const tbody = document.getElementById('log-tbody');
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="empty" style="border-bottom:none">No matching entries</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="empty" style="border-bottom:none">No matching entries</td></tr>';
     return;
   }
   tbody.innerHTML = filtered.map(e => {
@@ -2538,6 +2541,7 @@ function renderLog() {
     const dur = tOut ? tOut - tIn : null;
     return `<tr class="${e.timeOut ? '' : 'active'}">
       <td class="ticket-num">${e.ticket}</td>
+      <td>${e.name || '—'}</td>
       <td>${fmtDate(tIn)}</td>
       <td>${fmtTime(tIn)}</td>
       <td>${tOut ? fmtTime(tOut) : '—'}</td>
