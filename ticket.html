@@ -301,6 +301,9 @@
         return;
       }
       showRequested(mins);
+      // Fire OS push notifications to staff devices (fire-and-forget — the
+      // dashboard's realtime alarm already covers any open tabs regardless).
+      supa.functions.invoke('notify-pickup', { body: { id: id } }).catch(function(){});
     } catch (e) {
       showError("We couldn't reach the valet right now.");
       setBusy(false);

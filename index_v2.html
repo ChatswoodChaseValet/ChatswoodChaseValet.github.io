@@ -4,6 +4,15 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chatswood Chase Valet Dashboard</title>
+<!-- PWA + push-notification support (lets staff phones get car-request
+     alerts even when the dashboard isn't open). -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#6b1d24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CC Valet">
+<link rel="apple-touch-icon" href="icon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1712,6 +1721,28 @@ body.dark-mode .scan-banner {
         </div>
         <button class="btn btn-primary btn-sm" onclick="forceReloadFromCloud()">🔄 Reload</button>
       </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🔔 Car-Request Alerts</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+      Get a notification on this phone when a customer requests their car from their ticket link —
+      <strong>even when the dashboard isn't open</strong>. Turn this on once per device.
+    </p>
+    <div style="background:var(--sandstone);padding:14px;border-radius:4px;border-left:3px solid var(--maroon);margin-bottom:14px">
+      <div id="push-status" style="font-size:14px;font-weight:600;color:var(--text-muted)">○ Checking…</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="enablePushAlerts()" id="btn-enable-push">🔔 Enable alerts on this device</button>
+      <button class="btn btn-secondary" onclick="disablePushAlerts()" id="btn-disable-push" style="display:none">✕ Turn off on this device</button>
+    </div>
+    <div id="push-ios-hint" style="display:none;margin-top:14px;font-size:12px;color:var(--maroon);background:#f7ecec;border-radius:6px;padding:12px;line-height:1.6">
+      <strong>iPhone / iPad:</strong> Apple only allows alerts when the app is added to your Home Screen.
+      Tap the <strong>Share</strong> button → <strong>Add to Home Screen</strong>, then open the app from
+      that icon and press <strong>Enable alerts</strong> again.
     </div>
   </div>
 
@@ -4370,6 +4401,7 @@ function renderComparison() {
 function renderSettings() {
   document.getElementById('s-prefix').value = settings.prefix;
   document.getElementById('s-next').value = settings.nextNum;
+  updatePushUI();
   // Populate Plate Recognizer settings
   const prKey = document.getElementById('s-pr-key');
   if (prKey) prKey.value = settings.plateRecognizerKey || '';
@@ -6107,6 +6139,152 @@ function stopPickupAlarmSound() {
   if (navigator.vibrate) navigator.vibrate(0);
 }
 
+// ═══════════════════════════════════════════════════
+// OS PUSH NOTIFICATIONS (Web Push)
+// Lets a staff phone get a system notification when a customer requests
+// their car — even when the dashboard tab is closed. Each device opts in
+// once; the subscription is stored in push_subscriptions and the
+// notify-pickup Edge Function sends to all of them.
+// ═══════════════════════════════════════════════════
+const VAPID_PUBLIC_KEY = 'BG8_BxXK0NxrcP_LCGEo-FXo1dQfLwMHWzu3kOAJSF0Cj_fteK2MJCf2tlUNpqIlQBnJvmyNkSz_oe3AgKV3jS8';
+let swRegistration = null;
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+function isIOS() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    swRegistration = await navigator.serviceWorker.register('sw.js');
+  } catch (e) {
+    console.warn('[sw] registration failed', e);
+  }
+}
+
+async function updatePushUI() {
+  const statusEl = document.getElementById('push-status');
+  const enableBtn = document.getElementById('btn-enable-push');
+  const disableBtn = document.getElementById('btn-disable-push');
+  const iosHint = document.getElementById('push-ios-hint');
+  if (!statusEl) return;
+
+  const setBtns = (showEnable, showDisable) => {
+    if (enableBtn) enableBtn.style.display = showEnable ? '' : 'none';
+    if (disableBtn) disableBtn.style.display = showDisable ? '' : 'none';
+  };
+  if (iosHint) iosHint.style.display = 'none';
+
+  if (!pushSupported()) {
+    statusEl.innerHTML = '⚠ This browser doesn’t support alerts. Use Chrome (Android) or an installed app on iPhone.';
+    setBtns(false, false);
+    return;
+  }
+  // iOS only allows push from an installed (home-screen) PWA.
+  if (isIOS() && !isStandalone()) {
+    statusEl.innerHTML = '○ Not set up — add to Home Screen first (see below)';
+    setBtns(true, false);
+    if (iosHint) iosHint.style.display = '';
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    statusEl.innerHTML = '⚠ Alerts are blocked in your browser/phone settings. Allow notifications for this site, then try again.';
+    setBtns(true, false);
+    return;
+  }
+  try {
+    const reg = swRegistration || await navigator.serviceWorker.getRegistration();
+    const sub = reg ? await reg.pushManager.getSubscription() : null;
+    if (sub) {
+      statusEl.innerHTML = '✅ Alerts are ON for this device';
+      setBtns(false, true);
+    } else {
+      statusEl.innerHTML = '○ Alerts are off on this device';
+      setBtns(true, false);
+    }
+  } catch (e) {
+    statusEl.innerHTML = '○ Alerts are off on this device';
+    setBtns(true, false);
+  }
+}
+
+async function enablePushAlerts() {
+  if (!pushSupported()) { alert('This browser does not support notifications.'); return; }
+  if (isIOS() && !isStandalone()) {
+    const hint = document.getElementById('push-ios-hint');
+    if (hint) hint.style.display = '';
+    alert('On iPhone/iPad: tap Share → Add to Home Screen, then open the app from that icon and enable alerts.');
+    return;
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { await updatePushUI(); return; }
+
+    if (!swRegistration) await registerServiceWorker();
+    const reg = swRegistration || await navigator.serviceWorker.ready;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    await storePushSubscription(sub);
+    quickToast('🔔 Alerts enabled on this device');
+    hapticFeedback('success');
+  } catch (e) {
+    console.error('[push] enable failed', e);
+    alert('Could not enable alerts: ' + (e.message || e));
+  }
+  await updatePushUI();
+}
+
+async function storePushSubscription(sub) {
+  const j = sub.toJSON();
+  const label = (currentUser?.displayName || 'Staff') + ' · ' +
+    (isIOS() ? 'iPhone' : /Android/i.test(navigator.userAgent) ? 'Android' : 'Desktop');
+  const { error } = await supa.from('push_subscriptions').upsert({
+    endpoint: j.endpoint,
+    p256dh: j.keys.p256dh,
+    auth: j.keys.auth,
+    label,
+  }, { onConflict: 'endpoint' });
+  if (error) throw error;
+}
+
+async function disablePushAlerts() {
+  try {
+    const reg = swRegistration || await navigator.serviceWorker.getRegistration();
+    const sub = reg ? await reg.pushManager.getSubscription() : null;
+    if (sub) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      try { await supa.from('push_subscriptions').delete().eq('endpoint', endpoint); } catch (e) {}
+    }
+    quickToast('Alerts turned off on this device');
+  } catch (e) {
+    console.warn('[push] disable failed', e);
+  }
+  await updatePushUI();
+}
+
 function handleRealtimeSettingsChange(payload) {
   if (payload.new) {
     cloudSettings[payload.new.key] = payload.new.value;
@@ -6554,6 +6732,9 @@ function initializeUI() {
 
   // Show current user in header
   updateUserBadge();
+
+  // Register the service worker + reflect push-alert state in Settings.
+  registerServiceWorker().then(updatePushUI);
 
   // Re-enable wake lock if it was on from a previous session
   if (settings.wakeLockEnabled) {
