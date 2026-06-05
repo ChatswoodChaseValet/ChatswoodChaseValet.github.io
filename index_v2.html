@@ -837,6 +837,7 @@ body.dark-mode .scan-banner {
   <button class="tab active" onclick="showView(&#39;dashboard&#39;)">📊 Dashboard</button>
   <button class="tab" onclick="showView(&#39;new-entry&#39;)">🚗 New Entry</button>
   <button class="tab" onclick="showView(&#39;quick-pickup&#39;)">⚡ Quick Pickup</button>
+  <button class="tab" onclick="showView(&#39;pickup-queue&#39;)">🔔 Queue<span id="pq-tab-badge" style="display:none;margin-left:6px;background:#a83838;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:bold;vertical-align:middle">0</span></button>
   <button class="tab" onclick="showView(&#39;active&#39;)">🅿️ Active Cars</button>
   <button class="tab" onclick="showView(&#39;log&#39;)">📋 Full Log</button>
   <button class="tab" onclick="showView(&#39;customers&#39;)">👥 Customers</button>
@@ -864,7 +865,7 @@ body.dark-mode .scan-banner {
       <div class="stat-value" id="stat-active">2</div>
       <div class="stat-sub">Awaiting pickup</div>
     </div>
-    <div class="stat-card" id="stat-pickup-card" style="display:none">
+    <div class="stat-card" id="stat-pickup-card" style="display:none;cursor:pointer" onclick="showView('pickup-queue')" title="Open the pickup queue">
       <div class="stat-label">⏱ Pickups Pending</div>
       <div class="stat-value" id="stat-pickups" style="color:#a83838">0</div>
       <div class="stat-sub" id="stat-pickups-sub">Customer arriving</div>
@@ -1308,6 +1309,21 @@ body.dark-mode .scan-banner {
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout(&#39;1780444884018-mefkxu&#39;)" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · $20.00</button>
       </div>
     </div></div>
+  </div>
+</div>
+
+<!-- ───────── PICKUP QUEUE / ETA BOARD ───────── -->
+<div class="view" id="view-pickup-queue">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🔔 Pickup Queue</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="pq-count">—</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
+      Every car a customer (or staff) has requested, soonest first. Countdowns are live.<br>
+      Tap <b>🚗 On the way</b> / <b>✅ Ready</b> to update the customer's ticket page, then <b>✓ Mark Out</b> when collected.
+    </div>
+    <div id="pq-queue" style="display:flex;flex-direction:column;gap:12px"></div>
   </div>
 </div>
 
@@ -2354,13 +2370,14 @@ function showView(name) {
   document.getElementById('view-' + name).classList.add('active');
   // Find tab and activate
   const tabs = document.querySelectorAll('.tab');
-  const names = ['dashboard','new-entry','quick-pickup','active','log','customers','reports','settings'];
+  const names = ['dashboard','new-entry','quick-pickup','pickup-queue','active','log','customers','reports','settings'];
   const i = names.indexOf(name);
   if (i >= 0 && tabs[i]) tabs[i].classList.add('active');
 
   if (name === 'dashboard') renderDashboard();
   if (name === 'new-entry') prepareNewEntry();
   if (name === 'quick-pickup') renderQuickPickup();
+  if (name === 'pickup-queue') renderPickupQueue();
   if (name === 'active') renderActive();
   if (name === 'log') renderLog();
   if (name === 'customers') renderCustomers();
@@ -3713,6 +3730,111 @@ function renderQuickPickup() {
         ${qrBtn}
         <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest('${e.id}')" style="flex:1;padding:14px 10px;font-size:13px">${e.pickupRequested ? '✓ Requested' : '⏱ Request'}</button>
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout('${e.id}')" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · ${fmtMoney(fees.total)}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// PICKUP QUEUE / ETA BOARD
+// A live, glanceable list of every car a customer (or staff) has requested,
+// soonest-first, with countdown timers and one-tap status/checkout. Updated
+// on the 10s auto-refresh tick and on every realtime change.
+// ═══════════════════════════════════════════════════
+
+// Urgency descriptor for one requested car: a coloured banner label plus a
+// numeric sort key (smaller = more urgent). Mirrors the Quick Pickup colours.
+function pickupUrgency(e, now) {
+  if (e.pickupETA) {
+    const mins = Math.round((new Date(e.pickupETA) - now) / 60000);
+    if (mins <= 0) return { label: mins === 0 ? '🔴 HERE NOW' : `🔴 HERE NOW · ${Math.abs(mins)}m overdue`, bg: '#a83838', sort: mins };
+    if (mins <= 3)  return { label: `🟠 ${mins}m away — get the car NOW`, bg: '#c45a5a', sort: mins };
+    if (mins <= 10) return { label: `🟡 Arriving in ${mins}m`, bg: '#c79c2a', sort: mins };
+    return { label: `⏱ Arriving in ${mins}m`, bg: 'var(--bronze)', sort: mins };
+  }
+  const ago = Math.max(0, Math.round((now - new Date(e.pickupRequested)) / 60000));
+  return { label: `⏱ Requested ${ago === 0 ? 'just now' : ago + 'm ago'}`, bg: 'var(--bronze)', sort: 100000 + ago };
+}
+
+function updateQueueBadge(count) {
+  const badge = document.getElementById('pq-tab-badge');
+  if (!badge) return;
+  badge.textContent = count;
+  badge.style.display = count > 0 ? '' : 'none';
+}
+
+function renderPickupQueue() {
+  const now = new Date();
+  const queue = entries
+    .filter(e => !e.timeOut && e.pickupRequested)
+    .sort((a, b) => {
+      if (a.pickupETA && b.pickupETA) return new Date(a.pickupETA) - new Date(b.pickupETA);
+      if (a.pickupETA && !b.pickupETA) return -1;
+      if (!a.pickupETA && b.pickupETA) return 1;
+      return new Date(a.pickupRequested) - new Date(b.pickupRequested); // oldest first
+    });
+
+  updateQueueBadge(queue.length);
+  const countEl = document.getElementById('pq-count');
+  if (countEl) countEl.textContent = queue.length
+    ? `${queue.length} car${queue.length !== 1 ? 's' : ''} waiting`
+    : 'all clear';
+
+  const container = document.getElementById('pq-queue');
+  if (!container) return;
+  if (queue.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div>No pickup requests right now</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Requests from customers (or the Quick Pickup ⏱ button) appear here.</div></div>';
+    return;
+  }
+
+  container.innerHTML = queue.map(e => {
+    const u = pickupUrgency(e, now);
+    const car = [e.brand, e.model].filter(Boolean).join(' ') + (e.rego ? ' · ' + e.rego : '');
+    const fees = calculateTotalFee(now - new Date(e.timeIn));
+    const source = e.pickupSource === 'customer'
+      ? '<span style="font-size:11px;color:var(--green);font-weight:600">👤 Customer requested</span>'
+      : '<span style="font-size:11px;color:var(--text-muted)">🧑‍✈️ Staff requested</span>';
+
+    const onWay = e.pickupStatus === 'fetching';
+    const ready = e.pickupStatus === 'ready';
+    const toldLine = onWay
+      ? '<div style="font-size:12px;color:var(--maroon);font-weight:600;margin-top:6px">🚗 Customer told: on the way</div>'
+      : ready
+        ? '<div style="font-size:12px;color:var(--green);font-weight:600;margin-top:6px">✅ Customer told: ready at desk</div>'
+        : '';
+
+    const callBtn = e.phone
+      ? `<a href="tel:${e.phone}" class="btn btn-secondary" style="flex:0 0 auto;padding:13px 15px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" title="Call ${e.phone}">📞</a>`
+      : '';
+    const sbase = 'flex:1;padding:12px 8px;font-size:13px;font-weight:600';
+
+    return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+      <div style="background:${u.bg};color:#fff;padding:8px 14px;font-size:14px;font-weight:bold;letter-spacing:.3px;display:flex;justify-content:space-between;align-items:center">
+        <span>${u.label}</span>
+        <span style="font-size:12px;font-weight:600;opacity:.9">Ticket ${e.ticket}</span>
+      </div>
+      <div style="padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:17px;font-weight:bold;color:#2a2620">${car}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${e.name || 'No name'}</div>
+            ${source}
+            ${toldLine}
+          </div>
+          <div style="text-align:center;flex-shrink:0;background:var(--sandstone);border-radius:8px;padding:6px 14px">
+            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8b6f47;font-weight:600">Bay</div>
+            <div style="font-family:Georgia,serif;font-size:36px;font-weight:bold;color:var(--maroon);line-height:1.1">${e.bay || '—'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button class="btn ${onWay ? 'btn-primary' : 'btn-secondary'}" style="${sbase}" onclick="setPickupStatus('${e.id}','fetching')">${onWay ? '🚗 On the way ✓' : '🚗 On the way'}</button>
+          <button class="btn ${ready ? 'btn-primary' : 'btn-secondary'}" style="${sbase}" onclick="setPickupStatus('${e.id}','ready')">${ready ? '✅ Ready ✓' : '✅ Ready'}</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${callBtn}
+          <button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 14px;font-size:13px" onclick="togglePickupRequest('${e.id}')" title="Remove from queue (cancel request)">✕ Cancel</button>
+          <button class="btn btn-primary" style="flex:2;padding:13px 10px;font-size:14px;font-weight:bold" onclick="checkout('${e.id}')">✓ Mark Out · ${fmtMoney(fees.total)}</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -6360,17 +6482,19 @@ function refreshActiveViews() {
   try { renderDashboard(); } catch(e) {}
   try { renderActive(); } catch(e) {}
   try { renderQuickPickup(); } catch(e) {}
+  try { renderPickupQueue(); } catch(e) {}
   try { renderLog(); } catch(e) {}
 }
 
 function refreshActiveViewOnly() {
   // For situations where we only want to refresh the currently visible view
-  const views = ['dashboard','quick-pickup','active','log','customers','reports'];
+  const views = ['dashboard','quick-pickup','pickup-queue','active','log','customers','reports'];
   views.forEach(name => {
     const v = document.getElementById('view-' + name);
     if (v && v.classList.contains('active')) {
       if (name === 'dashboard') renderDashboard();
       else if (name === 'quick-pickup') renderQuickPickup();
+      else if (name === 'pickup-queue') renderPickupQueue();
       else if (name === 'active') renderActive();
       else if (name === 'log') renderLog();
       else if (name === 'customers') renderCustomers();
