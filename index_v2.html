@@ -3401,6 +3401,7 @@ function buildTicketUrl(e) {
   // location.pathname is e.g. "/Valet/index_v2.html" — strip the file to get "/Valet/"
   const base = location.origin + location.pathname.replace(/[^/]*$/, '');
   return base + 'ticket.html?t=' + encodeURIComponent(e.ticket)
+    + '&id=' + encodeURIComponent(e.id || '')
     + '&r=' + encodeURIComponent(e.rego || '')
     + '&ci=' + encodeURIComponent(e.timeIn || '');
 }
@@ -3411,7 +3412,7 @@ async function sendQRSms(id) {
   const url = buildTicketUrl(e);
   // Plain hyphen (not an em-dash) keeps the SMS in the cheaper GSM-7
   // encoding, so it stays fewer billable segments.
-  const msg = 'Chatswood Chase Valet ticket ' + e.ticket + '. Your QR + car details: ' + url;
+  const msg = 'Chatswood Chase Valet ticket ' + e.ticket + '. Your QR ticket + tap to request your car when ready: ' + url;
 
   // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
   //    If it isn't deployed/configured yet, or the send fails, we quietly
@@ -3467,6 +3468,7 @@ function togglePickupRequest(id) {
     // Cancel pickup request
     e.pickupRequested = null;
     e.pickupETA = null;
+    e.pickupSource = null;
     saveData(id, { immediate: true });
     cloudAudit('cancel_pickup', 'entry', id, { ticket: e.ticket });
     renderActive();
@@ -3507,6 +3509,7 @@ function confirmPickupETA(minutes) {
   const now = new Date();
   e.pickupRequested = now.toISOString();
   e.pickupETA = new Date(now.getTime() + mins * 60000).toISOString();
+  e.pickupSource = 'staff';
   saveData(id, { immediate: true });
   closeETAModal();
   hapticFeedback('success');
@@ -5775,6 +5778,7 @@ function jsToDb(e) {
     payment_status: e.paymentStatus, payment_method: e.paymentMethod,
     photo: e.photo, gps: e.gps,
     pickup_requested: e.pickupRequested, pickup_eta: e.pickupETA,
+    pickup_source: e.pickupSource,
     discounts: e.discounts, discount_total: e.discountTotal,
     updated_by: currentUser?.username,
     updated_at: new Date().toISOString(),
@@ -5795,6 +5799,7 @@ function dbToJs(d) {
     paymentStatus: d.payment_status, paymentMethod: d.payment_method,
     photo: d.photo, gps: d.gps,
     pickupRequested: d.pickup_requested, pickupETA: d.pickup_eta,
+    pickupSource: d.pickup_source,
     discounts: d.discounts || [],
     discountTotal: d.discount_total !== null ? parseFloat(d.discount_total) : 0,
   };
@@ -5971,11 +5976,135 @@ function handleRealtimeEntryChange(payload) {
     else entries.unshift(newEntry);
     // Re-sort by time_in desc
     entries.sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
+    // A customer just tapped "bring my car" on their SMS ticket link →
+    // raise the alarm on this device (popup + chime + vibrate).
+    maybeAlarmCustomerPickup(newEntry);
   } else if (payload.eventType === 'DELETE') {
     entries = entries.filter(e => e.id !== payload.old.id);
   }
   // Re-render whatever's active
   refreshActiveViews();
+}
+
+// ═══════════════════════════════════════════════════
+// CUSTOMER PICKUP ALARM
+// Fires when a customer requests their car from the SMS ticket link.
+// Reuses the existing pickup_requested / pickup_eta fields; the
+// pickup_source='customer' marker is what distinguishes it from a
+// staff-entered ETA (which must not alarm).
+// ═══════════════════════════════════════════════════
+let pickupAlertSeen = new Set();   // keys we've already handled (id|requestedAt)
+let pickupAlertQueue = [];         // entries waiting to be shown
+let pickupAlarmAudioCtx = null;
+let pickupAlarmTimer = null;
+
+function pickupAlertKey(e) {
+  return (e.id || '') + '|' + (e.pickupRequested || '');
+}
+
+// Record every currently-requested entry as "already seen" so logging in
+// (or a fresh cloud load) doesn't replay alarms for old requests.
+function seedPickupAlertBaseline() {
+  pickupAlertSeen = new Set();
+  entries.forEach(e => {
+    if (e.pickupRequested) pickupAlertSeen.add(pickupAlertKey(e));
+  });
+}
+
+function maybeAlarmCustomerPickup(e) {
+  if (!e || e.pickupSource !== 'customer') return;
+  if (!e.pickupRequested || e.timeOut) return;      // not a live request
+  const key = pickupAlertKey(e);
+  if (pickupAlertSeen.has(key)) return;             // already alarmed
+  pickupAlertSeen.add(key);
+  pickupAlertQueue.push(e.id);
+  if (!document.getElementById('pickup-alarm-modal').classList.contains('show')) {
+    showNextPickupAlarm();
+  }
+}
+
+function showNextPickupAlarm() {
+  const modal = document.getElementById('pickup-alarm-modal');
+  // Skip any queued ids that are no longer valid (collected/deleted)
+  let e = null;
+  while (pickupAlertQueue.length) {
+    const id = pickupAlertQueue.shift();
+    e = entries.find(x => x.id === id && !x.timeOut);
+    if (e) break;
+    e = null;
+  }
+  if (!e) { stopPickupAlarmSound(); modal.classList.remove('show'); return; }
+
+  document.getElementById('pickup-alarm-ticket').textContent = e.ticket || '—';
+  document.getElementById('pickup-alarm-bay').textContent = e.bay || '—';
+  document.getElementById('pickup-alarm-car').textContent =
+    [e.brand, e.model].filter(Boolean).join(' ') + (e.rego ? ' · ' + e.rego : '');
+
+  // ETA line: "Here now" vs "Arriving in N min"
+  let etaLine = 'Customer wants their car';
+  if (e.pickupETA) {
+    const minsLeft = Math.round((new Date(e.pickupETA) - new Date()) / 60000);
+    etaLine = minsLeft <= 0 ? '🔴 Customer is here NOW' : `⏱ Arriving in about ${minsLeft} min`;
+  }
+  document.getElementById('pickup-alarm-eta').textContent = etaLine;
+
+  const more = pickupAlertQueue.length;
+  document.getElementById('pickup-alarm-more').textContent =
+    more > 0 ? `+${more} more request${more > 1 ? 's' : ''} waiting` : '';
+
+  modal.classList.add('show');
+  startPickupAlarmSound();
+  if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+}
+
+function acknowledgePickupAlarm() {
+  stopPickupAlarmSound();
+  if (pickupAlertQueue.length) {
+    showNextPickupAlarm();          // show the next one in the queue
+  } else {
+    document.getElementById('pickup-alarm-modal').classList.remove('show');
+    // Jump to Quick Pickup so staff can action it immediately.
+    try { showView('quick-pickup'); } catch (e) {}
+  }
+}
+
+// Short repeating two-tone chime via WebAudio (no audio asset needed).
+// Browsers allow this because the operator has already interacted with
+// the page (login tap), which unlocks audio playback.
+function startPickupAlarmSound() {
+  stopPickupAlarmSound();
+  try {
+    if (!pickupAlarmAudioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      pickupAlarmAudioCtx = new AC();
+    }
+    if (pickupAlarmAudioCtx.state === 'suspended') pickupAlarmAudioCtx.resume();
+    const beep = () => {
+      const ctx = pickupAlarmAudioCtx;
+      if (!ctx) return;
+      [880, 1320].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const t0 = ctx.currentTime + i * 0.22;
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.20);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.22);
+      });
+    };
+    beep();
+    pickupAlarmTimer = setInterval(beep, 1500);
+  } catch (err) { /* audio unavailable — popup + vibrate still fire */ }
+}
+
+function stopPickupAlarmSound() {
+  if (pickupAlarmTimer) { clearInterval(pickupAlarmTimer); pickupAlarmTimer = null; }
+  if (navigator.vibrate) navigator.vibrate(0);
 }
 
 function handleRealtimeSettingsChange(payload) {
@@ -6152,6 +6281,9 @@ async function completeLogin() {
   // Re-apply handover notes now that cloudSettings is populated (initializeUI
   // ran before loadFromCloud finished, so it only saw the local cache).
   loadHandoverNotes();
+  // Treat all existing pickup requests as already-seen so we only alarm for
+  // NEW customer requests that arrive after login (not the backlog).
+  seedPickupAlertBaseline();
   // 5) Start real-time sync AFTER the initial fetch so we don't process
   //    events against a half-populated entries array.
   startRealtimeSync();
@@ -6934,6 +7066,27 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="btn btn-secondary" onclick="closeETAModal()">Cancel</button>
       <button class="btn btn-primary" onclick="confirmPickupETA()">✓ Confirm</button>
     </div>
+  </div>
+</div>
+
+<!-- CUSTOMER PICKUP ALARM — fires when a customer taps "bring my car" on
+     their SMS ticket link. Pops on every device that has the dashboard open,
+     with a chime + vibration, until a staff member acknowledges. -->
+<div class="modal" id="pickup-alarm-modal">
+  <div class="modal-box" style="max-width:460px;text-align:center;border:3px solid #a83838">
+    <div style="font-size:13px;letter-spacing:3px;color:#a83838;text-transform:uppercase;font-weight:bold;margin-bottom:6px">🔔 Car Requested</div>
+    <div id="pickup-alarm-eta" style="font-size:20px;font-weight:bold;color:#a83838;margin-bottom:16px">Customer wants their car</div>
+
+    <div style="background:var(--sandstone);border-radius:10px;padding:18px 16px;margin-bottom:16px">
+      <div style="font-size:11px;letter-spacing:3px;color:#8b6f47;text-transform:uppercase">Parked in Bay</div>
+      <div id="pickup-alarm-bay" style="font-family:Georgia,serif;font-size:72px;font-weight:bold;color:var(--maroon);line-height:1;margin:6px 0">—</div>
+    </div>
+
+    <div id="pickup-alarm-car" style="font-size:17px;color:#2a2620;margin-bottom:4px">—</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Ticket <strong id="pickup-alarm-ticket" style="font-family:'Courier New',monospace;color:var(--maroon)">—</strong></div>
+    <div id="pickup-alarm-more" style="font-size:12px;color:#a83838;font-weight:bold;min-height:16px;margin-bottom:12px"></div>
+
+    <button class="btn btn-primary" onclick="acknowledgePickupAlarm()" style="width:100%;font-size:17px;padding:16px">✓ On it — got it</button>
   </div>
 </div>
 

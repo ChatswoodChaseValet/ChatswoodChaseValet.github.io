@@ -91,6 +91,46 @@
     background:#fbe5e5;border-radius:6px;
     padding:14px;
   }
+  /* ── Request-your-car section ── */
+  .req{
+    margin-top:22px;padding-top:20px;
+    border-top:1px solid #e7ddc9;
+  }
+  .req-title{
+    font-size:15px;font-weight:bold;color:#6b1d24;margin-bottom:4px;
+  }
+  .req-sub{
+    font-size:12px;color:#8b6f47;margin-bottom:14px;line-height:1.4;
+  }
+  .req-grid{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:10px;
+  }
+  .req-btn{
+    appearance:none;-webkit-appearance:none;
+    border:1.5px solid #6b1d24;border-radius:10px;
+    background:#fff;color:#6b1d24;
+    font-size:16px;font-weight:bold;
+    padding:16px 8px;cursor:pointer;
+    font-family:inherit;
+    transition:background .12s,color .12s,transform .05s;
+  }
+  .req-btn:active{transform:scale(.97)}
+  .req-btn.now{grid-column:1 / -1;background:#6b1d24;color:#fff}
+  .req-btn[disabled]{opacity:.5;cursor:default}
+  .req-status{
+    font-size:14px;line-height:1.5;color:#2a6b2a;
+    background:#e6f4e6;border:1px solid #b8e0b8;border-radius:10px;
+    padding:16px;
+  }
+  .req-status .big{font-size:17px;font-weight:bold;display:block;margin-bottom:4px}
+  .req-change{
+    display:inline-block;margin-top:12px;font-size:13px;color:#6b1d24;
+    text-decoration:underline;cursor:pointer;background:none;border:none;font-family:inherit;
+  }
+  .req-error{
+    font-size:13px;color:#a83838;background:#fbe5e5;border-radius:8px;
+    padding:12px;margin-top:12px;
+  }
   /* iOS: allow saving the QR section as image via long-press */
   .qr-wrap canvas{user-select:none;-webkit-user-select:none;-webkit-touch-callout:default}
 </style>
@@ -112,6 +152,22 @@
       Show this QR code to our valet staff when you return for your car.
     </div>
     <div class="tip">💡 Tip: take a screenshot or bookmark this page so you can find it later.</div>
+
+    <!-- Customer "bring my car" section — populated by the script below
+         only when a valid entry id is present in the link. -->
+    <div class="req" id="req-section" style="display:none">
+      <div class="req-title">🚗 Ready to leave?</div>
+      <div class="req-sub">Let our valet know and we'll have your car waiting. Tap when you'd like it brought round:</div>
+      <div class="req-grid" id="req-buttons">
+        <button class="req-btn now" data-min="0">I'm here now</button>
+        <button class="req-btn" data-min="5">in 5 min</button>
+        <button class="req-btn" data-min="10">in 10 min</button>
+        <button class="req-btn" data-min="15">in 15 min</button>
+        <button class="req-btn" data-min="20">in 20 min</button>
+        <button class="req-btn" data-min="30">in 30 min</button>
+      </div>
+      <div id="req-result"></div>
+    </div>
   </div>
 </div>
 
@@ -169,6 +225,122 @@
   } catch (e) {
     document.getElementById('qr').textContent = 'Could not generate QR code: ' + (e.message || e);
   }
+})();
+</script>
+
+<!-- ── Customer "request my car" feature ──
+     Lets the customer ask for their car straight from this page. Writes the
+     request to the same Supabase row the valet dashboard reads, so staff get
+     an instant alarm. Uses the public anon key (same as the dashboard). -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://ebqiitxiyzzbkgyfypss.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVicWlpdHhpeXp6YmtneWZ5cHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODI3MjQsImV4cCI6MjA5NTk1ODcyNH0.ZkR9PetFUtsrsxXens0SxpOAOJQA8mXoS7d8qXRUhYs';
+
+  var params = new URLSearchParams(location.search);
+  var id = (params.get('id') || '').trim();
+  var section = document.getElementById('req-section');
+  var resultBox = document.getElementById('req-result');
+
+  // Need a valid-looking entry id (UUID) and the Supabase library to proceed.
+  var isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  if (!isUuid || !window.supabase) return;   // older links without ?id= just show the QR
+
+  var supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function fmtMins(mins){ return mins <= 0 ? 'right now' : 'in about ' + mins + ' minutes'; }
+
+  function showRequested(mins){
+    var when = mins <= 0
+      ? "We're getting your car right now."
+      : "We'll have your car ready " + fmtMins(mins) + '.';
+    resultBox.innerHTML =
+      '<div class="req-status">' +
+        '<span class="big">✅ Request sent!</span>' + when +
+        '<br>Please make your way to the valet desk.' +
+        '<button class="req-change" id="req-change">Change time</button>' +
+      '</div>';
+    document.getElementById('req-buttons').style.display = 'none';
+    document.getElementById('req-change').addEventListener('click', function(){
+      resultBox.innerHTML = '';
+      document.getElementById('req-buttons').style.display = '';
+    });
+  }
+
+  function showError(msg){
+    resultBox.insertAdjacentHTML('beforeend',
+      '<div class="req-error">⚠ ' + msg + ' Please try again, or just head to the valet desk.</div>');
+  }
+
+  function setBusy(busy){
+    var btns = section.querySelectorAll('.req-btn');
+    for (var i=0;i<btns.length;i++) btns[i].disabled = busy;
+  }
+
+  async function requestCar(mins){
+    setBusy(true);
+    // Clear any previous error
+    var oldErr = resultBox.querySelector('.req-error');
+    if (oldErr) oldErr.remove();
+    var now = new Date();
+    var eta = new Date(now.getTime() + mins * 60000);
+    try {
+      var res = await supa.from('entries').update({
+        pickup_requested: now.toISOString(),
+        pickup_eta: eta.toISOString(),
+        pickup_source: 'customer',
+        updated_at: now.toISOString()
+      }).eq('id', id).is('time_out', null).select('id');
+
+      if (res.error) { showError("Something went wrong sending your request."); setBusy(false); return; }
+      if (!res.data || res.data.length === 0) {
+        // Row not updated — either already collected or not active.
+        resultBox.innerHTML = '<div class="req-status" style="color:#8b6f47;background:#f3eddf;border-color:#d4c8b3">' +
+          'This ticket is no longer active — your car may already have been collected. Please see the valet desk if you need help.</div>';
+        return;
+      }
+      showRequested(mins);
+    } catch (e) {
+      showError("We couldn't reach the valet right now.");
+      setBusy(false);
+    }
+  }
+
+  // Decide whether to show the section. Look up the entry first so a
+  // collected car shows the right message instead of request buttons.
+  (async function init(){
+    try {
+      var look = await supa.from('entries')
+        .select('time_out,pickup_requested,pickup_eta,pickup_source')
+        .eq('id', id).maybeSingle();
+      var row = look && look.data;
+      if (look && look.error) { section.style.display = ''; return; } // show buttons anyway
+      if (!row) return;                       // unknown id — leave hidden (just the QR)
+      section.style.display = '';
+      if (row.time_out) {
+        document.getElementById('req-buttons').style.display = 'none';
+        resultBox.innerHTML = '<div class="req-status" style="color:#8b6f47;background:#f3eddf;border-color:#d4c8b3">' +
+          'Your car has been collected — thank you for visiting Chatswood Chase.</div>';
+        return;
+      }
+      // If a customer request is already on file, reflect it.
+      if (row.pickup_requested && row.pickup_source === 'customer') {
+        var mins = row.pickup_eta
+          ? Math.max(0, Math.round((new Date(row.pickup_eta) - new Date()) / 60000))
+          : 0;
+        showRequested(mins);
+      }
+    } catch (e) {
+      section.style.display = '';            // network hiccup — still let them request
+    }
+  })();
+
+  document.getElementById('req-buttons').addEventListener('click', function(ev){
+    var btn = ev.target.closest('.req-btn');
+    if (!btn || btn.disabled) return;
+    requestCar(parseInt(btn.getAttribute('data-min'), 10) || 0);
+  });
 })();
 </script>
 </body>
