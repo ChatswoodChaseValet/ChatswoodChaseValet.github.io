@@ -3468,7 +3468,9 @@ async function sendQRSms(id) {
   if (e.phone && supa) {
     try {
       const { data, error } = await supa.functions.invoke('send-ticket-sms', {
-        body: { to: e.phone, message: msg }
+        // Pass the long URL so the function swaps it for a tidy tinyurl.com
+        // link (keeps the customer-facing SMS looking professional).
+        body: { to: e.phone, message: msg, shortenUrl: url }
       });
       if (!error && data && data.ok) {
         quickToast('📱 Ticket texted to ' + e.phone);

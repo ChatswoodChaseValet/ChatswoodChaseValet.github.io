@@ -50,6 +50,23 @@ function mask(n: string): string {
   return n.length > 4 ? n.slice(0, 3) + "***" + n.slice(-3) : "***";
 }
 
+// Shorten a long ticket URL via TinyURL's keyless API so the customer sees
+// a clean "tinyurl.com/xxxx" link instead of the raw GitHub Pages address.
+// Server-side avoids browser CORS limits. Returns null on any failure so the
+// caller can fall back to the original (still-working) long URL.
+async function shorten(longUrl: string): Promise<string | null> {
+  try {
+    const r = await fetch(
+      "https://tinyurl.com/api-create.php?url=" + encodeURIComponent(longUrl),
+    );
+    if (!r.ok) return null;
+    const t = (await r.text()).trim();
+    return /^https?:\/\/\S+$/.test(t) ? t : null;
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
@@ -58,15 +75,24 @@ serve(async (req: Request) => {
     return json({ ok: false, error: "SMS not configured (missing ClickSend secrets)" }, 503);
   }
 
-  let to = "", message = "";
+  let to = "", message = "", shortenUrl = "";
   try {
     const body = await req.json();
     to = (body.to ?? "").toString().trim();
     message = (body.message ?? "").toString();
+    // Optional: a long URL inside `message` to swap for a short one.
+    shortenUrl = (body.shortenUrl ?? "").toString().trim();
   } catch {
     return json({ ok: false, error: "invalid JSON body" }, 400);
   }
   if (!to || !message) return json({ ok: false, error: "missing 'to' or 'message'" }, 400);
+
+  // Replace the long ticket link with a tidy short link before sending. If the
+  // shortener fails, `message` is left untouched (the full link still works).
+  if (shortenUrl && message.includes(shortenUrl)) {
+    const short = await shorten(shortenUrl);
+    if (short) message = message.split(shortenUrl).join(short);
+  }
 
   const number = toE164AU(to);
   console.log(`[send-ticket-sms] -> to=${mask(number)} sender=${SENDER || "(shared)"} msgLen=${message.length}`);
