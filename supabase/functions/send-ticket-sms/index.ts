@@ -45,6 +45,11 @@ function toE164AU(raw: string): string {
   return "+61" + n;
 }
 
+// Mask all but the last 3 digits for logs.
+function mask(n: string): string {
+  return n.length > 4 ? n.slice(0, 3) + "***" + n.slice(-3) : "***";
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
@@ -64,6 +69,7 @@ serve(async (req: Request) => {
   if (!to || !message) return json({ ok: false, error: "missing 'to' or 'message'" }, 400);
 
   const number = toE164AU(to);
+  console.log(`[send-ticket-sms] -> to=${mask(number)} sender=${SENDER || "(shared)"} msgLen=${message.length}`);
 
   try {
     const res = await fetch("https://rest.clicksend.com/v3/sms/send", {
@@ -87,8 +93,12 @@ serve(async (req: Request) => {
     const status = m?.status ?? data?.response_code ?? "UNKNOWN";
     const ok = res.ok && typeof status === "string" &&
       /success|queued|sent/i.test(status);
+    // Log the full ClickSend reply server-side for diagnostics (status, price,
+    // errors, balance) — but never return it to the public caller.
+    console.log(`[send-ticket-sms] <- httpOk=${res.ok} status=${status} price=${m?.message_price} resp=${JSON.stringify(data)}`);
     return json({ ok, status, cost: m?.message_price, raw: ok ? undefined : data }, ok ? 200 : 502);
   } catch (e) {
+    console.error(`[send-ticket-sms] FETCH ERROR ${String(e)}`);
     return json({ ok: false, error: String(e) }, 502);
   }
 });

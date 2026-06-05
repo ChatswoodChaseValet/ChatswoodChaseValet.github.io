@@ -239,15 +239,20 @@
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVicWlpdHhpeXp6YmtneWZ5cHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODI3MjQsImV4cCI6MjA5NTk1ODcyNH0.ZkR9PetFUtsrsxXens0SxpOAOJQA8mXoS7d8qXRUhYs';
 
   var params = new URLSearchParams(location.search);
-  var id = (params.get('id') || '').trim();
+  var idParam = (params.get('id') || '').trim();
+  var ticketParam = (params.get('t') || '').trim().toUpperCase();
   var section = document.getElementById('req-section');
   var resultBox = document.getElementById('req-result');
 
-  // Need a valid-looking entry id (UUID) and the Supabase library to proceed.
-  var isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  if (!isUuid || !window.supabase) return;   // older links without ?id= just show the QR
+  // Need the Supabase library to do anything; without it we just show the QR.
+  if (!window.supabase) return;
 
   var supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // entryId is resolved either straight from the ?id= param (new links) or,
+  // for older/cached links that only carry the ticket number, by looking the
+  // active car up by ticket below.
+  var isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idParam);
+  var entryId = isUuid ? idParam : null;
 
   function fmtMins(mins){ return mins <= 0 ? 'right now' : 'in about ' + mins + ' minutes'; }
 
@@ -279,6 +284,7 @@
   }
 
   async function requestCar(mins){
+    if (!entryId) { showError("We couldn't match your ticket."); return; }
     setBusy(true);
     // Clear any previous error
     var oldErr = resultBox.querySelector('.req-error');
@@ -291,7 +297,7 @@
         pickup_eta: eta.toISOString(),
         pickup_source: 'customer',
         updated_at: now.toISOString()
-      }).eq('id', id).is('time_out', null).select('id');
+      }).eq('id', entryId).is('time_out', null).select('id');
 
       if (res.error) { showError("Something went wrong sending your request."); setBusy(false); return; }
       if (!res.data || res.data.length === 0) {
@@ -303,23 +309,38 @@
       showRequested(mins);
       // Fire OS push notifications to staff devices (fire-and-forget — the
       // dashboard's realtime alarm already covers any open tabs regardless).
-      supa.functions.invoke('notify-pickup', { body: { id: id } }).catch(function(){});
+      supa.functions.invoke('notify-pickup', { body: { id: entryId } }).catch(function(){});
     } catch (e) {
       showError("We couldn't reach the valet right now.");
       setBusy(false);
     }
   }
 
-  // Decide whether to show the section. Look up the entry first so a
-  // collected car shows the right message instead of request buttons.
+  // Identify the car, then show the request section. Prefer the ?id= param;
+  // if it's missing (older link or a cached dashboard), fall back to finding
+  // the active car by its ticket number so the buttons still appear.
   (async function init(){
     try {
-      var look = await supa.from('entries')
-        .select('time_out,pickup_requested,pickup_eta,pickup_source')
-        .eq('id', id).maybeSingle();
-      var row = look && look.data;
-      if (look && look.error) { section.style.display = ''; return; } // show buttons anyway
-      if (!row) return;                       // unknown id — leave hidden (just the QR)
+      var row = null;
+      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source';
+
+      if (entryId) {
+        var byId = await supa.from('entries').select(cols).eq('id', entryId).maybeSingle();
+        if (byId && !byId.error) row = byId.data;
+      }
+      if (!row && /^[A-Z0-9-]{1,16}$/.test(ticketParam)) {
+        var byT = await supa.from('entries').select(cols)
+          .ilike('ticket', ticketParam)
+          .is('time_out', null)
+          .order('time_in', { ascending: false })
+          .limit(1);
+        if (byT && !byT.error && byT.data && byT.data.length) {
+          row = byT.data[0];
+          entryId = row.id;
+        }
+      }
+
+      if (!row || !entryId) return;           // couldn't match a car — just show the QR
       section.style.display = '';
       if (row.time_out) {
         document.getElementById('req-buttons').style.display = 'none';
@@ -335,7 +356,7 @@
         showRequested(mins);
       }
     } catch (e) {
-      section.style.display = '';            // network hiccup — still let them request
+      if (entryId) section.style.display = '';  // network hiccup — still let them try
     }
   })();
 
