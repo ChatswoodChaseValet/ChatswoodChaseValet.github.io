@@ -273,6 +273,50 @@
     });
   }
 
+  // Render whatever the car's current state is. Staff-driven states
+  // (on-the-way / ready / collected) always win and replace the buttons;
+  // a plain pending request is only reflected on first load (`initial`),
+  // so a realtime echo of the customer's own tap doesn't clobber their UI.
+  function applyLiveStatus(row, initial){
+    if (!row) return;
+    var buttons = document.getElementById('req-buttons');
+    if (row.time_out) {
+      buttons.style.display = 'none';
+      resultBox.innerHTML = '<div class="req-status" style="color:#8b6f47;background:#f3eddf;border-color:#d4c8b3">' +
+        '<span class="big">👋 Thanks for visiting!</span>Your car has been collected. We hope to see you again at Chatswood Chase.</div>';
+      return;
+    }
+    if (row.pickup_status === 'ready') {
+      buttons.style.display = 'none';
+      resultBox.innerHTML = '<div class="req-status">' +
+        '<span class="big">✅ Your car is ready!</span>It\'s waiting for you at the valet desk — see you there.</div>';
+      return;
+    }
+    if (row.pickup_status === 'fetching') {
+      buttons.style.display = 'none';
+      resultBox.innerHTML = '<div class="req-status" style="color:#6b1d24;background:#f7ecec;border-color:#e0b8b8">' +
+        '<span class="big">🚗 Your car is on its way!</span>Our valet is bringing it round now — please head to the valet desk.</div>';
+      return;
+    }
+    if (initial && row.pickup_requested && row.pickup_source === 'customer') {
+      var mins = row.pickup_eta
+        ? Math.max(0, Math.round((new Date(row.pickup_eta) - new Date()) / 60000))
+        : 0;
+      showRequested(mins);
+    }
+  }
+
+  // Listen for staff updates to this car so the page reflects them live.
+  function watchEntry(){
+    try {
+      supa.channel('ticket-' + entryId)
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'entries', filter: 'id=eq.' + entryId },
+          function(payload){ applyLiveStatus(payload.new, false); })
+        .subscribe();
+    } catch (e) { /* realtime unavailable — page still works, just not live */ }
+  }
+
   function showError(msg){
     resultBox.insertAdjacentHTML('beforeend',
       '<div class="req-error">⚠ ' + msg + ' Please try again, or just head to the valet desk.</div>');
@@ -296,6 +340,7 @@
         pickup_requested: now.toISOString(),
         pickup_eta: eta.toISOString(),
         pickup_source: 'customer',
+        pickup_status: null,          // fresh request — clear any prior staff status
         updated_at: now.toISOString()
       }).eq('id', entryId).is('time_out', null).select('id');
 
@@ -322,7 +367,7 @@
   (async function init(){
     try {
       var row = null;
-      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source';
+      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status';
 
       if (entryId) {
         var byId = await supa.from('entries').select(cols).eq('id', entryId).maybeSingle();
@@ -342,19 +387,9 @@
 
       if (!row || !entryId) return;           // couldn't match a car — just show the QR
       section.style.display = '';
-      if (row.time_out) {
-        document.getElementById('req-buttons').style.display = 'none';
-        resultBox.innerHTML = '<div class="req-status" style="color:#8b6f47;background:#f3eddf;border-color:#d4c8b3">' +
-          'Your car has been collected — thank you for visiting Chatswood Chase.</div>';
-        return;
-      }
-      // If a customer request is already on file, reflect it.
-      if (row.pickup_requested && row.pickup_source === 'customer') {
-        var mins = row.pickup_eta
-          ? Math.max(0, Math.round((new Date(row.pickup_eta) - new Date()) / 60000))
-          : 0;
-        showRequested(mins);
-      }
+      // Reflect the car's current state, then keep it live.
+      applyLiveStatus(row, true);
+      if (!row.time_out) watchEntry();
     } catch (e) {
       if (entryId) section.style.display = '';  // network hiccup — still let them try
     }

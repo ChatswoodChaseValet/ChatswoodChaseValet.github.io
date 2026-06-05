@@ -3500,6 +3500,7 @@ function togglePickupRequest(id) {
     e.pickupRequested = null;
     e.pickupETA = null;
     e.pickupSource = null;
+    e.pickupStatus = null;
     saveData(id, { immediate: true });
     cloudAudit('cancel_pickup', 'entry', id, { ticket: e.ticket });
     renderActive();
@@ -3509,6 +3510,32 @@ function togglePickupRequest(id) {
   }
   // Ask for ETA in minutes
   openPickupETAModal(id);
+}
+
+// Push a live status to the customer's ticket page (via the shared cloud row,
+// which their open ticket page is subscribed to in real time).
+//   'fetching' → "Your car is on its way"   'ready' → "Ready at the valet desk"
+// Tapping the active status again clears it back to a plain request.
+function setPickupStatus(id, status) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  // Setting a status implies there's a live request — backfill one if a staff
+  // member jumps straight to "on the way" without a prior request on file.
+  if (status && !e.pickupRequested) {
+    e.pickupRequested = new Date().toISOString();
+    e.pickupSource = e.pickupSource || 'staff';
+  }
+  e.pickupStatus = e.pickupStatus === status ? null : status;
+  saveData(id, { immediate: true });
+  hapticFeedback('success');
+  cloudAudit('pickup_status', 'entry', id, { ticket: e.ticket, status: e.pickupStatus });
+  const label = e.pickupStatus === 'fetching' ? '🚗 Customer told: on the way'
+    : e.pickupStatus === 'ready' ? '✅ Customer told: car is ready'
+    : 'Status cleared';
+  quickToast(label);
+  renderActive();
+  renderQuickPickup();
+  renderDashboard();
 }
 
 function openPickupETAModal(id) {
@@ -3541,6 +3568,7 @@ function confirmPickupETA(minutes) {
   e.pickupRequested = now.toISOString();
   e.pickupETA = new Date(now.getTime() + mins * 60000).toISOString();
   e.pickupSource = 'staff';
+  e.pickupStatus = null;
   saveData(id, { immediate: true });
   closeETAModal();
   hapticFeedback('success');
@@ -3645,6 +3673,21 @@ function renderQuickPickup() {
         </div>`
       : '';
 
+    // Live status the customer sees on their ticket page. Only relevant once a
+    // pickup is in play. The active status is highlighted so staff can see at a
+    // glance what the customer was last told.
+    const statusRow = e.pickupRequested
+      ? (() => {
+          const onWay = e.pickupStatus === 'fetching';
+          const ready = e.pickupStatus === 'ready';
+          const base = 'flex:1;padding:11px 8px;font-size:12px;font-weight:600';
+          return `<div style="display:flex;gap:6px;margin-bottom:8px" title="Updates the customer's ticket page live">
+            <button class="btn ${onWay ? 'btn-primary' : 'btn-secondary'}" style="${base}" onclick="event.stopPropagation();setPickupStatus('${e.id}','fetching')">${onWay ? '🚗 On the way ✓' : '🚗 On the way'}</button>
+            <button class="btn ${ready ? 'btn-primary' : 'btn-secondary'}" style="${base}" onclick="event.stopPropagation();setPickupStatus('${e.id}','ready')">${ready ? '✅ Ready ✓' : '✅ Ready'}</button>
+          </div>`;
+        })()
+      : '';
+
     return `<div class="qp-card" onclick="checkout('${e.id}')" style="background:#fff;border:1px solid var(--border);border-left:6px solid ${borderColor};border-radius:8px;padding:14px;cursor:pointer;transition:transform .1s,box-shadow .1s;box-shadow:0 1px 3px rgba(0,0,0,.05)" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(.98)'" ontouchend="this.style.transform=''">
       ${requestedBadge}
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
@@ -3664,6 +3707,7 @@ function renderQuickPickup() {
         <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:${borderColor}">${fmtDuration(dur)}</b></div>
       </div>
       ${extrasRow}
+      ${statusRow}
       <div style="display:flex;gap:8px;align-items:center">
         ${callBtn}
         ${qrBtn}
@@ -5810,7 +5854,7 @@ function jsToDb(e) {
     payment_status: e.paymentStatus, payment_method: e.paymentMethod,
     photo: e.photo, gps: e.gps,
     pickup_requested: e.pickupRequested, pickup_eta: e.pickupETA,
-    pickup_source: e.pickupSource,
+    pickup_source: e.pickupSource, pickup_status: e.pickupStatus,
     discounts: e.discounts, discount_total: e.discountTotal,
     updated_by: currentUser?.username,
     updated_at: new Date().toISOString(),
@@ -5831,7 +5875,7 @@ function dbToJs(d) {
     paymentStatus: d.payment_status, paymentMethod: d.payment_method,
     photo: d.photo, gps: d.gps,
     pickupRequested: d.pickup_requested, pickupETA: d.pickup_eta,
-    pickupSource: d.pickup_source,
+    pickupSource: d.pickup_source, pickupStatus: d.pickup_status,
     discounts: d.discounts || [],
     discountTotal: d.discount_total !== null ? parseFloat(d.discount_total) : 0,
   };
@@ -6029,6 +6073,7 @@ let pickupAlertSeen = new Set();   // keys we've already handled (id|requestedAt
 let pickupAlertQueue = [];         // entries waiting to be shown
 let pickupAlarmAudioCtx = null;
 let pickupAlarmTimer = null;
+let currentAlarmEntryId = null;    // entry currently shown in the alarm modal
 
 function pickupAlertKey(e) {
   return (e.id || '') + '|' + (e.pickupRequested || '');
@@ -6065,8 +6110,9 @@ function showNextPickupAlarm() {
     if (e) break;
     e = null;
   }
-  if (!e) { stopPickupAlarmSound(); modal.classList.remove('show'); return; }
+  if (!e) { stopPickupAlarmSound(); modal.classList.remove('show'); currentAlarmEntryId = null; return; }
 
+  currentAlarmEntryId = e.id;
   document.getElementById('pickup-alarm-ticket').textContent = e.ticket || '—';
   document.getElementById('pickup-alarm-bay').textContent = e.bay || '—';
   document.getElementById('pickup-alarm-car').textContent =
@@ -6087,6 +6133,16 @@ function showNextPickupAlarm() {
   modal.classList.add('show');
   startPickupAlarmSound();
   if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+}
+
+// "On the way" from the alarm: tell the customer their car is coming, then
+// dismiss this alert (and move on to the next queued one).
+function alarmOnTheWay() {
+  if (currentAlarmEntryId) {
+    const e = entries.find(x => x.id === currentAlarmEntryId);
+    if (e && e.pickupStatus !== 'fetching') setPickupStatus(currentAlarmEntryId, 'fetching');
+  }
+  acknowledgePickupAlarm();
 }
 
 function acknowledgePickupAlarm() {
@@ -7267,7 +7323,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Ticket <strong id="pickup-alarm-ticket" style="font-family:'Courier New',monospace;color:var(--maroon)">—</strong></div>
     <div id="pickup-alarm-more" style="font-size:12px;color:#a83838;font-weight:bold;min-height:16px;margin-bottom:12px"></div>
 
-    <button class="btn btn-primary" onclick="acknowledgePickupAlarm()" style="width:100%;font-size:17px;padding:16px">✓ On it — got it</button>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="alarmOnTheWay()" style="flex:1;font-size:16px;padding:16px" title="Tells the customer their car is on its way">🚗 On the way</button>
+      <button class="btn btn-secondary" onclick="acknowledgePickupAlarm()" style="flex:1;font-size:16px;padding:16px">✓ Got it</button>
+    </div>
   </div>
 </div>
 
