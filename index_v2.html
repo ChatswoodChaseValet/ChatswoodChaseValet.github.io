@@ -1042,94 +1042,93 @@ body.dark-mode .scan-banner {
     <div class="form-grid">
       <div class="form-field">
         <label class="form-label">Car Brand<span class="required">*</span></label>
-        <select id="f-brand" class="form-select">
-          <option value="">— Select brand —</option>
-          <option value="Abarth">Abarth</option>
-          <option value="Alfa Romeo">Alfa Romeo</option>
-          <option value="Alpine">Alpine</option>
-          <option value="Aston Martin">Aston Martin</option>
-          <option value="Audi">Audi</option>
-          <option value="Bentley">Bentley</option>
-          <option value="BMW">BMW</option>
-          <option value="BYD">BYD</option>
-          <option value="Cadillac">Cadillac</option>
-          <option value="Chery">Chery</option>
-          <option value="Chevrolet">Chevrolet</option>
-          <option value="Chrysler">Chrysler</option>
-          <option value="Citroen">Citroen</option>
-          <option value="Cupra">Cupra</option>
-          <option value="Dodge">Dodge</option>
-          <option value="DS">DS Automobiles</option>
-          <option value="Ferrari">Ferrari</option>
-          <option value="Fiat">Fiat</option>
-          <option value="Ford">Ford</option>
-          <option value="FPV">FPV (Ford Performance)</option>
-          <option value="Genesis">Genesis</option>
-          <option value="GMC">GMC</option>
-          <option value="GWM">GWM (Great Wall)</option>
-          <option value="Haval">Haval</option>
-          <option value="Holden">Holden</option>
-          <option value="Honda">Honda</option>
-          <option value="HSV">HSV (Holden Special Vehicles)</option>
-          <option value="Hummer">Hummer</option>
-          <option value="Hyundai">Hyundai</option>
-          <option value="Infiniti">Infiniti</option>
-          <option value="Isuzu">Isuzu</option>
-          <option value="Iveco">Iveco</option>
-          <option value="JAC">JAC</option>
-          <option value="Jaguar">Jaguar</option>
-          <option value="Jeep">Jeep</option>
-          <option value="Kia">Kia</option>
-          <option value="Lamborghini">Lamborghini</option>
-          <option value="Lancia">Lancia</option>
-          <option value="Land Rover">Land Rover</option>
-          <option value="LDV">LDV</option>
-          <option value="Lexus">Lexus</option>
-          <option value="Lincoln">Lincoln</option>
-          <option value="Lotus">Lotus</option>
-          <option value="Lynk &amp; Co">Lynk &amp; Co</option>
-          <option value="Maserati">Maserati</option>
-          <option value="Maybach">Maybach</option>
-          <option value="Mazda">Mazda</option>
-          <option value="McLaren">McLaren</option>
-          <option value="Mercedes-Benz">Mercedes-Benz</option>
-          <option value="MG">MG</option>
-          <option value="Mini">Mini</option>
-          <option value="Mitsubishi">Mitsubishi</option>
-          <option value="Morgan">Morgan</option>
-          <option value="NIO">NIO</option>
-          <option value="Nissan">Nissan</option>
-          <option value="Opel">Opel</option>
-          <option value="Ora">Ora</option>
-          <option value="Pagani">Pagani</option>
-          <option value="Peugeot">Peugeot</option>
-          <option value="Polestar">Polestar</option>
-          <option value="Pontiac">Pontiac</option>
-          <option value="Porsche">Porsche</option>
-          <option value="Proton">Proton</option>
-          <option value="RAM">RAM</option>
-          <option value="Range Rover">Range Rover</option>
-          <option value="Renault">Renault</option>
-          <option value="Rivian">Rivian</option>
-          <option value="Rolls-Royce">Rolls-Royce</option>
-          <option value="Saab">Saab</option>
-          <option value="Seat">SEAT</option>
-          <option value="Skoda">Škoda</option>
-          <option value="Smart">Smart</option>
-          <option value="SsangYong">SsangYong</option>
-          <option value="Subaru">Subaru</option>
-          <option value="Suzuki">Suzuki</option>
-          <option value="Tata">Tata</option>
-          <option value="Tesla">Tesla</option>
-          <option value="Toyota">Toyota</option>
-          <option value="Vauxhall">Vauxhall</option>
-          <option value="Volkswagen">Volkswagen</option>
-          <option value="Volvo">Volvo</option>
-          <option value="Wuling">Wuling</option>
-          <option value="XPeng">XPeng</option>
-          <option value="Zeekr">Zeekr</option>
-          <option value="__OTHER__">⊕ Other (type below)…</option>
-        </select>
+        <input type="text" id="f-brand" class="form-input" list="brand-list" placeholder="Type or pick a brand…" autocomplete="off">
+        <datalist id="brand-list">
+          <option value="Abarth"></option>
+          <option value="Alfa Romeo"></option>
+          <option value="Alpine"></option>
+          <option value="Aston Martin"></option>
+          <option value="Audi"></option>
+          <option value="Bentley"></option>
+          <option value="BMW"></option>
+          <option value="BYD"></option>
+          <option value="Cadillac"></option>
+          <option value="Chery"></option>
+          <option value="Chevrolet"></option>
+          <option value="Chrysler"></option>
+          <option value="Citroen"></option>
+          <option value="Cupra"></option>
+          <option value="Dodge"></option>
+          <option value="DS Automobiles"></option>
+          <option value="Ferrari"></option>
+          <option value="Fiat"></option>
+          <option value="Ford"></option>
+          <option value="FPV (Ford Performance)"></option>
+          <option value="Genesis"></option>
+          <option value="GMC"></option>
+          <option value="GWM (Great Wall)"></option>
+          <option value="Haval"></option>
+          <option value="Holden"></option>
+          <option value="Honda"></option>
+          <option value="HSV (Holden Special Vehicles)"></option>
+          <option value="Hummer"></option>
+          <option value="Hyundai"></option>
+          <option value="Infiniti"></option>
+          <option value="Isuzu"></option>
+          <option value="Iveco"></option>
+          <option value="JAC"></option>
+          <option value="Jaguar"></option>
+          <option value="Jeep"></option>
+          <option value="Kia"></option>
+          <option value="Lamborghini"></option>
+          <option value="Lancia"></option>
+          <option value="Land Rover"></option>
+          <option value="LDV"></option>
+          <option value="Lexus"></option>
+          <option value="Lincoln"></option>
+          <option value="Lotus"></option>
+          <option value="Lynk &amp; Co"></option>
+          <option value="Maserati"></option>
+          <option value="Maybach"></option>
+          <option value="Mazda"></option>
+          <option value="McLaren"></option>
+          <option value="Mercedes-Benz"></option>
+          <option value="MG"></option>
+          <option value="Mini"></option>
+          <option value="Mitsubishi"></option>
+          <option value="Morgan"></option>
+          <option value="NIO"></option>
+          <option value="Nissan"></option>
+          <option value="Opel"></option>
+          <option value="Ora"></option>
+          <option value="Pagani"></option>
+          <option value="Peugeot"></option>
+          <option value="Polestar"></option>
+          <option value="Pontiac"></option>
+          <option value="Porsche"></option>
+          <option value="Proton"></option>
+          <option value="RAM"></option>
+          <option value="Range Rover"></option>
+          <option value="Renault"></option>
+          <option value="Rivian"></option>
+          <option value="Rolls-Royce"></option>
+          <option value="Saab"></option>
+          <option value="SEAT"></option>
+          <option value="Škoda"></option>
+          <option value="Smart"></option>
+          <option value="SsangYong"></option>
+          <option value="Subaru"></option>
+          <option value="Suzuki"></option>
+          <option value="Tata"></option>
+          <option value="Tesla"></option>
+          <option value="Toyota"></option>
+          <option value="Vauxhall"></option>
+          <option value="Volkswagen"></option>
+          <option value="Volvo"></option>
+          <option value="Wuling"></option>
+          <option value="XPeng"></option>
+          <option value="Zeekr"></option>
+        </datalist>
       </div>
       <div class="form-field">
         <label class="form-label">Model</label>
@@ -2414,24 +2413,6 @@ function useNow() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Brand dropdown — handle "Other" option
-  const brandSelect = document.getElementById('f-brand');
-  brandSelect.addEventListener('change', () => {
-    if (brandSelect.value === '__OTHER__') {
-      const custom = prompt('Enter brand name:');
-      if (custom && custom.trim()) {
-        // Add the new option and select it
-        const opt = document.createElement('option');
-        opt.value = custom.trim();
-        opt.textContent = custom.trim();
-        brandSelect.insertBefore(opt, brandSelect.querySelector('option[value="__OTHER__"]'));
-        brandSelect.value = custom.trim();
-      } else {
-        brandSelect.value = '';
-      }
-    }
-  });
-
   // Uppercase rego automatically + customer lookup on input
   let regoLookupTimer = null;
   document.getElementById('f-rego').addEventListener('input', e => {
@@ -4868,16 +4849,13 @@ function useDetectedPlate() {
 
   // Auto-fill any vehicle info from Plate Recognizer
   if (pendingPlateInfo) {
-    // Map detected make to closest brand option
-    if (pendingPlateInfo.make && !document.getElementById('f-brand').value) {
-      const brandSelect = document.getElementById('f-brand');
+    // Map detected make to closest brand option (match known list for nice casing, else use raw make)
+    const brandInput = document.getElementById('f-brand');
+    if (pendingPlateInfo.make && !brandInput.value) {
       const detectedLower = pendingPlateInfo.make.toLowerCase();
-      for (const opt of brandSelect.options) {
-        if (opt.value.toLowerCase() === detectedLower) {
-          brandSelect.value = opt.value;
-          break;
-        }
-      }
+      const match = Array.from(document.querySelectorAll('#brand-list option'))
+        .find(opt => opt.value.toLowerCase() === detectedLower);
+      brandInput.value = match ? match.value : pendingPlateInfo.make;
     }
     pendingPlateInfo = null;
   }
