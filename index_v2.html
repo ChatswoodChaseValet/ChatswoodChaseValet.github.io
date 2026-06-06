@@ -3460,7 +3460,9 @@ async function sendQRSms(id) {
   const url = buildTicketUrl(e);
   // Plain hyphen (not an em-dash) keeps the SMS in the cheaper GSM-7
   // encoding, so it stays fewer billable segments.
-  const msg = 'Chatswood Chase Valet ticket ' + e.ticket + '. Your QR ticket + tap to request your car when ready: ' + url;
+  const msg = 'Chatswood Chase Valet ticket ' + e.ticket + '. '
+    + 'Please call our team on 0427000822 to utilise our complimentary Hands-Free Shopping Service, available across participating Level 1 retailers. '
+    + 'Your QR ticket + tap to request your car when ready: ' + url;
 
   // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
   //    If it isn't deployed/configured yet, or the send fails, we quietly
