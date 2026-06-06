@@ -2711,6 +2711,7 @@ function showSaveToast(entry) {
       <div class="save-toast-details">
         <div><strong style="font-family:'Courier New',monospace;color:#f0d9a8">${entry.ticket}</strong> · ${entry.rego}</div>
         <div style="margin-top:2px">${vehicle || 'Vehicle logged'} in Bay <strong>${entry.bay}</strong> at <strong>${timeStr}</strong></div>
+        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">🔑 Write on key tag: <strong style="font-family:'Courier New',monospace;font-size:16px;color:#f0d9a8">${entry.ticket} · ${entry.bay}</strong></div>
       </div>
       <div class="save-toast-meta">${cloudIcon} ${cloudText}</div>
     </div>
