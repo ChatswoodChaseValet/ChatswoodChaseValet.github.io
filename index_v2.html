@@ -718,7 +718,6 @@ body.dark-mode .scan-banner {
 /* ─── QUICK ADD MODE — hide non-essential fields ─── */
 .view.quick-add-on #f-model,
 .view.quick-add-on #f-colour,
-.view.quick-add-on #f-phone,
 .view.quick-add-on #f-notes,
 .view.quick-add-on #f-attendant {
   display: none;
@@ -730,7 +729,6 @@ body.dark-mode .scan-banner {
 /* Hide the form-field containers that hold the now-hidden inputs */
 .view.quick-add-on .form-field:has(#f-model),
 .view.quick-add-on .form-field:has(#f-colour),
-.view.quick-add-on .form-field:has(#f-phone),
 .view.quick-add-on .form-field:has(#f-notes),
 .view.quick-add-on .form-field:has(#f-attendant) {
   display: none;
@@ -1047,8 +1045,8 @@ body.dark-mode .scan-banner {
         <input type="text" id="f-name" class="form-input" placeholder="Required" autocomplete="off">
       </div>
       <div class="form-field">
-        <label class="form-label">Phone</label>
-        <input type="tel" id="f-phone" class="form-input" placeholder="Optional" autocomplete="off">
+        <label class="form-label">Phone<span class="required">*</span></label>
+        <input type="tel" id="f-phone" class="form-input" placeholder="Required" autocomplete="off">
       </div>
     </div>
 
@@ -2580,12 +2578,13 @@ function saveEntry() {
   const brand = document.getElementById('f-brand').value;
   const rego = document.getElementById('f-rego').value.trim();
   const custName = document.getElementById('f-name').value.trim();
+  const custPhone = document.getElementById('f-phone').value.trim();
   const timeStr = document.getElementById('f-time').value;
   const ticketInput = document.getElementById('f-ticket').value.trim();
   const ticketManual = document.getElementById('f-ticket-manual').checked;
 
-  if (!bay || !brand || !rego || !custName) {
-    alert('Please fill in Rego, Customer Name, Bay and Brand (required fields).');
+  if (!bay || !brand || !rego || !custName || !custPhone) {
+    alert('Please fill in Rego, Customer Name, Phone, Bay and Brand (required fields).');
     return;
   }
   if (!timeStr) {
