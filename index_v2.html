@@ -139,6 +139,14 @@ body{
 /* Mobile (simple) mode — hide desktop-only tabs for an easier staff view */
 body.mobile-mode .tab.desktop-only{display:none}
 
+/* Pre-existing damage diagram (intake) */
+.damage-pad{position:relative;width:160px;max-width:60vw;margin:8px 0;aspect-ratio:1/2;background:var(--white);border:1px solid var(--border);border-radius:12px;cursor:crosshair;touch-action:manipulation;user-select:none}
+.damage-pad.readonly{cursor:default}
+.damage-pad svg{position:absolute;inset:0;width:100%;height:100%}
+.damage-markers{position:absolute;inset:0;pointer-events:none}
+.damage-dot{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;background:#a83838;color:#fff;border:2px solid #fff;border-radius:50%;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4);pointer-events:auto;cursor:pointer}
+.damage-pad.readonly .damage-dot{cursor:default}
+
 /* ─── MAIN ─── */
 .main{padding:24px 32px;max-width:1400px;margin:0 auto}
 .view{display:none}
@@ -1183,6 +1191,21 @@ body.dark-mode .scan-banner {
       <div class="form-field" style="grid-column:1/-1">
         <label class="form-label">Notes</label>
         <input type="text" id="f-notes" class="form-input" placeholder="Optional — damage observations, special instructions, etc." autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Pre-existing damage diagram -->
+    <div style="padding:12px;background:var(--sandstone);border-radius:6px;margin-top:14px">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:4px">Pre-existing damage</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Tap the car to mark existing scratches/dents before parking. Tap a mark to remove it. Describe each in Notes above for the record.</div>
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+        <div id="damage-pad" class="damage-pad" onclick="addDamageMarker(event)">
+          <div id="damage-markers" class="damage-markers"></div>
+        </div>
+        <div>
+          <div id="damage-count" style="font-size:12px;color:var(--text-muted);margin-bottom:8px">No marks added</div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearDamageMarkers()">↺ Clear marks</button>
+        </div>
       </div>
     </div>
 
@@ -2517,6 +2540,8 @@ function prepareNewEntry() {
   document.getElementById('f-ticket').readOnly = true;
   document.getElementById('f-ticket').style.background = 'var(--sandstone)';
   document.getElementById('auto-ticket-btn').style.display = 'none';
+  // Draw the (empty) damage diagram for this fresh entry
+  renderDamageMarkers();
 }
 
 function toggleManualTicket() {
@@ -2754,6 +2779,7 @@ function saveEntry() {
     attendantIn: document.getElementById('f-attendant').value.trim().toUpperCase(),
     photo: pendingCarPhoto,
     gps: pendingGPS,
+    damage: damageMarkers.slice(),
   };
 
   // Remember last attendant for convenience
@@ -3120,6 +3146,20 @@ function checkout(id) {
   document.getElementById('checkout-ticket').textContent = e.ticket;
   document.getElementById('checkout-info').innerHTML =
     `<b>${e.brand}</b> ${e.model || ''} · ${e.rego} · Bay ${e.bay}`;
+
+  // Show pre-existing damage marked at intake, so it can be verified on return
+  const dmgBox = document.getElementById('checkout-damage');
+  if (e.damage && e.damage.length) {
+    dmgBox.style.display = '';
+    dmgBox.innerHTML =
+      `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">⚠ Pre-existing damage (${e.damage.length}) — marked at intake</div>`
+      + `<div style="display:flex;gap:12px;align-items:flex-start">${damageDiagramHTML(e.damage)}`
+      + `<div style="font-size:12px;color:var(--text-muted)">${e.notes ? 'Notes: ' + e.notes : 'Check the car against these marks before handover.'}</div></div>`;
+  } else {
+    dmgBox.style.display = 'none';
+    dmgBox.innerHTML = '';
+  }
+
   document.getElementById('checkout-duration').textContent = `${hrs} hrs (${fmtDuration(dur)})`;
   document.getElementById('checkout-parking').textContent = fmtMoney(fees.parking);
   document.getElementById('checkout-valet').textContent = fmtMoney(fees.valet);
@@ -6325,6 +6365,68 @@ function clearPendingExtras() {
   const g = document.getElementById('gps-status');
   if (p) { p.textContent = ''; p.style.color = '' }
   if (g) { g.textContent = ''; g.style.color = '' }
+  clearDamageMarkers();
+}
+
+// ═══════════════════════════════════════════════════
+// PRE-EXISTING DAMAGE — tap a top-down car diagram at intake to mark
+// existing scratches/dents (liability protection). Markers are stored as
+// {x,y} percentages on the entry so they redraw at any size, and shown
+// read-only at checkout when the car is handed back.
+// ═══════════════════════════════════════════════════
+let damageMarkers = []; // [{x, y}] in 0–100 % of the diagram
+
+// Top-down car outline, reused by the intake pad and the read-only view.
+const DAMAGE_CAR_SVG = `<svg viewBox="0 0 100 200" preserveAspectRatio="xMidYMid meet">
+  <rect x="16" y="8" width="68" height="184" rx="28" fill="#fff" stroke="#8b6f47" stroke-width="2"/>
+  <path d="M30 46 L70 46 L62 68 L38 68 Z" fill="#dce6ee" stroke="#8b6f47" stroke-width="1.5"/>
+  <rect x="34" y="72" width="32" height="54" rx="8" fill="#eef2f6" stroke="#8b6f47" stroke-width="1.5"/>
+  <path d="M38 130 L62 130 L70 152 L30 152 Z" fill="#dce6ee" stroke="#8b6f47" stroke-width="1.5"/>
+  <rect x="8" y="58" width="8" height="7" rx="2" fill="#fff" stroke="#8b6f47" stroke-width="1.5"/>
+  <rect x="84" y="58" width="8" height="7" rx="2" fill="#fff" stroke="#8b6f47" stroke-width="1.5"/>
+  <text x="50" y="24" text-anchor="middle" font-size="8" fill="#8b6f47" font-family="Georgia,serif">FRONT</text>
+  <text x="50" y="182" text-anchor="middle" font-size="8" fill="#8b6f47" font-family="Georgia,serif">REAR</text>
+</svg>`;
+
+function renderDamageMarkers() {
+  const pad = document.getElementById('damage-pad');
+  const layer = document.getElementById('damage-markers');
+  const count = document.getElementById('damage-count');
+  if (!pad || !layer) return;
+  // Ensure the car SVG is present behind the markers layer
+  if (!pad.querySelector('svg')) pad.insertAdjacentHTML('afterbegin', DAMAGE_CAR_SVG);
+  layer.innerHTML = damageMarkers.map((m, i) =>
+    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" onclick="removeDamageMarker(${i},event)" title="Tap to remove">${i + 1}</div>`
+  ).join('');
+  if (count) count.textContent = damageMarkers.length
+    ? `${damageMarkers.length} mark${damageMarkers.length !== 1 ? 's' : ''} added`
+    : 'No marks added';
+}
+function addDamageMarker(event) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * 100;
+  const y = ((event.clientY - rect.top) / rect.height) * 100;
+  if (x < 0 || x > 100 || y < 0 || y > 100) return;
+  damageMarkers.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+  renderDamageMarkers();
+  if (typeof hapticFeedback === 'function') hapticFeedback('light');
+}
+function removeDamageMarker(i, event) {
+  if (event) event.stopPropagation();
+  damageMarkers.splice(i, 1);
+  renderDamageMarkers();
+}
+function clearDamageMarkers() {
+  damageMarkers = [];
+  renderDamageMarkers();
+}
+
+// Read-only diagram for display elsewhere (checkout, log). Returns HTML.
+function damageDiagramHTML(markers) {
+  const dots = (markers || []).map((m, i) =>
+    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%">${i + 1}</div>`
+  ).join('');
+  return `<div class="damage-pad readonly">${DAMAGE_CAR_SVG}<div class="damage-markers">${dots}</div></div>`;
 }
 
 function dismissCustomerBanner() {
@@ -7810,6 +7912,8 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="modal-box" style="max-width:560px">
     <div class="modal-title">Checkout — <span id="checkout-ticket" style="font-family:&#39;Courier New&#39;,monospace"></span></div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px" id="checkout-info">—</div>
+
+    <div id="checkout-damage" style="display:none;margin-bottom:16px"></div>
 
     <div style="background:var(--sandstone);padding:14px;border-radius:4px;margin-bottom:16px" id="checkout-summary-box">
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
