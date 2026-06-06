@@ -1046,7 +1046,7 @@ body.dark-mode .scan-banner {
       </div>
       <div class="form-field">
         <label class="form-label">Phone<span class="required">*</span></label>
-        <input type="tel" id="f-phone" class="form-input" placeholder="Required" autocomplete="off">
+        <input type="tel" id="f-phone" class="form-input" placeholder="e.g. 0412 345 678" autocomplete="off">
       </div>
     </div>
 
@@ -2573,6 +2573,20 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-brand').addEventListener('input', updateModelOptions);
 });
 
+// Normalise an Australian mobile to local 04XXXXXXXX form for validation.
+// Accepts "0412 345 678", "+61412345678", "61412345678", "0061412345678".
+function normalizeAUMobile(raw) {
+  let n = String(raw).replace(/[^\d+]/g, '');
+  if (n.startsWith('+61')) n = '0' + n.slice(3);
+  else if (n.startsWith('0061')) n = '0' + n.slice(4);
+  else if (n.startsWith('61')) n = '0' + n.slice(2);
+  return n;
+}
+// Valid AU mobiles are 10 digits starting 04 (i.e. 04XX XXX XXX).
+function isValidAUMobile(raw) {
+  return /^04\d{8}$/.test(normalizeAUMobile(raw));
+}
+
 function saveEntry() {
   const bay = document.getElementById('f-bay').value.trim();
   const brand = document.getElementById('f-brand').value;
@@ -2585,6 +2599,11 @@ function saveEntry() {
 
   if (!bay || !brand || !rego || !custName || !custPhone) {
     alert('Please fill in Rego, Customer Name, Phone, Bay and Brand (required fields).');
+    return;
+  }
+  if (!isValidAUMobile(custPhone)) {
+    alert('Please enter a valid Australian mobile number (e.g. 0412 345 678).');
+    document.getElementById('f-phone').focus();
     return;
   }
   if (!timeStr) {
