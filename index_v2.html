@@ -1891,6 +1891,50 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
+      <div class="section-title">🖨 Key-Tag Printer (BIXOLON)</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+      Print the key tag (ticket #, bay, plate + scannable QR) straight to a BIXOLON
+      <strong>SPP-R200III</strong>. Because this is a web app, a small free bridge app must run on this device:
+    </p>
+    <div style="background:var(--sandstone);padding:12px 14px;border-radius:4px;margin-bottom:14px;font-size:12px;line-height:1.7">
+      <strong>One-time setup on this device:</strong>
+      <ol style="margin:6px 0 0 18px;padding:0">
+        <li><strong>Android:</strong> install <strong>“BIXOLON WebPrint”</strong> from the Play Store. <strong>Windows:</strong> install the WebPrint utility from BIXOLON’s SPP-R200III download page.</li>
+        <li>Pair the SPP-R200III to this device over Bluetooth, then add it inside the WebPrint app and give it a <strong>name</strong>.</li>
+        <li>Type that exact name below, Save, then tap <strong>Test Print</strong>.</li>
+      </ol>
+    </div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Printer name (as set in WebPrint app)</label>
+        <input type="text" id="s-printer-name" class="form-input" placeholder="e.g. Printer1">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Connection</label>
+        <select id="s-printer-mode" class="form-input">
+          <option value="http:">HTTP (default)</option>
+          <option value="https:">HTTPS (secure)</option>
+          <option value="ws:">WebSocket</option>
+          <option value="wss:">WebSocket secure</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Bridge address (advanced)</label>
+        <input type="text" id="s-printer-server" class="form-input" placeholder="127.0.0.1:18080" style="font-family:'Courier New',monospace;font-size:12px">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin:4px 0 12px;line-height:1.6">
+      Leave Connection on <strong>HTTP</strong> and address as <strong>127.0.0.1:18080</strong> to start. If printing is blocked because this site is HTTPS, switch the WebPrint app to its secure mode and pick <strong>HTTPS</strong> here (adjust the port if it differs).
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="savePrinterSettings()">Save Printer</button>
+      <button class="btn btn-secondary" onclick="printTestTag()">🖨 Test Print</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
       <div class="section-title">Data Management</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
@@ -2712,6 +2756,7 @@ function showSaveToast(entry) {
         <div><strong style="font-family:'Courier New',monospace;color:#f0d9a8">${entry.ticket}</strong> · ${entry.rego}</div>
         <div style="margin-top:2px">${vehicle || 'Vehicle logged'} in Bay <strong>${entry.bay}</strong> at <strong>${timeStr}</strong></div>
         <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">🔑 Write on key tag: <strong style="font-family:'Courier New',monospace;font-size:16px;color:#f0d9a8">${entry.ticket} · ${entry.bay}</strong></div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="printKeyTag('${entry.id}')">🖨 Print Key Tag</button>
       </div>
       <div class="save-toast-meta">${cloudIcon} ${cloudText}</div>
     </div>
@@ -2728,6 +2773,163 @@ function dismissSaveToast() {
   const toast = document.getElementById('save-toast');
   if (toast) toast.classList.remove('show');
 }
+
+// ═══════════════════════════════════════════════════
+// KEY-TAG PRINTING — BIXOLON SPP-R200III (Web Print SDK)
+// ───────────────────────────────────────────────────
+// The browser can't talk to a Bluetooth Classic printer
+// directly. BIXOLON's free "WebPrint" helper (Android app
+// / Windows utility) owns the Bluetooth link and exposes a
+// tiny local server on 127.0.0.1:18080. We POST an ESC/POS
+// job to it. SDK code below is a trimmed inline copy of
+// BIXOLON's bxlcommon.js + bxlpos.js (their public sample),
+// wrapped in an IIFE so its globals don't leak. It exposes
+// window.printKeyTag(entryOrId) and window.printTestTag().
+// ═══════════════════════════════════════════════════
+(function () {
+  // ---- transport (from bxlcommon.js) ----
+  var localAddress = "//127.0.0.1:18080/WebPrintSDK/";
+  var connectionMode = "http:";
+  function getServerURL() { return connectionMode + localAddress; }
+
+  function makeResultInquiryData(requestId, responseId, timeout) {
+    return "{\"RequestID\":" + requestId + ",\"ResponseID\":\"" + responseId + "\",\"Timeout\":" + timeout + "}";
+  }
+
+  function checkResult(method, strPrinterName, requestId, responseId, cb) {
+    var url = getServerURL() + strPrinterName + "/checkStatus";
+    var x = new XMLHttpRequest();
+    x.open(method, url, true);
+    x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    x.onreadystatechange = function () {
+      if (x.readyState == 4 && x.status == 200) {
+        var res = JSON.parse(x.responseText), ret = res.Result;
+        if (ret.search("ready") >= 0 || ret.search("progress") >= 0) checkResult(method, strPrinterName, requestId, responseId, cb);
+        else cb(res.ResponseID + ":" + ret);
+      } else if (x.readyState == 4 && x.status == 404) cb("No printers");
+      else if (x.readyState == 4) cb("Cannot connect to server");
+    };
+    x.send(makeResultInquiryData(requestId, responseId, 30));
+  }
+
+  // WebSocket transport — only used when mode is ws:/wss:
+  function wsPrint(strPrinterName, strSubmit, cb) {
+    var ws = new WebSocket(getServerURL() + strPrinterName);
+    var connected = false;
+    ws.onopen = function () { if (ws.readyState == 1) { ws.send(strSubmit); connected = true; } };
+    ws.onerror = function () { if (ws.readyState == 3) cb("Cannot connect to server"); };
+    ws.onmessage = function (msg) {
+      try { var res = JSON.parse(msg.data); cb(res.ResponseID + ":" + res.Result); }
+      catch (e) { cb(msg.data); }
+    };
+    ws.onclose = function () { if (!connected) cb("Cannot connect to server"); };
+  }
+
+  function requestPrint(strPrinterName, strSubmit, cb) {
+    if (connectionMode == "ws:" || connectionMode == "wss:") { wsPrint(strPrinterName, strSubmit, cb); return; }
+    var x = new XMLHttpRequest();
+    x.open('POST', getServerURL() + strPrinterName, true);
+    x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    x.onreadystatechange = function () {
+      if (x.readyState == 4 && x.status == 200) {
+        var res = JSON.parse(x.responseText), ret = res.Result;
+        if (ret.search("ready") >= 0 || ret.search("progress") >= 0) checkResult('POST', strPrinterName, res.RequestID, res.ResponseID, cb);
+        else cb(res.Result);
+      } else if (x.readyState == 4 && x.status == 404) cb("No printers");
+      else if (x.readyState == 4) cb("Cannot connect to server");
+    };
+    x.send(strSubmit);
+  }
+
+  // ---- ESC/POS job builder (from bxlpos.js) ----
+  var pos_data = { id: 0, functions: {} }, pos_func = {}, incPosNum = 0;
+  function add(name, argsArr) { var o = {}; o[name] = argsArr; pos_func["func" + (incPosNum++)] = o; }
+  function getPosData() { pos_data.functions = pos_func; pos_func = {}; incPosNum = 0; return JSON.stringify(pos_data); }
+  function setPosId(id) { pos_data.id = id; }
+  // printText(text, horizontalSize, verticalSize, bold, invert, underline, fontType, alignment[0=L,1=C,2=R])
+  function printText(t, h, v, b, inv, u, f, a) { add("printText", [t, h, v, b, inv, u, f, a]); }
+  // printQRCode(data, model, alignment, moduleSize, eccLevel)
+  function printQRCode(d, m, a, s, e) { add("printQRCode", [d, m, a, s, e]); }
+  // print1DBarcode(data, symbol, barWidth, height, hriPosition, alignment) — symbol 8 = Code128
+  function print1DBarcode(d, sym, w, h, hri, a) { add("print1DBarcode", [d, sym, w, h, hri, a]); }
+  function cutPaper(type) { add("cutPaper", [type]); }
+
+  // ---- Valet integration ----
+  function applyTransportFromSettings() {
+    var server = (settings.printerServer || '127.0.0.1:18080').trim();
+    localAddress = '//' + server + '/WebPrintSDK/';
+    connectionMode = settings.printerMode || 'http:';
+  }
+
+  function sendJob(printerName, friendlyAction) {
+    var submit = getPosData();
+    requestPrint(printerName, submit, function (res) {
+      if (!res) return; // requestPrint fires once with "" before the real result
+      var r = String(res);
+      if (/Cannot connect to server/i.test(r)) {
+        flashScanStatus('🖨 Printer bridge not found — open the BIXOLON WebPrint app and keep it running', 'error');
+      } else if (/No printers/i.test(r)) {
+        flashScanStatus('🖨 No printer named "' + printerName + '" in WebPrint — check Settings', 'error');
+      } else if (/duplicated/i.test(r)) {
+        /* same job already queued — ignore */
+      } else if (/error|fail|not ?ready|cover|paper|empty/i.test(r)) {
+        flashScanStatus('🖨 ' + r.replace(/^[^:]*:/, ''), 'error');
+      } else {
+        flashScanStatus(friendlyAction, 'success');
+      }
+    });
+  }
+
+  // Build and print one key tag for an entry (accepts an entry object or an id)
+  window.printKeyTag = function (entryOrId) {
+    var e = (typeof entryOrId === 'string') ? entries.find(function (x) { return x.id === entryOrId; }) : entryOrId;
+    if (!e) { flashScanStatus('Entry not found', 'error'); return; }
+    var name = (settings.printerName || '').trim();
+    if (!name) {
+      alert('First set your BIXOLON printer name in Settings → "Key-Tag Printer".');
+      showView('settings');
+      return;
+    }
+    applyTransportFromSettings();
+    setPosId(Date.now());
+    printText("CHATSWOOD CHASE VALET\n", 0, 0, true, false, false, 0, 1);
+    printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
+    printText("TICKET\n", 0, 0, false, false, false, 0, 1);
+    printText(e.ticket + "\n", 1, 1, true, false, false, 0, 1);     // double-size, centred
+    printText("BAY " + (e.bay || '-') + "\n", 1, 1, true, false, false, 0, 1);
+    printText("PLATE " + (e.rego || '-') + "\n", 1, 1, true, false, false, 0, 1);  // plate big too
+    printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
+    if (e.name) printText(e.name + "\n", 0, 0, true, false, false, 0, 1);          // customer name
+    printText("In: " + fmtTime(new Date(e.timeIn)) + "\n", 0, 0, false, false, false, 0, 1);  // check-in time
+    printText("\n", 0, 0, false, false, false, 0, 1);
+    print1DBarcode(e.ticket, 8, 2, 70, 2, 1);                       // Code128 = ticket, HRI below (scans back into Scan Mode)
+    printText("\n\n\n", 0, 0, false, false, false, 0, 1);            // feed clear of the tear bar
+    cutPaper(1);                                                     // ignored on cutter-less mobile printers
+    sendJob(name, '🖨 Key tag printed');
+  };
+
+  // Test print from Settings
+  window.printTestTag = function () {
+    var name = (settings.printerName || '').trim();
+    if (!name) { alert('Enter your BIXOLON printer name first, then Save.'); return; }
+    applyTransportFromSettings();
+    setPosId(Date.now());
+    printText("CHATSWOOD CHASE VALET\n", 0, 0, true, false, false, 0, 1);
+    printText("Printer test OK\n", 0, 0, false, false, false, 0, 1);
+    printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
+    printText("TEST-001\n", 1, 1, true, false, false, 0, 1);
+    printText("BAY 1\n", 1, 1, true, false, false, 0, 1);
+    printText("PLATE ABC123\n", 1, 1, true, false, false, 0, 1);
+    printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
+    printText("Test Customer\n", 0, 0, true, false, false, 0, 1);
+    printText("In: " + fmtTime(new Date()) + "\n", 0, 0, false, false, false, 0, 1);
+    printText("\n", 0, 0, false, false, false, 0, 1);
+    print1DBarcode("TEST-001", 8, 2, 70, 2, 1);
+    printText("\n\n\n", 0, 0, false, false, false, 0, 1);
+    cutPaper(1);
+    sendJob(name, '🖨 Test tag sent — check the printer');
+  };
+})();
 
 // Lightweight transient toast (reuses the save-toast styling/element)
 // for one-line confirmations like "Ticket texted to customer".
@@ -3491,6 +3693,7 @@ function renderActive() {
       <td>
         ${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call ${e.phone}">📞</a>` : ''}
         <button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">📱 QR</button>
+        <button class="btn btn-secondary btn-sm" onclick="printKeyTag('${e.id}')" title="Print key tag to BIXOLON printer">🖨</button>
         ${pickupBtn}
         <button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')" style="margin-left:4px">✓ Mark Out</button>
       </td>
@@ -4634,6 +4837,13 @@ function renderSettings() {
   const prKey = document.getElementById('s-pr-key');
   if (prKey) prKey.value = settings.plateRecognizerKey || '';
   updatePlateRecognizerUI();
+  // Populate Key-Tag Printer settings
+  const pName = document.getElementById('s-printer-name');
+  if (pName) pName.value = settings.printerName || '';
+  const pMode = document.getElementById('s-printer-mode');
+  if (pMode) pMode.value = settings.printerMode || 'http:';
+  const pServer = document.getElementById('s-printer-server');
+  if (pServer) pServer.value = settings.printerServer || '127.0.0.1:18080';
   // Show current user
   const userEl = document.getElementById('settings-current-user');
   if (userEl && currentUser) {
@@ -4656,6 +4866,14 @@ function saveSettings() {
   settings.nextNum = nextNum;
   saveSettingsToStorage();
   alert('Settings saved.');
+}
+
+function savePrinterSettings() {
+  settings.printerName = document.getElementById('s-printer-name').value.trim();
+  settings.printerMode = document.getElementById('s-printer-mode').value || 'http:';
+  settings.printerServer = document.getElementById('s-printer-server').value.trim() || '127.0.0.1:18080';
+  saveSettingsToStorage();
+  alert('Printer settings saved.');
 }
 
 // ═══════════════════════════════════════════════════
