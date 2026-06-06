@@ -136,6 +136,8 @@ body{
 }
 .tab:hover{color:var(--maroon);background:var(--bg)}
 .tab.active{color:var(--maroon);border-bottom-color:var(--maroon)}
+/* Mobile (simple) mode — hide desktop-only tabs for an easier staff view */
+body.mobile-mode .tab.desktop-only{display:none}
 
 /* ─── MAIN ─── */
 .main{padding:24px 32px;max-width:1400px;margin:0 auto}
@@ -817,6 +819,7 @@ body.dark-mode .scan-banner {
   </div>
 
   <div class="scan-controls">
+    <button class="scan-btn" id="btn-ui-mode" onclick="toggleUiMode()" title="Switch between simple Mobile view and full Desktop view">📱 Mobile</button>
     <button class="scan-btn" id="btn-scan-mode" onclick="toggleScanMode()" title="USB scanner: enable scan-anywhere mode">🔫 Scan Mode</button>
     <button class="scan-btn" id="btn-camera-scan" onclick="openCameraScan()" title="Use phone/PC camera to scan QR">📷 Camera</button>
   </div>
@@ -830,15 +833,15 @@ body.dark-mode .scan-banner {
 
 <!-- TABS -->
 <div class="tabs">
-  <button class="tab active" onclick="showView(&#39;dashboard&#39;)">📊 Dashboard</button>
+  <button class="tab active desktop-only" onclick="showView(&#39;dashboard&#39;)">📊 Dashboard</button>
   <button class="tab" onclick="showView(&#39;new-entry&#39;)">🚗 New Entry</button>
   <button class="tab" onclick="showView(&#39;quick-pickup&#39;)">⚡ Quick Pickup</button>
   <button class="tab" onclick="showView(&#39;pickup-queue&#39;)">🔔 Queue<span id="pq-tab-badge" style="display:none;margin-left:6px;background:#a83838;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:bold;vertical-align:middle">0</span></button>
   <button class="tab" onclick="showView(&#39;active&#39;)">🅿️ Active Cars</button>
-  <button class="tab" onclick="showView(&#39;log&#39;)">📋 Full Log</button>
-  <button class="tab" onclick="showView(&#39;customers&#39;)">👥 Customers</button>
-  <button class="tab" onclick="showView(&#39;reports&#39;)">📈 Reports</button>
-  <button class="tab" onclick="showView(&#39;settings&#39;)">⚙️ Settings</button>
+  <button class="tab desktop-only" onclick="showView(&#39;log&#39;)">📋 Full Log</button>
+  <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)">👥 Customers</button>
+  <button class="tab desktop-only" onclick="showView(&#39;reports&#39;)">📈 Reports</button>
+  <button class="tab desktop-only" onclick="showView(&#39;settings&#39;)">⚙️ Settings</button>
 </div>
 
 <div class="main">
@@ -2440,6 +2443,43 @@ function showView(name) {
   if (name === 'customers') renderCustomers();
   if (name === 'reports') renderReports();
   if (name === 'settings') renderSettings();
+}
+
+// ═══════════════════════════════════════════════════
+// UI MODE — simple "Mobile" view (fewer tabs) vs full "Desktop" view.
+// Per-device preference (localStorage, NOT cloud-synced) since a phone and
+// the counter PC want different modes. The toggle lives in the header so
+// staff can always switch back. Mobile mode keeps only the day-to-day tabs.
+// ═══════════════════════════════════════════════════
+const MOBILE_VIEWS = ['new-entry', 'quick-pickup', 'pickup-queue', 'active'];
+function getUiMode() {
+  const saved = localStorage.getItem('valet_ui_mode');
+  if (saved === 'mobile' || saved === 'desktop') return saved;
+  // First run on this device: default to mobile on small screens
+  return window.innerWidth <= 820 ? 'mobile' : 'desktop';
+}
+function applyUiMode() {
+  const mode = getUiMode();
+  document.body.classList.toggle('mobile-mode', mode === 'mobile');
+  const btn = document.getElementById('btn-ui-mode');
+  if (btn) {
+    btn.textContent = mode === 'mobile' ? '📱 Mobile' : '🖥 Desktop';
+    btn.title = mode === 'mobile'
+      ? 'Simple Mobile view — tap for the full Desktop view'
+      : 'Full Desktop view — tap for the simple Mobile view';
+  }
+  // If the active view is hidden in mobile mode, jump to a safe default tab.
+  if (mode === 'mobile') {
+    const active = document.querySelector('.view.active');
+    const activeName = active ? active.id.replace('view-', '') : '';
+    if (!MOBILE_VIEWS.includes(activeName)) showView('new-entry');
+  }
+}
+function toggleUiMode() {
+  const next = getUiMode() === 'mobile' ? 'desktop' : 'mobile';
+  localStorage.setItem('valet_ui_mode', next);
+  applyUiMode();
+  if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 
 // ═══════════════════════════════════════════════════
@@ -7518,6 +7558,9 @@ function initializeUI() {
 
   // Show current user in header
   updateUserBadge();
+
+  // Apply this device's saved UI mode (simple Mobile vs full Desktop)
+  applyUiMode();
 
   // Register the service worker + reflect push-alert state in Settings.
   registerServiceWorker().then(updatePushUI);
