@@ -3543,6 +3543,7 @@ function openEditCar(id) {
   if (!e) return;
   editingCarId = id;
   document.getElementById('edit-car-ticket').textContent = e.ticket;
+  document.getElementById('edit-car-ticketno').value = e.ticket || '';
   document.getElementById('edit-car-name').value = e.name || '';
   document.getElementById('edit-car-phone').value = e.phone || '';
   document.getElementById('edit-car-brand').value = e.brand || '';
@@ -3571,6 +3572,7 @@ function saveEditCar() {
   const e = entries.find(x => x.id === editingCarId);
   if (!e) { closeEditCar(); return; }
   const err = document.getElementById('edit-car-error');
+  const ticket = document.getElementById('edit-car-ticketno').value.trim();
   const name = document.getElementById('edit-car-name').value.trim();
   const phone = document.getElementById('edit-car-phone').value.trim();
   const brand = document.getElementById('edit-car-brand').value.trim();
@@ -3581,6 +3583,10 @@ function saveEditCar() {
   const tin = document.getElementById('edit-car-timein').value;
   const tout = document.getElementById('edit-car-timeout').value;
 
+  if (!ticket) { err.textContent = 'Ticket Number is required.'; return; }
+  if (ticket !== e.ticket && entries.some(x => x.id !== editingCarId && x.ticket === ticket)) {
+    if (!confirm(`Ticket number "${ticket}" already exists in the log. Save anyway?`)) return;
+  }
   if (!name) { err.textContent = 'Customer Name is required.'; return; }
   if (phone && !isValidAUMobile(phone)) { err.textContent = 'Enter a valid Australian mobile (e.g. 0412 345 678), or leave blank.'; return; }
   if (!brand) { err.textContent = 'Car Brand is required.'; return; }
@@ -3600,6 +3606,7 @@ function saveEditCar() {
     if (outD < inD) { err.textContent = 'Time Out cannot be before Time In.'; return; }
   }
 
+  e.ticket = ticket;
   e.name = name;
   e.phone = phone;
   e.brand = brand;
@@ -7973,6 +7980,10 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="modal" id="edit-car-modal">
   <div class="modal-box" style="max-width:460px">
     <div class="modal-title">✎ Edit — <span id="edit-car-ticket" style="font-family:&#39;Courier New&#39;,monospace"></span></div>
+    <div class="form-field" style="margin-bottom:12px">
+      <label class="form-label">Ticket Number</label>
+      <input type="text" id="edit-car-ticketno" class="form-input" maxlength="20" autocomplete="off" style="font-family:&#39;Courier New&#39;,monospace">
+    </div>
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Customer Name</label>
       <input type="text" id="edit-car-name" class="form-input" maxlength="50" autocomplete="off">
