@@ -2459,10 +2459,13 @@ function getUiMode() {
   return window.innerWidth <= 820 ? 'mobile' : 'desktop';
 }
 function applyUiMode() {
-  const mode = getUiMode();
+  // Only admins can use the full Desktop view; staff are locked to Mobile.
+  const isAdmin = !!(currentUser && currentUser.role === 'admin');
+  const mode = isAdmin ? getUiMode() : 'mobile';
   document.body.classList.toggle('mobile-mode', mode === 'mobile');
   const btn = document.getElementById('btn-ui-mode');
   if (btn) {
+    btn.style.display = isAdmin ? '' : 'none'; // hide the toggle from staff
     btn.textContent = mode === 'mobile' ? '📱 Mobile' : '🖥 Desktop';
     btn.title = mode === 'mobile'
       ? 'Simple Mobile view — tap for the full Desktop view'
@@ -2476,6 +2479,8 @@ function applyUiMode() {
   }
 }
 function toggleUiMode() {
+  // Guard: staff cannot switch out of Mobile mode.
+  if (!(currentUser && currentUser.role === 'admin')) return;
   const next = getUiMode() === 'mobile' ? 'desktop' : 'mobile';
   localStorage.setItem('valet_ui_mode', next);
   applyUiMode();
