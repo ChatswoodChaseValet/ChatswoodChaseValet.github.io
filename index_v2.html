@@ -1591,6 +1591,13 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
+      <div class="section-title">💰 Customer Spend</div>
+    </div>
+    <div id="rep-spend"><div class="empty">No completed trips in this range</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
       <div class="section-title">Brand Breakdown</div>
     </div>
     <div id="rep-brand-list">
@@ -4483,6 +4490,7 @@ function renderReports() {
   }
 
   renderInsights(filtered);
+  renderSpend(filtered);
   renderComparison();
   renderDiscountSummary(filtered);
 }
@@ -4530,6 +4538,10 @@ function computeInsights(list) {
   const stays = completed.map(e => new Date(e.timeOut) - new Date(e.timeIn)).filter(ms => ms > 0);
   const avgStay = stays.length ? stays.reduce((a, b) => a + b, 0) / stays.length : 0;
   const revenue = completed.reduce((s, e) => s + (e.totalFee || 0), 0);
+  // Spend by day of week (attributed to the visit / check-in day)
+  const revByWeekday = new Array(7).fill(0);
+  const completedByWeekday = new Array(7).fill(0);
+  completed.forEach(e => { const d = new Date(e.timeIn).getDay(); revByWeekday[d] += (e.totalFee || 0); completedByWeekday[d]++; });
   // Returning customers — key on phone, else rego
   const visits = {};
   list.forEach(e => {
@@ -4544,6 +4556,7 @@ function computeInsights(list) {
     avgStay, medStay: medianMs(stays),
     peakOcc: peakOccupancy(list),
     avgSpend: completed.length ? revenue / completed.length : 0,
+    revByWeekday, completedByWeekday,
     distinctCustomers, repeatCustomers
   };
 }
@@ -4599,6 +4612,51 @@ function renderHourChart(hours, color) {
     </div>`;
   }
   return html;
+}
+
+// Customer spend: average per car, top/slowest spending day, revenue by weekday
+function renderSpend(filtered) {
+  const c = document.getElementById('rep-spend');
+  if (!c) return;
+  const completed = filtered.filter(e => e.timeOut);
+  if (!completed.length) { c.innerHTML = '<div class="empty">No completed trips in this range</div>'; return; }
+  const ins = computeInsights(filtered);
+  const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const WDshort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const order = [1, 2, 3, 4, 5, 6, 0]; // Mon → Sun
+
+  // Top / slowest day — only among days that actually had completed cars
+  let topD = -1, lowD = -1;
+  order.forEach(d => {
+    if (ins.completedByWeekday[d] > 0) {
+      if (topD < 0 || ins.revByWeekday[d] > ins.revByWeekday[topD]) topD = d;
+      if (lowD < 0 || ins.revByWeekday[d] < ins.revByWeekday[lowD]) lowD = d;
+    }
+  });
+
+  const cards = [
+    ['Avg spend / customer', fmtMoney(ins.avgSpend), completed.length + ' completed trips', 'var(--green)'],
+    ['Top spending day', topD >= 0 ? WD[topD] : '—', topD >= 0 ? fmtMoney(ins.revByWeekday[topD]) + ' total' : '', 'var(--maroon)'],
+    ['Slowest day', lowD >= 0 ? WD[lowD] : '—', lowD >= 0 ? fmtMoney(ins.revByWeekday[lowD]) + ' total' : '', 'var(--bronze)'],
+  ];
+  const grid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px">
+    ${cards.map(([label, value, sub, col]) => `
+      <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid ${col}">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">${label}</div>
+        <div style="font-size:21px;font-weight:bold;color:${col};font-family:Georgia,serif;line-height:1.1;margin-top:4px">${value}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${sub}</div>
+      </div>`).join('')}
+  </div>`;
+
+  const max = Math.max(...ins.revByWeekday);
+  const chart = `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px">Revenue by day of week</div>`
+    + order.map(d => `<div class="brand-row">
+        <div class="brand-name" style="font-size:13px;min-width:54px">${WDshort[d]}</div>
+        <div class="brand-bar-wrap"><div class="brand-bar" style="width:${max ? (ins.revByWeekday[d] / max * 100) : 0}%;background:linear-gradient(90deg,var(--green),#6fae73)"></div></div>
+        <div class="brand-count" style="min-width:140px;text-align:right;font-family:'Courier New',monospace">${fmtMoney(ins.revByWeekday[d])}${ins.completedByWeekday[d] ? ' · ' + fmtMoney(ins.revByWeekday[d] / ins.completedByWeekday[d]) + '/car' : ''}</div>
+      </div>`).join('');
+
+  c.innerHTML = grid + chart;
 }
 
 // Render the discount summary report
