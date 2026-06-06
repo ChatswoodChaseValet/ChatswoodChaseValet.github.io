@@ -3267,6 +3267,42 @@ function editEntryTime(id) {
   renderLog();
 }
 
+// Edit the customer's name and mobile on an existing entry. Mirrors the
+// New Entry rules: name is required and the phone must be a valid AU mobile.
+function editEntryDetails(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+
+  const newName = prompt(
+    `Edit details for ticket ${e.ticket}\n\nCustomer Name:`,
+    e.name || ''
+  );
+  if (newName === null) return; // cancelled
+  if (!newName.trim()) {
+    alert('Customer Name is required.');
+    return;
+  }
+
+  const newPhone = prompt(
+    `Customer Mobile (e.g. 0412 345 678):`,
+    e.phone || ''
+  );
+  if (newPhone === null) return; // cancelled
+  if (!isValidAUMobile(newPhone)) {
+    alert('Please enter a valid Australian mobile number (e.g. 0412 345 678).');
+    return;
+  }
+
+  e.name = newName.trim();
+  e.phone = newPhone.trim();
+  saveData(e.id, { immediate: true });
+  cloudAudit('edit_details', 'entry', e.id, { ticket: e.ticket });
+  renderDashboard();
+  renderActive();
+  renderLog();
+  quickToast('✓ Details updated');
+}
+
 // ═══════════════════════════════════════════════════
 // DASHBOARD RENDER
 // ═══════════════════════════════════════════════════
@@ -4094,6 +4130,7 @@ function renderLog() {
         ${e.photo ? `<button class="btn btn-secondary btn-sm" onclick="viewPhoto('${e.id}')" style="margin-right:4px" title="View car photo">📸</button>` : ''}
         ${e.gps ? `<button class="btn btn-secondary btn-sm" onclick="viewBayLocation(${e.gps.lat},${e.gps.lng})" style="margin-right:4px" title="Show on map">📍</button>` : ''}
         <button class="btn btn-secondary btn-sm" onclick="editEntryTime('${e.id}')" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-secondary btn-sm" onclick="editEntryDetails('${e.id}')" style="margin-right:4px" title="Edit customer name & mobile">✎ Details</button>
         ${e.timeOut
           ? `<button class="btn btn-secondary btn-sm" onclick="undoCheckout('${e.id}')">↶ Undo</button>`
           : `<button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')">✓ Out</button>`}
