@@ -1584,6 +1584,13 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
+      <div class="section-title">🕐 Peak Times &amp; Stay Patterns</div>
+    </div>
+    <div id="rep-insights"><div class="empty">No data in this range</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
       <div class="section-title">Brand Breakdown</div>
     </div>
     <div id="rep-brand-list">
@@ -4150,6 +4157,15 @@ function printDailySummary() {
   // Still on site
   const stillOnSite = entries.filter(e => !e.timeOut);
 
+  // Operations insights for today (peak times, stay, occupancy)
+  const dIns = computeInsights(todayEntries);
+  const dOutHours = new Array(24).fill(0);
+  todayOut.forEach(e => dOutHours[new Date(e.timeOut).getHours()]++);
+  const dPeakOut = peakHour(dOutHours);
+  const dStays = todayOut.map(e => new Date(e.timeOut) - new Date(e.timeIn)).filter(ms => ms > 0);
+  const dAvgStay = dStays.length ? dStays.reduce((a, b) => a + b, 0) / dStays.length : 0;
+  const dAvgSpend = todayOut.length ? totalRev / todayOut.length : 0;
+
   // Build the summary HTML
   const summaryWin = window.open('', '_blank', 'width=900,height=900');
   summaryWin.document.write(`
@@ -4210,6 +4226,27 @@ function printDailySummary() {
     <div class="stat-value money">${fmtMoney(totalRev)}</div>
   </div>
 </div>
+
+<h2>Operations Insights</h2>
+<div class="stat-grid">
+  <div class="stat-box">
+    <div class="stat-label">Busiest Check-In</div>
+    <div class="stat-value">${dIns.peakIn ? hourLabel(dIns.peakIn.hour) : '—'}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Busiest Check-Out</div>
+    <div class="stat-value">${dPeakOut ? hourLabel(dPeakOut.hour) : '—'}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Average Stay</div>
+    <div class="stat-value">${dAvgStay ? fmtDuration(dAvgStay) : '—'}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Peak Cars On Site</div>
+    <div class="stat-value">${dIns.peakOcc}</div>
+  </div>
+</div>
+<div class="sub" style="margin-top:6px">Average spend per car: <b class="money">${fmtMoney(dAvgSpend)}</b>${dIns.peakIn ? ` · ${dIns.peakIn.count} cars arrived during the ${hourLabel(dIns.peakIn.hour)} hour` : ''}</div>
 
 <h2>Revenue Breakdown</h2>
 <table>
@@ -4445,8 +4482,123 @@ function renderReports() {
       </div>`).join('');
   }
 
+  renderInsights(filtered);
   renderComparison();
   renderDiscountSummary(filtered);
+}
+
+// ═══════════════════════════════════════════════════
+// OPERATIONS INSIGHTS — peak times, stay patterns, loyalty
+// Shared by the Reports view and the printable daily summary.
+// ═══════════════════════════════════════════════════
+function hourLabel(h) {
+  const ampm = h < 12 ? 'am' : 'pm';
+  let hr = h % 12; if (hr === 0) hr = 12;
+  return hr + ampm;
+}
+function medianMs(arr) {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+function peakHour(hours) {
+  let bestH = -1, best = 0;
+  hours.forEach((c, h) => { if (c > best) { best = c; bestH = h; } });
+  return bestH < 0 ? null : { hour: bestH, count: best };
+}
+// Most cars physically on site at the same instant (sweep line over in/out events)
+function peakOccupancy(list) {
+  const ev = [];
+  list.forEach(e => {
+    if (e.timeIn) ev.push([+new Date(e.timeIn), 1]);
+    if (e.timeOut) ev.push([+new Date(e.timeOut), -1]);
+  });
+  ev.sort((a, b) => a[0] - b[0] || a[1] - b[1]); // exits before entries at equal time
+  let cur = 0, max = 0;
+  ev.forEach(([, d]) => { cur += d; if (cur > max) max = cur; });
+  return max;
+}
+function computeInsights(list) {
+  const completed = list.filter(e => e.timeOut);
+  const inHours = new Array(24).fill(0);
+  list.forEach(e => { if (e.timeIn) inHours[new Date(e.timeIn).getHours()]++; });
+  const outHours = new Array(24).fill(0);
+  completed.forEach(e => { outHours[new Date(e.timeOut).getHours()]++; });
+  const weekday = new Array(7).fill(0);
+  list.forEach(e => { if (e.timeIn) weekday[new Date(e.timeIn).getDay()]++; });
+  const stays = completed.map(e => new Date(e.timeOut) - new Date(e.timeIn)).filter(ms => ms > 0);
+  const avgStay = stays.length ? stays.reduce((a, b) => a + b, 0) / stays.length : 0;
+  const revenue = completed.reduce((s, e) => s + (e.totalFee || 0), 0);
+  // Returning customers — key on phone, else rego
+  const visits = {};
+  list.forEach(e => {
+    const key = (e.phone && e.phone.replace(/\D/g, '')) || (e.rego && e.rego.toUpperCase().replace(/\s/g, ''));
+    if (key) visits[key] = (visits[key] || 0) + 1;
+  });
+  const distinctCustomers = Object.keys(visits).length;
+  const repeatCustomers = Object.values(visits).filter(n => n > 1).length;
+  return {
+    peakIn: peakHour(inHours), peakOut: peakHour(outHours),
+    inHours, outHours, weekday,
+    avgStay, medStay: medianMs(stays),
+    peakOcc: peakOccupancy(list),
+    avgSpend: completed.length ? revenue / completed.length : 0,
+    distinctCustomers, repeatCustomers
+  };
+}
+
+function renderInsights(filtered) {
+  const c = document.getElementById('rep-insights');
+  if (!c) return;
+  if (!filtered.length) { c.innerHTML = '<div class="empty">No data in this range</div>'; return; }
+  const ins = computeInsights(filtered);
+  const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const wdMax = Math.max(...ins.weekday);
+  const peakWd = wdMax > 0 ? WD[ins.weekday.indexOf(wdMax)] : '—';
+  const repeatPct = ins.distinctCustomers ? Math.round(ins.repeatCustomers / ins.distinctCustomers * 100) : 0;
+
+  const cards = [
+    ['Busiest check-in', ins.peakIn ? hourLabel(ins.peakIn.hour) : '—', ins.peakIn ? ins.peakIn.count + ' cars in this hour' : 'no data', 'var(--maroon)'],
+    ['Busiest check-out', ins.peakOut ? hourLabel(ins.peakOut.hour) : '—', ins.peakOut ? ins.peakOut.count + ' cars this hour' : 'no data', 'var(--bronze)'],
+    ['Average stay', ins.avgStay ? fmtDuration(ins.avgStay) : '—', ins.medStay ? 'median ' + fmtDuration(ins.medStay) : 'per car', 'var(--green)'],
+    ['Busiest day', peakWd, wdMax > 0 ? wdMax + ' cars' : 'no data', 'var(--maroon)'],
+    ['Peak cars on site', String(ins.peakOcc), 'at the same time', 'var(--bronze)'],
+    ['Avg spend / car', fmtMoney(ins.avgSpend), 'completed trips', 'var(--green)'],
+    ['Returning customers', String(ins.repeatCustomers), repeatPct + '% of ' + ins.distinctCustomers + ' customers', 'var(--maroon)'],
+  ];
+
+  const cardGrid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px">
+    ${cards.map(([label, value, sub, col]) => `
+      <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid ${col}">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">${label}</div>
+        <div style="font-size:21px;font-weight:bold;color:${col};font-family:Georgia,serif;line-height:1.1;margin-top:4px">${value}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${sub}</div>
+      </div>`).join('')}
+  </div>`;
+
+  c.innerHTML = cardGrid
+    + `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px">Check-ins by hour</div>`
+    + renderHourChart(ins.inHours, 'linear-gradient(90deg,var(--maroon),#a04a52)')
+    + `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin:16px 0 8px">Check-outs by hour</div>`
+    + renderHourChart(ins.outHours, 'linear-gradient(90deg,var(--bronze),var(--bronze-light))');
+}
+
+function renderHourChart(hours, color) {
+  const first = hours.findIndex(v => v > 0);
+  if (first < 0) return '<div class="empty">No data</div>';
+  let last = first;
+  hours.forEach((v, h) => { if (v > 0) last = h; });
+  const max = Math.max(...hours);
+  let html = '';
+  for (let h = first; h <= last; h++) {
+    html += `<div class="brand-row">
+      <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px;min-width:48px">${hourLabel(h)}</div>
+      <div class="brand-bar-wrap"><div class="brand-bar" style="width:${max ? (hours[h] / max * 100) : 0}%;background:${color}"></div></div>
+      <div class="brand-count">${hours[h]}</div>
+    </div>`;
+  }
+  return html;
 }
 
 // Render the discount summary report
