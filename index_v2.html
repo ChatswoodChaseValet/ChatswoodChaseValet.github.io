@@ -2425,6 +2425,12 @@ function updateClock() {
 // TABS
 // ═══════════════════════════════════════════════════
 function showView(name) {
+  // Airtight lock: staff can only ever land on the simple Mobile views.
+  // Any attempt to open a desktop-only view (search, buttons, etc.) is
+  // redirected to New Entry. Admins are unrestricted.
+  const isAdmin = !!(currentUser && currentUser.role === 'admin');
+  if (!isAdmin && !MOBILE_VIEWS.includes(name)) name = 'new-entry';
+
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
@@ -5400,10 +5406,18 @@ function showScanResult(entry) {
 
   const status = document.getElementById('scan-result-status');
   const btn = document.getElementById('scan-result-primary-btn');
+  const isAdmin = !!(currentUser && currentUser.role === 'admin');
+  btn.style.display = '';
   if (entry.timeOut) {
     status.innerHTML = '<div style="background:#e0eee0;color:#2a5a2a;padding:10px;border-radius:6px;font-size:13px">✓ <b>Already collected</b> at ' + fmtTime(new Date(entry.timeOut)) + '</div>';
-    btn.textContent = 'View Details';
-    btn.dataset.mode = 'view';
+    // "View Details" opens the Full Log — admin-only. Staff already see all
+    // the details in this modal, so hide the button for them.
+    if (isAdmin) {
+      btn.textContent = 'View Details';
+      btn.dataset.mode = 'view';
+    } else {
+      btn.style.display = 'none';
+    }
   } else {
     status.innerHTML = '';
     btn.textContent = '✓ Mark Out';
@@ -7720,10 +7734,16 @@ function selectQuickResult(id) {
     // Active car — go to checkout
     checkout(id);
   } else {
-    // Already out — go to log and filter
-    document.getElementById('log-search').value = e.ticket;
-    showView('log');
-    renderLog();
+    // Already out. Admins jump to the filtered Full Log; staff (locked to
+    // Mobile, no Log tab) see the details in the scan-result modal instead.
+    const isAdmin = !!(currentUser && currentUser.role === 'admin');
+    if (isAdmin) {
+      document.getElementById('log-search').value = e.ticket;
+      showView('log');
+      renderLog();
+    } else {
+      showScanResult(e);
+    }
   }
 }
 
