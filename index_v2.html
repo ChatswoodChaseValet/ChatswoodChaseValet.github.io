@@ -3522,6 +3522,84 @@ function editEntryDetails(id) {
 }
 
 // ═══════════════════════════════════════════════════
+// EDIT CAR — one modal to fix bay / time in / customer details
+// (in case staff logged something wrong). Works from the Active
+// Cars tab and the Log; the Time Out field appears only once a
+// car has been checked out.
+// ═══════════════════════════════════════════════════
+let editingCarId = null;
+function toHM(d) {
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+function openEditCar(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  editingCarId = id;
+  document.getElementById('edit-car-ticket').textContent = e.ticket;
+  document.getElementById('edit-car-name').value = e.name || '';
+  document.getElementById('edit-car-phone').value = e.phone || '';
+  document.getElementById('edit-car-bay').value = e.bay || '';
+  document.getElementById('edit-car-timein').value = toHM(new Date(e.timeIn));
+  const outField = document.getElementById('edit-car-timeout-field');
+  if (e.timeOut) {
+    outField.style.display = '';
+    document.getElementById('edit-car-timeout').value = toHM(new Date(e.timeOut));
+  } else {
+    outField.style.display = 'none';
+    document.getElementById('edit-car-timeout').value = '';
+  }
+  document.getElementById('edit-car-error').textContent = '';
+  document.getElementById('edit-car-modal').classList.add('show');
+}
+function closeEditCar() {
+  document.getElementById('edit-car-modal').classList.remove('show');
+  editingCarId = null;
+}
+function saveEditCar() {
+  const e = entries.find(x => x.id === editingCarId);
+  if (!e) { closeEditCar(); return; }
+  const err = document.getElementById('edit-car-error');
+  const name = document.getElementById('edit-car-name').value.trim();
+  const phone = document.getElementById('edit-car-phone').value.trim();
+  const bay = document.getElementById('edit-car-bay').value.trim();
+  const tin = document.getElementById('edit-car-timein').value;
+  const tout = document.getElementById('edit-car-timeout').value;
+
+  if (!name) { err.textContent = 'Customer Name is required.'; return; }
+  if (phone && !isValidAUMobile(phone)) { err.textContent = 'Enter a valid Australian mobile (e.g. 0412 345 678), or leave blank.'; return; }
+  if (!bay) { err.textContent = 'Bay is required.'; return; }
+  if (!/^\d{1,2}:\d{2}$/.test(tin)) { err.textContent = 'Enter a valid Time In.'; return; }
+
+  // Keep each timestamp's original DATE, change only the time
+  const [hi, mi] = tin.split(':').map(n => parseInt(n, 10));
+  const inD = new Date(e.timeIn); inD.setHours(hi, mi, 0, 0);
+
+  let outD = null;
+  if (e.timeOut) {
+    if (!/^\d{1,2}:\d{2}$/.test(tout)) { err.textContent = 'Enter a valid Time Out.'; return; }
+    const [ho, mo] = tout.split(':').map(n => parseInt(n, 10));
+    outD = new Date(e.timeOut); outD.setHours(ho, mo, 0, 0);
+    if (outD < inD) { err.textContent = 'Time Out cannot be before Time In.'; return; }
+  }
+
+  e.name = name;
+  e.phone = phone;
+  e.bay = bay;
+  e.timeIn = inD.toISOString();
+  if (outD) e.timeOut = outD.toISOString();
+
+  saveData(e.id, { immediate: true });
+  cloudAudit('edit', 'entry', e.id, { ticket: e.ticket });
+  closeEditCar();
+  renderDashboard();
+  renderActive();
+  renderLog();
+  if (typeof renderQuickPickup === 'function') renderQuickPickup();
+  quickToast('✓ Changes saved');
+  if (typeof hapticFeedback === 'function') hapticFeedback('success');
+}
+
+// ═══════════════════════════════════════════════════
 // DASHBOARD RENDER
 // ═══════════════════════════════════════════════════
 function isSameDay(isoStr, refDate) {
@@ -3709,6 +3787,7 @@ function renderActive() {
         ${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call ${e.phone}">📞</a>` : ''}
         <button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">📱 QR</button>
         <button class="btn btn-secondary btn-sm" onclick="printKeyTag('${e.id}')" title="Print key tag to BIXOLON printer">🖨</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">✎ Edit</button>
         ${pickupBtn}
         <button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')" style="margin-left:4px">✓ Mark Out</button>
       </td>
@@ -4378,8 +4457,7 @@ function renderLog() {
       <td>
         ${e.photo ? `<button class="btn btn-secondary btn-sm" onclick="viewPhoto('${e.id}')" style="margin-right:4px" title="View car photo">📸</button>` : ''}
         ${e.gps ? `<button class="btn btn-secondary btn-sm" onclick="viewBayLocation(${e.gps.lat},${e.gps.lng})" style="margin-right:4px" title="Show on map">📍</button>` : ''}
-        <button class="btn btn-secondary btn-sm" onclick="editEntryTime('${e.id}')" style="margin-right:4px">✎ Edit Time</button>
-        <button class="btn btn-secondary btn-sm" onclick="editEntryDetails('${e.id}')" style="margin-right:4px" title="Edit customer name & mobile">✎ Details</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" style="margin-right:4px" title="Edit bay, time in/out & customer details">✎ Edit</button>
         ${e.timeOut
           ? `<button class="btn btn-secondary btn-sm" onclick="undoCheckout('${e.id}')">↶ Undo</button>`
           : `<button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')">✓ Out</button>`}
@@ -7865,6 +7943,40 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="btn-row" style="justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeStaffModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveStaffMember()">✓ Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CAR MODAL — fix bay / time in / customer details if staff made a mistake -->
+<div class="modal" id="edit-car-modal">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-title">✎ Edit — <span id="edit-car-ticket" style="font-family:&#39;Courier New&#39;,monospace"></span></div>
+    <div class="form-field" style="margin-bottom:12px">
+      <label class="form-label">Customer Name</label>
+      <input type="text" id="edit-car-name" class="form-input" maxlength="50" autocomplete="off">
+    </div>
+    <div class="form-field" style="margin-bottom:12px">
+      <label class="form-label">Customer Mobile</label>
+      <input type="tel" id="edit-car-phone" class="form-input" placeholder="0412 345 678" maxlength="20" autocomplete="off">
+    </div>
+    <div class="form-grid">
+      <div class="form-field" style="margin-bottom:12px">
+        <label class="form-label">Bay</label>
+        <input type="text" id="edit-car-bay" class="form-input" maxlength="20" autocomplete="off">
+      </div>
+      <div class="form-field" style="margin-bottom:12px">
+        <label class="form-label">Time In</label>
+        <input type="time" id="edit-car-timein" class="form-input">
+      </div>
+    </div>
+    <div class="form-field" id="edit-car-timeout-field" style="margin-bottom:12px;display:none">
+      <label class="form-label">Time Out</label>
+      <input type="time" id="edit-car-timeout" class="form-input">
+    </div>
+    <div id="edit-car-error" style="color:var(--red);font-size:12px;margin-bottom:10px;min-height:18px"></div>
+    <div class="btn-row" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeEditCar()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditCar()">✓ Save Changes</button>
     </div>
   </div>
 </div>
