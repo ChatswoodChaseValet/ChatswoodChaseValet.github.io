@@ -3531,6 +3531,13 @@ let editingCarId = null;
 function toHM(d) {
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
+// Repopulate the edit modal's Model datalist for the chosen brand.
+function updateEditModelOptions() {
+  const brand = (document.getElementById('edit-car-brand').value || '').trim();
+  const list = document.getElementById('edit-model-list');
+  const models = (typeof CAR_MODELS !== 'undefined' && CAR_MODELS[brand]) || [];
+  list.innerHTML = models.map(m => `<option value="${m.replace(/"/g, '&quot;')}"></option>`).join('');
+}
 function openEditCar(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
@@ -3538,6 +3545,11 @@ function openEditCar(id) {
   document.getElementById('edit-car-ticket').textContent = e.ticket;
   document.getElementById('edit-car-name').value = e.name || '';
   document.getElementById('edit-car-phone').value = e.phone || '';
+  document.getElementById('edit-car-brand').value = e.brand || '';
+  document.getElementById('edit-car-model').value = e.model || '';
+  document.getElementById('edit-car-rego').value = e.rego || '';
+  document.getElementById('edit-car-colour').value = e.colour || '';
+  updateEditModelOptions();
   document.getElementById('edit-car-bay').value = e.bay || '';
   document.getElementById('edit-car-timein').value = toHM(new Date(e.timeIn));
   const outField = document.getElementById('edit-car-timeout-field');
@@ -3561,12 +3573,18 @@ function saveEditCar() {
   const err = document.getElementById('edit-car-error');
   const name = document.getElementById('edit-car-name').value.trim();
   const phone = document.getElementById('edit-car-phone').value.trim();
+  const brand = document.getElementById('edit-car-brand').value.trim();
+  const model = document.getElementById('edit-car-model').value.trim();
+  const rego = document.getElementById('edit-car-rego').value.trim();
+  const colour = document.getElementById('edit-car-colour').value.trim();
   const bay = document.getElementById('edit-car-bay').value.trim();
   const tin = document.getElementById('edit-car-timein').value;
   const tout = document.getElementById('edit-car-timeout').value;
 
   if (!name) { err.textContent = 'Customer Name is required.'; return; }
   if (phone && !isValidAUMobile(phone)) { err.textContent = 'Enter a valid Australian mobile (e.g. 0412 345 678), or leave blank.'; return; }
+  if (!brand) { err.textContent = 'Car Brand is required.'; return; }
+  if (!rego) { err.textContent = 'Rego is required.'; return; }
   if (!bay) { err.textContent = 'Bay is required.'; return; }
   if (!/^\d{1,2}:\d{2}$/.test(tin)) { err.textContent = 'Enter a valid Time In.'; return; }
 
@@ -3584,6 +3602,10 @@ function saveEditCar() {
 
   e.name = name;
   e.phone = phone;
+  e.brand = brand;
+  e.model = model;
+  e.rego = rego;
+  e.colour = colour;
   e.bay = bay;
   e.timeIn = inD.toISOString();
   if (outD) e.timeOut = outD.toISOString();
@@ -7958,6 +7980,27 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Customer Mobile</label>
       <input type="tel" id="edit-car-phone" class="form-input" placeholder="0412 345 678" maxlength="20" autocomplete="off">
+    </div>
+    <div class="form-grid">
+      <div class="form-field" style="margin-bottom:12px">
+        <label class="form-label">Car Brand</label>
+        <input type="text" id="edit-car-brand" class="form-input" list="brand-list" autocomplete="off" oninput="updateEditModelOptions()">
+      </div>
+      <div class="form-field" style="margin-bottom:12px">
+        <label class="form-label">Model</label>
+        <input type="text" id="edit-car-model" class="form-input" list="edit-model-list" autocomplete="off">
+        <datalist id="edit-model-list"></datalist>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-field" style="margin-bottom:12px">
+        <label class="form-label">Rego</label>
+        <input type="text" id="edit-car-rego" class="form-input" maxlength="12" autocomplete="off" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="form-field" style="margin-bottom:12px">
+        <label class="form-label">Colour</label>
+        <input type="text" id="edit-car-colour" class="form-input" maxlength="20" autocomplete="off">
+      </div>
     </div>
     <div class="form-grid">
       <div class="form-field" style="margin-bottom:12px">
