@@ -1894,14 +1894,14 @@ body.dark-mode .scan-banner {
       <div class="section-title">🖨 Key-Tag Printer (BIXOLON)</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
-      Print the key tag (ticket #, bay, plate + scannable QR) straight to a BIXOLON
+      Print the key tag (ticket #, bay, plate + scannable barcode) straight to a BIXOLON
       <strong>SPP-R200III</strong>. Because this is a web app, a small free bridge app must run on this device:
     </p>
     <div style="background:var(--sandstone);padding:12px 14px;border-radius:4px;margin-bottom:14px;font-size:12px;line-height:1.7">
       <strong>One-time setup on this device:</strong>
       <ol style="margin:6px 0 0 18px;padding:0">
-        <li><strong>Android:</strong> install <strong>“BIXOLON WebPrint”</strong> from the Play Store. <strong>Windows:</strong> install the WebPrint utility from BIXOLON’s SPP-R200III download page.</li>
-        <li>Pair the SPP-R200III to this device over Bluetooth, then add it inside the WebPrint app and give it a <strong>name</strong>.</li>
+        <li><strong>Android:</strong> install <strong>“mPrintServer”</strong> from the Play Store. <strong>Windows:</strong> install the Web Print SDK utility from BIXOLON’s SPP-R200III download page.</li>
+        <li>Pair the SPP-R200III to this device over Bluetooth, then add it in mPrintServer and give it a <strong>name</strong>. In its <strong>Web Server</strong> settings make sure the server is ON (port 18080).</li>
         <li>Type that exact name below, Save, then tap <strong>Test Print</strong>.</li>
       </ol>
     </div>
@@ -2778,9 +2778,10 @@ function dismissSaveToast() {
 // KEY-TAG PRINTING — BIXOLON SPP-R200III (Web Print SDK)
 // ───────────────────────────────────────────────────
 // The browser can't talk to a Bluetooth Classic printer
-// directly. BIXOLON's free "WebPrint" helper (Android app
-// / Windows utility) owns the Bluetooth link and exposes a
-// tiny local server on 127.0.0.1:18080. We POST an ESC/POS
+// directly. BIXOLON's free bridge (Android: "mPrintServer"
+// app / Windows: Web Print SDK utility) owns the Bluetooth
+// link and exposes a tiny local server on 127.0.0.1:18080
+// (its "Web Server" must be ON). We POST an ESC/POS
 // job to it. SDK code below is a trimmed inline copy of
 // BIXOLON's bxlcommon.js + bxlpos.js (their public sample),
 // wrapped in an IIFE so its globals don't leak. It exposes
@@ -2867,7 +2868,7 @@ function dismissSaveToast() {
       if (!res) return; // requestPrint fires once with "" before the real result
       var r = String(res);
       if (/Cannot connect to server/i.test(r)) {
-        flashScanStatus('🖨 Printer bridge not found — open the BIXOLON WebPrint app and keep it running', 'error');
+        flashScanStatus('🖨 Printer bridge not found — open mPrintServer and turn its Web Server ON', 'error');
       } else if (/No printers/i.test(r)) {
         flashScanStatus('🖨 No printer named "' + printerName + '" in WebPrint — check Settings', 'error');
       } else if (/duplicated/i.test(r)) {
