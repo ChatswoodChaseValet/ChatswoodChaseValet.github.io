@@ -1019,6 +1019,22 @@ body.dark-mode .scan-banner {
     <div class="form-grid">
       <div class="form-field">
         <label class="form-label">
+          Ticket Number
+          <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">
+            <input type="checkbox" id="f-ticket-manual" onchange="toggleManualTicket()" style="vertical-align:middle;margin-right:3px">
+            <label for="f-ticket-manual" style="cursor:pointer">edit manually</label>
+          </span>
+        </label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="f-ticket" class="form-input" readonly="" style="background:var(--sandstone);font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon);flex:1">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="useAutoTicket()" id="auto-ticket-btn" style="white-space:nowrap;display:none">⟳ Auto</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">
           Rego / Plate<span class="required">*</span>
           <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">📷 Snap · 🎤 Voice · ⌨️ Type</span>
         </label>
@@ -1145,19 +1161,6 @@ body.dark-mode .scan-banner {
     </div>
 
     <div class="form-grid">
-      <div class="form-field">
-        <label class="form-label">
-          Ticket Number
-          <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">
-            <input type="checkbox" id="f-ticket-manual" onchange="toggleManualTicket()" style="vertical-align:middle;margin-right:3px">
-            <label for="f-ticket-manual" style="cursor:pointer">edit manually</label>
-          </span>
-        </label>
-        <div style="display:flex;gap:6px">
-          <input type="text" id="f-ticket" class="form-input" readonly="" style="background:var(--sandstone);font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon);flex:1">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="useAutoTicket()" id="auto-ticket-btn" style="white-space:nowrap;display:none">⟳ Auto</button>
-        </div>
-      </div>
       <div class="form-field">
         <label class="form-label">
           Time In
