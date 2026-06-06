@@ -3606,7 +3606,7 @@ function saveEditCar() {
     if (outD < inD) { err.textContent = 'Time Out cannot be before Time In.'; return; }
   }
 
-  const ticketChanged = ticket !== e.ticket;
+  const tagChanged = ticket !== e.ticket || bay !== e.bay || rego !== e.rego;
   e.ticket = ticket;
   e.name = name;
   e.phone = phone;
@@ -3628,10 +3628,10 @@ function saveEditCar() {
   quickToast('✓ Changes saved');
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 
-  // The ticket number is what the key-tag barcode encodes, so reprint the
-  // tag if it changed — but only when a printer is set up, so editing stays
-  // silent until then.
-  if (ticketChanged && (settings.printerName || '').trim()) {
+  // The key tag shows ticket, bay and plate (ticket is also the barcode), so
+  // reprint if any of those changed — but only when a printer is set up, so
+  // editing stays silent until then.
+  if (tagChanged && (settings.printerName || '').trim()) {
     printKeyTag(e);
   }
 }
