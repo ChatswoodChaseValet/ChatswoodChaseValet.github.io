@@ -1975,6 +1975,23 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
+      <div class="section-title">📱 Customer SMS Credit</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.6">
+      Customers are auto-texted their ticket link on check-in via ClickSend. If the
+      ClickSend balance runs out, texts silently stop (the app falls back to opening
+      your Messages app). Check it here and top up at
+      <strong>dashboard.clicksend.com</strong> when it's low. You'll also get a
+      warning banner at login whenever credit is low.
+    </p>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="checkSmsBalanceUI()">Check Balance Now</button>
+    </div>
+    <div id="sms-balance-result" style="margin-top:10px;font-size:13px;font-weight:600"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
       <div class="section-title">Data Management</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
@@ -3999,6 +4016,72 @@ async function sendQRSms(id) {
   } catch (err) {
     prompt('Copy this link to send to customer:', url);
   }
+}
+
+// ═══════════════════════════════════════════════════
+// SMS CREDIT — ClickSend balance check + low-balance warning
+// ═══════════════════════════════════════════════════
+// Customers are auto-texted their ticket on check-in via ClickSend. If the
+// balance runs dry the send silently fails (app falls back to the Messages
+// composer), so we warn admins when credit drops below this threshold. Each
+// text is ~2 segments (~$0.16), so $5 leaves a buffer of roughly 30 texts.
+const SMS_LOW_BALANCE = 5;
+
+// Query the live ClickSend balance via the edge function (which holds the
+// sealed API key). Returns {balance, prefix, currency} or null on failure.
+async function checkSmsBalance() {
+  if (!supa) return null;
+  try {
+    const { data, error } = await supa.functions.invoke('send-ticket-sms', {
+      body: { action: 'balance' }
+    });
+    if (error || !data || !data.ok || typeof data.balance !== 'number') return null;
+    return { balance: data.balance, prefix: data.prefix || '$', currency: data.currency || '' };
+  } catch (e) {
+    return null;
+  }
+}
+
+// Persistent red banner warning that SMS credit is low (dismissable).
+function showLowSmsBanner(text) {
+  let b = document.getElementById('sms-balance-banner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'sms-balance-banner';
+    b.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;z-index:300;box-shadow:0 2px 10px rgba(0,0,0,.25);max-width:92vw;background:#7a1f1f;color:#ffe0e0;display:flex;align-items:center;gap:10px';
+    document.body.appendChild(b);
+  }
+  b.innerHTML = '<span>' + text + '</span>' +
+    '<button onclick="this.parentNode.remove()" style="background:none;border:none;color:#ffe0e0;font-size:16px;cursor:pointer;opacity:.8;flex:0 0 auto">✕</button>';
+  b.style.display = 'flex';
+}
+
+// Fire-and-forget after login (admins only): warn if ClickSend credit is low.
+async function maybeWarnLowSmsBalance() {
+  if (!(currentUser && currentUser.role === 'admin')) return;
+  const b = await checkSmsBalance();
+  if (!b) return;
+  if (b.balance <= SMS_LOW_BALANCE) {
+    showLowSmsBanner('⚠️ Low SMS credit: ' + b.prefix + b.balance.toFixed(2) +
+      ' left. Top up ClickSend so customer auto-texts keep sending.');
+  }
+}
+
+// Settings → "Check Balance Now" button handler.
+async function checkSmsBalanceUI() {
+  const out = document.getElementById('sms-balance-result');
+  if (out) { out.textContent = 'Checking…'; out.style.color = 'var(--text-muted)'; }
+  const b = await checkSmsBalance();
+  if (!out) return;
+  if (!b) {
+    out.textContent = '⚠️ Could not read balance (check connection / ClickSend setup).';
+    out.style.color = '#b04a4a';
+    return;
+  }
+  const low = b.balance <= SMS_LOW_BALANCE;
+  out.textContent = (low ? '⚠️ ' : '✓ ') + 'Balance: ' + b.prefix + b.balance.toFixed(2) +
+    (low ? ' — running low, top up ClickSend soon.' : ' — plenty of credit.');
+  out.style.color = low ? '#b04a4a' : '#2a7a2a';
 }
 
 function togglePickupRequest(id) {
@@ -7420,6 +7503,9 @@ async function completeLogin() {
   startRealtimeSync();
   // 6) Audit (fire-and-forget).
   cloudAudit('login', 'user', currentUser.username, { displayName: currentUser.displayName });
+  // 7) Warn admins if ClickSend SMS credit is low so auto-texts don't
+  //    silently start failing (fire-and-forget; admins-only check inside).
+  maybeWarnLowSmsBalance();
 }
 
 async function loadFromCloud() {
