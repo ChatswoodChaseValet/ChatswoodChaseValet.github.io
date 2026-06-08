@@ -2809,6 +2809,12 @@ function saveEntry() {
   showSaveToast(entry);
   hapticFeedback('success');
 
+  // Auto-print the key tag on check-in when a printer is set up. The toast
+  // still shows a 🖨 button as a reprint option; stays silent with no printer.
+  if ((settings.printerName || '').trim()) {
+    printKeyTag(entry);
+  }
+
   resetForm();
   prepareNewEntry();
 
