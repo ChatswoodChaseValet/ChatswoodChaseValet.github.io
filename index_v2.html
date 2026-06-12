@@ -1549,13 +1549,13 @@ body.dark-mode .scan-banner {
       <table>
         <thead>
           <tr>
-            <th>Customer</th>
+            <th onclick="sortCustomers('name')" style="cursor:pointer" title="Sort by name">Customer <span id="csort-name"></span></th>
             <th>Phone</th>
             <th>Vehicle</th>
             <th>Rego</th>
-            <th>Visits</th>
-            <th>Lifetime</th>
-            <th>Last Visit</th>
+            <th onclick="sortCustomers('visitCount')" style="cursor:pointer" title="Sort by number of visits">Visits <span id="csort-visitCount"></span></th>
+            <th onclick="sortCustomers('lifetime')" style="cursor:pointer" title="Sort by lifetime spend">Lifetime <span id="csort-lifetime"></span></th>
+            <th onclick="sortCustomers('lastVisit')" style="cursor:pointer" title="Sort by last visit">Last Visit <span id="csort-lastVisit"></span></th>
           </tr>
         </thead>
         <tbody id="customers-tbody">
@@ -6740,6 +6740,18 @@ function buildCustomerList() {
   }).sort((a, b) => new Date(b.lastVisit) - new Date(a.lastVisit));
 }
 
+// Customer table sort state. Click a column header to change it.
+let customerSort = { key: 'lastVisit', dir: 'desc' };
+function sortCustomers(key) {
+  if (customerSort.key === key) {
+    customerSort.dir = customerSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    customerSort.key = key;
+    customerSort.dir = (key === 'name') ? 'asc' : 'desc'; // names A–Z, numbers/dates high→low
+  }
+  renderCustomers();
+}
+
 function renderCustomers() {
   let customers = buildCustomerList();
   const search = document.getElementById('customers-search').value.trim().toLowerCase();
@@ -6752,6 +6764,27 @@ function renderCustomers() {
       c.model.toLowerCase().includes(search)
     );
   }
+
+  // Apply the chosen sort
+  const dir = customerSort.dir === 'asc' ? 1 : -1;
+  customers.sort((a, b) => {
+    switch (customerSort.key) {
+      case 'name': {
+        const av = (a.name || '').toLowerCase(), bv = (b.name || '').toLowerCase();
+        return av < bv ? -dir : av > bv ? dir : 0;
+      }
+      case 'visitCount': return (a.visitCount - b.visitCount) * dir;
+      case 'lifetime':   return (a.lifetime - b.lifetime) * dir;
+      case 'lastVisit':
+      default:           return (new Date(a.lastVisit) - new Date(b.lastVisit)) * dir;
+    }
+  });
+
+  // Reflect the active sort in the column-header arrows
+  ['name', 'visitCount', 'lifetime', 'lastVisit'].forEach(k => {
+    const el = document.getElementById('csort-' + k);
+    if (el) el.textContent = customerSort.key === k ? (customerSort.dir === 'asc' ? '▲' : '▼') : '';
+  });
 
   document.getElementById('customers-count').textContent =
     `${customers.length} customer${customers.length !== 1 ? 's' : ''}${search ? ' (filtered)' : ''}`;
