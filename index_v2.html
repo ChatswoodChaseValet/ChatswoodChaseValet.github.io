@@ -7,36 +7,40 @@
 <!-- PWA + push-notification support (lets staff phones get car-request
      alerts even when the dashboard isn't open). -->
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#531520">
+<meta name="theme-color" content="#531620">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CC Valet">
 <link rel="apple-touch-icon" href="icon.svg">
+<!-- Inter — matches the official chatswoodchase.com.au typeface -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --maroon:#531520;
-  --maroon-dark:#3a0e14;
-  --maroon-light:#6e1c2b;
-  --sandstone:#f0e8db;
-  --bone:#e8dcc6;
-  --champagne:#d9c5a0;
-  --bronze:#8b6f47;
-  --bronze-light:#a8896a;
+  --maroon:#531620;
+  --maroon-dark:#3a0f17;
+  --maroon-light:#6e1d2c;
+  --sandstone:#f1f0ee;
+  --bone:#ebebe9;
+  --champagne:#e0a640;
+  --bronze:#a48d53;
+  --bronze-light:#b08f59;
   --forest:#2d3a2a;
-  --charcoal:#2a2620;
-  --text:#2a2620;
-  --text-muted:#6b6155;
-  --border:#d4c8b3;
-  --bg:#f7f3e9;
+  --charcoal:#333333;
+  --text:#333333;
+  --text-muted:#6f6b66;
+  --border:#ebebe9;
+  --bg:#f8f7f5;
   --white:#fff;
   --green:#4a7c4f;
   --red:#a83838;
 }
 
 body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
   background:var(--bg);
   color:var(--text);
   min-height:100vh;
@@ -49,13 +53,13 @@ body{
   width:100%;
   padding:9px 14px;
   font-size:14px;
-  border:1.5px solid #c9b88a;
+  border:1.5px solid #d8d6d2;
   background:rgba(255,255,255,.95);
   color:var(--text);
   border-radius:4px;
   font-family:inherit;
 }
-.quick-search input:focus{outline:none;border-color:#f0d9a8;box-shadow:0 0 0 3px rgba(240,217,168,.25)}
+.quick-search input:focus{outline:none;border-color:#e0a640;box-shadow:0 0 0 3px rgba(240,217,168,.25)}
 .quick-results{
   position:absolute;
   top:calc(100% + 4px);
@@ -101,7 +105,7 @@ body{
 .header-date{
   font-family:'Courier New',monospace;
   font-size:14px;
-  color:#f0d9a8;
+  color:#e0a640;
   letter-spacing:1px;
   text-align:right;
 }
@@ -173,7 +177,7 @@ body.mobile-mode .tab.desktop-only{display:none}
 .stat-card.green::before{background:var(--green)}
 .stat-card.bronze::before{background:var(--bronze)}
 .stat-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:6px}
-.stat-value{font-family:Georgia,serif;font-size:30px;color:var(--maroon);line-height:1}
+.stat-value{font-family:'Inter',sans-serif;font-size:30px;color:var(--maroon);line-height:1}
 .stat-sub{font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic}
 
 /* ─── SECTION ─── */
@@ -193,7 +197,7 @@ body.mobile-mode .tab.desktop-only{display:none}
   border-bottom:1px solid var(--border);
 }
 .section-title{
-  font-family:Georgia,serif;
+  font-family:'Inter',sans-serif;
   font-size:16px;
   color:var(--maroon);
   letter-spacing:1.5px;
@@ -265,10 +269,10 @@ th{
 }
 td{
   padding:11px 12px;
-  border-bottom:1px solid #e8e0cd;
+  border-bottom:1px solid #ebebe9;
   font-size:13px;
 }
-tr.active td{background:#fff8eb}
+tr.active td{background:#faf9f7}
 tr:hover td{background:var(--bg)}
 .ticket-num{font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);letter-spacing:.5px}
 .status-pill{
@@ -280,7 +284,7 @@ tr:hover td{background:var(--bg)}
   font-weight:bold;
   border-radius:3px;
 }
-.status-active{background:#fff3d4;color:#8a6500;border:1px solid #e8c99c}
+.status-active{background:#fff3d4;color:#8a6500;border:1px solid #e0a640}
 .status-completed{background:#e0ecd9;color:#3a5a3a;border:1px solid #b8d4ad}
 
 /* ─── EMPTY STATE ─── */
@@ -288,7 +292,7 @@ tr:hover td{background:var(--bg)}
 .empty-icon{font-size:36px;margin-bottom:10px;opacity:.4}
 
 /* ─── BRAND CHART ─── */
-.brand-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #e8e0cd}
+.brand-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #ebebe9}
 .brand-row:last-child{border-bottom:none}
 .brand-name{flex:0 0 130px;font-size:13px;font-weight:600;color:var(--text)}
 .brand-bar-wrap{flex:1;background:var(--sandstone);border-radius:3px;height:18px;overflow:hidden;position:relative}
@@ -318,7 +322,7 @@ tr:hover td{background:var(--bg)}
   width:100%;
   padding:24px;
 }
-.modal-title{font-family:Georgia,serif;font-size:18px;color:var(--maroon);margin-bottom:12px}
+.modal-title{font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:12px}
 .modal-body{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:20px}
 
 /* Required marker */
@@ -328,22 +332,22 @@ tr:hover td{background:var(--bg)}
 .scan-controls{display:flex;gap:6px;flex-shrink:0}
 .scan-btn{
   padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.5px;
-  background:rgba(255,255,255,.12);color:#f0d9a8;border:1px solid #c9b88a;
+  background:rgba(255,255,255,.12);color:#e0a640;border:1px solid #d8d6d2;
   border-radius:4px;cursor:pointer;font-family:inherit;white-space:nowrap;
   transition:all .15s;
 }
 .scan-btn:hover{background:rgba(255,255,255,.22)}
-.scan-btn.active{background:#f0d9a8;color:#531520;border-color:#f0d9a8;animation:scanPulse 2s ease-in-out infinite}
+.scan-btn.active{background:#e0a640;color:#531620;border-color:#e0a640;animation:scanPulse 2s ease-in-out infinite}
 @keyframes scanPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,217,168,.6)}50%{box-shadow:0 0 0 8px rgba(240,217,168,0)}}
 
 /* Scan mode overlay banner */
 .scan-banner{
   position:fixed;top:0;left:0;right:0;
-  background:#f0d9a8;color:#531520;
+  background:#e0a640;color:#531620;
   padding:8px 16px;text-align:center;
   font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
   z-index:80;
-  border-bottom:2px solid #531520;
+  border-bottom:2px solid #531620;
   display:none;
 }
 .scan-banner.show{display:block}
@@ -428,7 +432,7 @@ tr:hover td{background:var(--bg)}
 #login-overlay {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #531520 0%, #3a0e14 100%);
+  background: linear-gradient(135deg, #531620 0%, #3a0f17 100%);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -449,17 +453,17 @@ tr:hover td{background:var(--bg)}
   width: 100%;
   padding: 12px;
   font-size: 16px;
-  border: 2px solid #d4c8b3;
+  border: 2px solid #ebebe9;
   border-radius: 6px;
   background: #fff;
-  color: #2a2620;
+  color: #333333;
   font-family: inherit;
   margin-bottom: 8px;
   transition: border-color 0.15s;
 }
 .login-input:focus {
   outline: none;
-  border-color: #531520;
+  border-color: #531620;
   box-shadow: 0 0 0 3px rgba(107, 29, 36, 0.1);
 }
 .login-error {
@@ -472,8 +476,8 @@ tr:hover td{background:var(--bg)}
 .login-btn {
   width: 100%;
   padding: 12px 24px;
-  background: #531520;
-  color: #f0e8db;
+  background: #531620;
+  color: #f1f0ee;
   border: none;
   border-radius: 6px;
   font-size: 13px;
@@ -484,12 +488,12 @@ tr:hover td{background:var(--bg)}
   font-family: inherit;
   transition: background 0.15s;
 }
-.login-btn:hover { background: #6e1c2b }
+.login-btn:hover { background: #6e1d2c }
 .login-btn-secondary {
   padding: 12px 24px;
-  background: #f0e8db;
-  color: #2a2620;
-  border: 1px solid #d4c8b3;
+  background: #f1f0ee;
+  color: #333333;
+  border: 1px solid #ebebe9;
   border-radius: 6px;
   font-size: 13px;
   letter-spacing: 1.5px;
@@ -501,9 +505,9 @@ tr:hover td{background:var(--bg)}
 .user-pick-btn {
   width: 100%;
   padding: 12px 16px;
-  background: #f7f3e9;
-  color: #2a2620;
-  border: 1.5px solid #d4c8b3;
+  background: #f8f7f5;
+  color: #333333;
+  border: 1.5px solid #ebebe9;
   border-radius: 6px;
   text-align: left;
   cursor: pointer;
@@ -515,14 +519,14 @@ tr:hover td{background:var(--bg)}
   transition: all 0.15s;
 }
 .user-pick-btn:hover {
-  background: #e8c99c;
-  border-color: #8b6f47;
+  background: #e0a640;
+  border-color: #a48d53;
 }
 .user-pick-btn .avatar {
   width: 32px;
   height: 32px;
-  background: #531520;
-  color: #f0d9a8;
+  background: #531620;
+  color: #e0a640;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -547,7 +551,7 @@ tr:hover td{background:var(--bg)}
   display: flex;
 }
 .welcome-box {
-  background: linear-gradient(135deg, #fff 0%, #fffcf2 100%);
+  background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
   border-radius: 12px;
   max-width: 520px;
   width: 100%;
@@ -574,26 +578,26 @@ tr:hover td{background:var(--bg)}
 }
 
 body.dark-mode .welcome-box {
-  background: linear-gradient(135deg, #2a2620 0%, #3a342a 100%);
+  background: linear-gradient(135deg, #333333 0%, #3a342a 100%);
 }
 
 /* ─── DARK MODE ─── */
 body.dark-mode {
-  --maroon: #6e1c2b;
-  --maroon-dark: #531520;
+  --maroon: #6e1d2c;
+  --maroon-dark: #531620;
   --maroon-light: #a83444;
-  --sandstone: #2a2620;
+  --sandstone: #333333;
   --bone: #3a342a;
   --champagne: #6b5a3a;
-  --bronze: #c79c5a;
+  --bronze: #b08f59;
   --bronze-light: #d9b87a;
   --forest: #4a5a4a;
   --charcoal: #1a1714;
-  --text: #f0e8db;
+  --text: #f1f0ee;
   --text-muted: #a8a090;
   --border: #4a4238;
   --bg: #1a1714;
-  --white: #2a2620;
+  --white: #333333;
   --green: #6ea672;
   --red: #d05858;
 }
@@ -606,7 +610,7 @@ body.dark-mode .quick-results,
 body.dark-mode .form-input,
 body.dark-mode .form-select,
 body.dark-mode .qp-card {
-  background: #2a2620 !important;
+  background: #333333 !important;
   color: var(--text);
 }
 
@@ -630,7 +634,7 @@ body.dark-mode .form-select {
 }
 
 body.dark-mode .scan-banner {
-  background: #c79c5a;
+  background: #b08f59;
   color: #1a1714;
 }
 
@@ -750,30 +754,30 @@ body.dark-mode .scan-banner {
 <div id="login-overlay">
   <div class="login-card">
     <img src="logo-maroon.png" alt="Chatswood Chase" style="height:56px;width:auto;margin-bottom:10px">
-    <div style="font-size:11px;letter-spacing:2px;color:#8b6f47;text-transform:uppercase;margin-bottom:24px">Valet Dashboard</div>
+    <div style="font-size:11px;letter-spacing:2px;color:#a48d53;text-transform:uppercase;margin-bottom:24px">Valet Dashboard</div>
 
     <div id="login-stage-connecting" class="login-stage" style="display:block">
-      <div style="font-size:13px;color:#6b6155;line-height:1.6">⏳ Connecting to cloud database…</div>
+      <div style="font-size:13px;color:#6f6b66;line-height:1.6">⏳ Connecting to cloud database…</div>
     </div>
 
     <div id="login-stage-pin" class="login-stage" style="display:none">
-      <div style="font-size:14px;color:#2a2620;margin-bottom:14px;font-weight:600">Enter Access PIN</div>
+      <div style="font-size:14px;color:#333333;margin-bottom:14px;font-weight:600">Enter Access PIN</div>
       <input type="password" id="login-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" class="login-input" placeholder="• • • •" style="font-size:24px;letter-spacing:8px;text-align:center">
       <div id="login-pin-error" class="login-error"></div>
       <button class="login-btn" onclick="checkPIN()">Continue</button>
     </div>
 
     <div id="login-stage-user" class="login-stage" style="display:none">
-      <div style="font-size:14px;color:#2a2620;margin-bottom:14px;font-weight:600">Who's working today?</div>
+      <div style="font-size:14px;color:#333333;margin-bottom:14px;font-weight:600">Who's working today?</div>
       <div id="login-user-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-        <div style="font-size:12px;color:#6b6155">Loading staff list…</div>
+        <div style="font-size:12px;color:#6f6b66">Loading staff list…</div>
       </div>
-      <div style="font-size:11px;color:#6b6155;font-style:italic;margin-top:14px">First time? Use <strong>admin</strong> / <strong>admin123</strong> to log in, then add staff in Settings.</div>
+      <div style="font-size:11px;color:#6f6b66;font-style:italic;margin-top:14px">First time? Use <strong>admin</strong> / <strong>admin123</strong> to log in, then add staff in Settings.</div>
     </div>
 
     <div id="login-stage-password" class="login-stage" style="display:none">
-      <div style="font-size:14px;color:#2a2620;margin-bottom:8px;font-weight:600">
-        Signing in as <span id="login-selected-user" style="color:#531520"></span>
+      <div style="font-size:14px;color:#333333;margin-bottom:8px;font-weight:600">
+        Signing in as <span id="login-selected-user" style="color:#531620"></span>
       </div>
       <input type="password" id="login-password" autocomplete="current-password" class="login-input" placeholder="Password">
       <div id="login-password-error" class="login-error"></div>
@@ -785,14 +789,14 @@ body.dark-mode .scan-banner {
 
     <div id="login-stage-error" class="login-stage" style="display:none">
       <div style="font-size:14px;color:#a83838;margin-bottom:10px;font-weight:600" id="login-error-title">Connection Error</div>
-      <div id="login-error-detail" style="font-size:12px;color:#6b6155;margin-bottom:14px;line-height:1.5"></div>
+      <div id="login-error-detail" style="font-size:12px;color:#6f6b66;margin-bottom:14px;line-height:1.5"></div>
       <button class="login-btn" onclick="retryConnection()">Try Again</button>
     </div>
   </div>
 </div>
 
 <!-- HEADER -->
-<div class="scan-banner" id="eod-banner" style="background:#c79c2a;color:#5a3a00;border-bottom-color:#a06400;display:none"></div>
+<div class="scan-banner" id="eod-banner" style="background:#e0a640;color:#5a3a00;border-bottom-color:#a06400;display:none"></div>
 
 <div class="scan-banner" id="offline-banner" style="background:#ffbb77;color:#5a3a00;border-bottom-color:#a06400;display:none">
   ⚠ OFFLINE — Data saved locally on this device, will sync when reconnected (if multi-device sync is set up)
@@ -998,7 +1002,7 @@ body.dark-mode .scan-banner {
       <div style="font-size:12px;color:var(--text-muted)">Ticket # auto-generated</div>
     </div>
 
-    <div id="customer-banner" style="display:none;background:linear-gradient(90deg,#fff8eb,#fffcf2);border-left:4px solid var(--bronze);padding:12px 14px;border-radius:4px;margin-bottom:16px;cursor:pointer" onclick="showCustomerDetail()">
+    <div id="customer-banner" style="display:none;background:linear-gradient(90deg,#faf9f7,#fafafa);border-left:4px solid var(--bronze);padding:12px 14px;border-radius:4px;margin-bottom:16px;cursor:pointer" onclick="showCustomerDetail()">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
         <div style="flex:1">
           <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:3px" id="cb-title">🌟 Returning Customer</div>
@@ -1225,17 +1229,17 @@ body.dark-mode .scan-banner {
       <div>
         <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:10px">Parking Time Charges</div>
         <table style="width:100%;font-size:12px">
-          <tbody><tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">0 — 2 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--green)">FREE</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">2 — 2.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$3</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">2.5 — 3 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$5</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">3 — 3.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$7</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">3.5 — 4 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$10</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">4 — 4.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$20</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">4.5 — 5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$25</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">5 — 5.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$30</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">5.5 — 6 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$35</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">6 — 6.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$40</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #e8e0cd">6.5 — 7 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$45</td></tr>
+          <tbody><tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">0 — 2 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--green)">FREE</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">2 — 2.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$3</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">2.5 — 3 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$5</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">3 — 3.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$7</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">3.5 — 4 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$10</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">4 — 4.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$20</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">4.5 — 5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$25</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">5 — 5.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$30</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">5.5 — 6 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$35</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">6 — 6.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$40</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">6.5 — 7 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$45</td></tr>
           <tr><td style="padding:4px 0"><b>7+ hrs (daily max)</b></td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$80</td></tr>
         </tbody></table>
       </div>
@@ -1271,7 +1275,7 @@ body.dark-mode .scan-banner {
     <div style="margin-bottom:14px">
       <input type="text" id="qp-search" class="form-input" placeholder="🔍 Filter: ticket, rego, bay, name…" oninput="renderQuickPickup()" autocomplete="off">
     </div>
-    <div id="qp-cards" style="display:flex;flex-direction:column;gap:10px"><div class="qp-card" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)" style="background:#fff;border:1px solid var(--border);border-left:6px solid #c79c2a;border-radius:8px;padding:14px;cursor:pointer;transition:transform .1s,box-shadow .1s;box-shadow:0 1px 3px rgba(0,0,0,.05)" onmousedown="this.style.transform=&#39;scale(.98)&#39;" onmouseup="this.style.transform=&#39;&#39;" ontouchstart="this.style.transform=&#39;scale(.98)&#39;" ontouchend="this.style.transform=&#39;&#39;">
+    <div id="qp-cards" style="display:flex;flex-direction:column;gap:10px"><div class="qp-card" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)" style="background:#fff;border:1px solid var(--border);border-left:6px solid #e0a640;border-radius:8px;padding:14px;cursor:pointer;transition:transform .1s,box-shadow .1s;box-shadow:0 1px 3px rgba(0,0,0,.05)" onmousedown="this.style.transform=&#39;scale(.98)&#39;" onmouseup="this.style.transform=&#39;&#39;" ontouchstart="this.style.transform=&#39;scale(.98)&#39;" ontouchend="this.style.transform=&#39;&#39;">
       
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
         <div style="flex:1;min-width:0">
@@ -1287,7 +1291,7 @@ body.dark-mode .scan-banner {
         <div><span style="color:var(--text-muted);font-size:11px">BRAND</span><br><b>Tesla</b></div>
         <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:&#39;Courier New&#39;,monospace">FSN10T</b></div>
         <div><span style="color:var(--text-muted);font-size:11px">IN AT</span><br>08:54</div>
-        <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:#c79c2a">2h 38m</b></div>
+        <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:#e0a640">2h 38m</b></div>
       </div>
       
       <div style="display:flex;gap:8px;align-items:center">
@@ -1367,7 +1371,7 @@ body.dark-mode .scan-banner {
         <tbody id="active-tbody"><tr class="active" style="">
       <td class="ticket-num">A-002</td>
       <td>08:54</td>
-      <td><span style="color:#7a5a00;background:#fff3d4;font-weight:bold;padding:3px 8px;border-radius:3px;border:1px solid #e8c99c">2h 38m</span></td>
+      <td><span style="color:#7a5a00;background:#fff3d4;font-weight:bold;padding:3px 8px;border-radius:3px;border:1px solid #e0a640">2h 38m</span></td>
       <td><b>Tesla</b></td>
       <td>Y</td>
       <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
@@ -1679,7 +1683,7 @@ body.dark-mode .scan-banner {
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Cars Logged</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
         <div>
-          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">4</div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1">4</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs 0 previously</div>
         </div>
         <div style="text-align:right">
@@ -1692,7 +1696,7 @@ body.dark-mode .scan-banner {
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Revenue</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
         <div>
-          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">$40.00</div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1">$40.00</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs $0.00 previously</div>
         </div>
         <div style="text-align:right">
@@ -1705,7 +1709,7 @@ body.dark-mode .scan-banner {
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Tips</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
         <div>
-          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">$0.00</div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1">$0.00</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs $0.00 previously</div>
         </div>
         <div style="text-align:right">
@@ -1718,7 +1722,7 @@ body.dark-mode .scan-banner {
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Unique Brands</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
         <div>
-          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">3</div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1">3</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs 0 previously</div>
         </div>
         <div style="text-align:right">
@@ -2856,9 +2860,9 @@ function showSaveToast(entry) {
     <div class="save-toast-content">
       <div class="save-toast-title">Entry Saved Successfully</div>
       <div class="save-toast-details">
-        <div><strong style="font-family:'Courier New',monospace;color:#f0d9a8">${entry.ticket}</strong> · ${entry.rego}</div>
+        <div><strong style="font-family:'Courier New',monospace;color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
         <div style="margin-top:2px">${vehicle || 'Vehicle logged'} in Bay <strong>${entry.bay}</strong> at <strong>${timeStr}</strong></div>
-        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">🔑 Write on key tag: <strong style="font-family:'Courier New',monospace;font-size:16px;color:#f0d9a8">${entry.ticket} · ${entry.bay}</strong></div>
+        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">🔑 Write on key tag: <strong style="font-family:'Courier New',monospace;font-size:16px;color:#e0a640">${entry.ticket} · ${entry.bay}</strong></div>
         <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="printKeyTag('${entry.id}')">🖨 Print Key Tag</button>
       </div>
       <div class="save-toast-meta">${cloudIcon} ${cloudText}</div>
@@ -3236,7 +3240,7 @@ function renderDiscountList() {
       const display = d.type === 'percent'
         ? `${d.amount}% off`
         : `${fmtMoney(d.amount)} off`;
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#e8c99c20;border:1px solid var(--bronze);border-radius:4px">
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#e0a64020;border:1px solid var(--bronze);border-radius:4px">
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600">${d.reason}</div>
           <div style="font-size:11px;color:var(--text-muted)">${display}</div>
@@ -3473,11 +3477,11 @@ function showCheckoutToast(entry, total) {
   const cloudIcon = (supa && navigator.onLine) ? '☁️' : '💾';
 
   toast.innerHTML = `
-    <div class="save-toast-icon" style="background:#c79c5a;color:#5a3a00">✓</div>
+    <div class="save-toast-icon" style="background:#b08f59;color:#5a3a00">✓</div>
     <div class="save-toast-content">
-      <div class="save-toast-title" style="color:#f0d9a8">Checkout Complete</div>
+      <div class="save-toast-title" style="color:#e0a640">Checkout Complete</div>
       <div class="save-toast-details">
-        <div><strong style="font-family:'Courier New',monospace;color:#f0d9a8">${entry.ticket}</strong> · ${entry.rego}</div>
+        <div><strong style="font-family:'Courier New',monospace;color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
         <div style="margin-top:2px">${vehicle || 'Vehicle'} · Out at <strong>${timeStr}</strong> · Total <strong style="font-family:'Courier New',monospace">${fmtMoney(total)}</strong></div>
       </div>
       <div class="save-toast-meta">${cloudIcon} Synced</div>
@@ -3485,8 +3489,8 @@ function showCheckoutToast(entry, total) {
     <button class="save-toast-close" onclick="dismissSaveToast()">✕</button>
   `;
   // Bronze gradient for checkout
-  toast.style.background = 'linear-gradient(135deg, #531520 0%, #3a0e14 100%)';
-  toast.style.borderLeftColor = '#c79c5a';
+  toast.style.background = 'linear-gradient(135deg, #531620 0%, #3a0f17 100%)';
+  toast.style.borderLeftColor = '#b08f59';
   toast.classList.add('show');
 
   if (toast.dismissTimer) clearTimeout(toast.dismissTimer);
@@ -3889,7 +3893,7 @@ function renderActive() {
     } else if (hrs >= 4) {
       durStyle = 'color:#fff;background:#c45a5a;font-weight:bold;padding:3px 8px;border-radius:3px';
     } else if (hrs >= 2) {
-      durStyle = 'color:#7a5a00;background:#fff3d4;font-weight:bold;padding:3px 8px;border-radius:3px;border:1px solid #e8c99c';
+      durStyle = 'color:#7a5a00;background:#fff3d4;font-weight:bold;padding:3px 8px;border-radius:3px;border:1px solid #e0a640';
     }
 
     // Pickup-requested row highlight
@@ -3908,7 +3912,7 @@ function renderActive() {
       let label, bg;
       if (minsLeft <= 0) { label = `🔴 ${Math.abs(minsLeft)}m ago`; bg = '#a83838'; }
       else if (minsLeft <= 3) { label = `🟠 ${minsLeft}m`; bg = '#c45a5a'; }
-      else if (minsLeft <= 10) { label = `🟡 ${minsLeft}m`; bg = '#c79c2a'; }
+      else if (minsLeft <= 10) { label = `🟡 ${minsLeft}m`; bg = '#e0a640'; }
       else { label = `⏱ ${minsLeft}m`; bg = 'var(--bronze)'; }
       return `<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest('${e.id}')" title="Cancel pickup request" style="background:${bg};color:#fff">${label}</button>`;
     })();
@@ -4216,7 +4220,7 @@ function renderQuickPickup() {
     let stayLabel = 'Normal stay';
     if (hrs >= 6) { borderColor = '#a83838'; stayLabel = '⚠ Very long stay'; }
     else if (hrs >= 4) { borderColor = '#c45a5a'; stayLabel = 'Long stay'; }
-    else if (hrs >= 2) { borderColor = '#c79c2a'; stayLabel = 'Standard'; }
+    else if (hrs >= 2) { borderColor = '#e0a640'; stayLabel = 'Standard'; }
 
     const requestedBadge = e.pickupRequested
       ? (() => {
@@ -4233,7 +4237,7 @@ function renderQuickPickup() {
             bg = '#c45a5a';
           } else if (minsLeft <= 10) {
             label = `🟡 Arriving in ${minsLeft}m`;
-            bg = '#c79c2a';
+            bg = '#e0a640';
           } else {
             label = `⏱ Arriving in ${minsLeft}m`;
             bg = 'var(--bronze)';
@@ -4313,7 +4317,7 @@ function pickupUrgency(e, now) {
     const mins = Math.round((new Date(e.pickupETA) - now) / 60000);
     if (mins <= 0) return { label: mins === 0 ? '🔴 HERE NOW' : `🔴 HERE NOW · ${Math.abs(mins)}m overdue`, bg: '#a83838', sort: mins };
     if (mins <= 3)  return { label: `🟠 ${mins}m away — get the car NOW`, bg: '#c45a5a', sort: mins };
-    if (mins <= 10) return { label: `🟡 Arriving in ${mins}m`, bg: '#c79c2a', sort: mins };
+    if (mins <= 10) return { label: `🟡 Arriving in ${mins}m`, bg: '#e0a640', sort: mins };
     return { label: `⏱ Arriving in ${mins}m`, bg: 'var(--bronze)', sort: mins };
   }
   const ago = Math.max(0, Math.round((now - new Date(e.pickupRequested)) / 60000));
@@ -4380,14 +4384,14 @@ function renderPickupQueue() {
       <div style="padding:14px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
           <div style="flex:1;min-width:0">
-            <div style="font-size:17px;font-weight:bold;color:#2a2620">${car}</div>
+            <div style="font-size:17px;font-weight:bold;color:#333333">${car}</div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${e.name || 'No name'}</div>
             ${source}
             ${toldLine}
           </div>
           <div style="text-align:center;flex-shrink:0;background:var(--sandstone);border-radius:8px;padding:6px 14px">
-            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8b6f47;font-weight:600">Bay</div>
-            <div style="font-family:Georgia,serif;font-size:36px;font-weight:bold;color:var(--maroon);line-height:1.1">${e.bay || '—'}</div>
+            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#a48d53;font-weight:600">Bay</div>
+            <div style="font-family:'Inter',sans-serif;font-size:36px;font-weight:bold;color:var(--maroon);line-height:1.1">${e.bay || '—'}</div>
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
@@ -4467,34 +4471,34 @@ function printDailySummary() {
 <title>Daily Summary — ${fmtDate(today)}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Georgia,serif;color:#2a2620;padding:30px;line-height:1.5;max-width:780px;margin:0 auto;background:#fff}
-  h1{font-size:24px;letter-spacing:2px;color:#531520;margin-bottom:4px}
-  h2{font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#8b6f47;margin:24px 0 10px;padding-bottom:4px;border-bottom:1px solid #8b6f47}
-  .sub{font-size:13px;color:#6b6155;font-style:italic;margin-bottom:20px}
+  body{font-family:'Inter',sans-serif;color:#333333;padding:30px;line-height:1.5;max-width:780px;margin:0 auto;background:#fff}
+  h1{font-size:24px;letter-spacing:2px;color:#531620;margin-bottom:4px}
+  h2{font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#a48d53;margin:24px 0 10px;padding-bottom:4px;border-bottom:1px solid #a48d53}
+  .sub{font-size:13px;color:#6f6b66;font-style:italic;margin-bottom:20px}
   table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px}
-  th{background:#f0e8db;text-align:left;padding:6px 8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8b6f47;border-bottom:1px solid #8b6f47}
-  td{padding:5px 8px;border-bottom:1px solid #e8dcc6}
+  th{background:#f1f0ee;text-align:left;padding:6px 8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#a48d53;border-bottom:1px solid #a48d53}
+  td{padding:5px 8px;border-bottom:1px solid #ebebe9}
   .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
-  .stat-box{background:#f7f3e9;padding:10px 12px;border-left:3px solid #531520;border-radius:3px}
-  .stat-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#8b6f47;margin-bottom:3px}
-  .stat-value{font-size:22px;font-weight:bold;color:#531520}
-  .money{font-family:'Courier New',monospace;color:#531520}
+  .stat-box{background:#f8f7f5;padding:10px 12px;border-left:3px solid #531620;border-radius:3px}
+  .stat-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a48d53;margin-bottom:3px}
+  .stat-value{font-size:22px;font-weight:bold;color:#531620}
+  .money{font-family:'Courier New',monospace;color:#531620}
   .green{color:#4a7c4f;font-weight:bold}
   .red{color:#a83838;font-weight:bold}
-  .footer{margin-top:30px;padding-top:14px;border-top:1px solid #8b6f47;font-size:11px;color:#6b6155;text-align:center;font-style:italic}
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid #a48d53;font-size:11px;color:#6f6b66;text-align:center;font-style:italic}
   .signature-row{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:30px}
-  .sig-block{border-bottom:1px solid #2a2620;padding-bottom:4px;margin-bottom:6px;height:32px}
-  .sig-label{font-size:10px;color:#6b6155;letter-spacing:1px;text-transform:uppercase}
+  .sig-block{border-bottom:1px solid #333333;padding-bottom:4px;margin-bottom:6px;height:32px}
+  .sig-label{font-size:10px;color:#6f6b66;letter-spacing:1px;text-transform:uppercase}
   @media print{body{padding:15px}}
-  .toolbar{margin-bottom:20px;padding:10px;background:#f0e8db;border-radius:4px;text-align:center}
-  .btn{padding:8px 18px;background:#531520;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:13px;margin:0 4px}
+  .toolbar{margin-bottom:20px;padding:10px;background:#f1f0ee;border-radius:4px;text-align:center}
+  .btn{padding:8px 18px;background:#531620;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:13px;margin:0 4px}
   @media print{.toolbar{display:none}}
 </style>
 </head><body>
 
 <div class="toolbar">
   <button class="btn" onclick="window.print()">🖨 Print</button>
-  <button class="btn" onclick="window.close()" style="background:#8b6f47">Close</button>
+  <button class="btn" onclick="window.close()" style="background:#a48d53">Close</button>
 </div>
 
 <h1>CHATSWOOD CHASE VALET</h1>
@@ -4546,7 +4550,7 @@ function printDailySummary() {
   ${Object.entries(byMethod).map(([m, amt]) =>
     `<tr><td style="text-transform:capitalize">${m}</td><td style="text-align:right" class="money">${fmtMoney(amt)}</td></tr>`
   ).join('')}
-  <tr style="border-top:2px solid #8b6f47"><td><b>TOTAL REVENUE</b></td><td style="text-align:right" class="money"><b>${fmtMoney(totalRev)}</b></td></tr>
+  <tr style="border-top:2px solid #a48d53"><td><b>TOTAL REVENUE</b></td><td style="text-align:right" class="money"><b>${fmtMoney(totalRev)}</b></td></tr>
   <tr><td>Tips collected</td><td style="text-align:right" class="money green">${fmtMoney(totalTips)}</td></tr>
   ${unpaid.length > 0 ? `<tr><td>⚠ Unpaid (${unpaid.length} ticket${unpaid.length !== 1 ? 's' : ''})</td><td style="text-align:right" class="money red">${fmtMoney(unpaid.reduce((s,e)=>s+(e.totalFee||0),0))}</td></tr>` : ''}
 </table>
@@ -4678,7 +4682,7 @@ function viewPhoto(id) {
   if (!e || !e.photo) return;
   const w = window.open('', '_blank', 'width=800,height=900');
   w.document.write(`<title>Photo — ${e.ticket} ${e.rego}</title>
-    <body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;color:#fff;font-family:Georgia,serif">
+    <body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;color:#fff;font-family:'Inter',sans-serif">
     <div style="padding:14px;text-align:center">
       <div style="font-size:18px;letter-spacing:2px">${e.ticket} · ${e.rego}</div>
       <div style="font-size:12px;color:#aaa;margin-top:4px">${e.brand} ${e.model || ''} · Bay ${e.bay} · ${fmtDate(new Date(e.timeIn))}</div>
@@ -4869,7 +4873,7 @@ function renderInsights(filtered) {
     ${cards.map(([label, value, sub, col]) => `
       <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid ${col}">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">${label}</div>
-        <div style="font-size:21px;font-weight:bold;color:${col};font-family:Georgia,serif;line-height:1.1;margin-top:4px">${value}</div>
+        <div style="font-size:21px;font-weight:bold;color:${col};font-family:'Inter',sans-serif;line-height:1.1;margin-top:4px">${value}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${sub}</div>
       </div>`).join('')}
   </div>`;
@@ -4927,7 +4931,7 @@ function renderSpend(filtered) {
     ${cards.map(([label, value, sub, col]) => `
       <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid ${col}">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">${label}</div>
-        <div style="font-size:21px;font-weight:bold;color:${col};font-family:Georgia,serif;line-height:1.1;margin-top:4px">${value}</div>
+        <div style="font-size:21px;font-weight:bold;color:${col};font-family:'Inter',sans-serif;line-height:1.1;margin-top:4px">${value}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${sub}</div>
       </div>`).join('')}
   </div>`;
@@ -4992,7 +4996,7 @@ function renderDiscountSummary(filtered) {
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
       <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid var(--bronze)">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Cars Discounted</div>
-        <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1;margin-top:4px">${entriesWithDiscount}</div>
+        <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1;margin-top:4px">${entriesWithDiscount}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px">of ${filtered.filter(e => e.timeOut).length} completed</div>
       </div>
       <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid #a83838">
@@ -5061,7 +5065,7 @@ function showEODBanner(type, closing) {
   const closeStr = closing.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', hour12:true });
   if (type === '15min') {
     banner.innerHTML = `⏰ <strong>15 MINUTES TO CLOSE</strong> (${closeStr}) · ${stillOnSite} car${stillOnSite !== 1 ? 's' : ''} still on site · Print summary from Dashboard <button onclick="dismissEODBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:10px;cursor:pointer">Dismiss</button>`;
-    banner.style.background = '#c79c2a';
+    banner.style.background = '#e0a640';
   } else {
     banner.innerHTML = `🔔 <strong>END OF SHIFT</strong> · ${stillOnSite} car${stillOnSite !== 1 ? 's' : ''} STILL ON SITE · Don't forget to print today's summary and follow up! <button onclick="dismissEODBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:10px;cursor:pointer">Dismiss</button>`;
     banner.style.background = '#a83838';
@@ -5297,7 +5301,7 @@ function renderComparison() {
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">${label}</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
         <div>
-          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1">${fmt(curVal)}</div>
+          <div style="font-size:22px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1">${fmt(curVal)}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">vs ${fmt(prevVal)} previously</div>
         </div>
         <div style="text-align:right">
@@ -5573,11 +5577,11 @@ function flashScanStatus(message, type) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'scan-toast';
-    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2a2620;color:#fff;padding:14px 28px;border-radius:6px;font-weight:600;font-size:15px;z-index:300;box-shadow:0 6px 24px rgba(0,0,0,.3);transition:opacity .3s;letter-spacing:.5px';
+    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#333333;color:#fff;padding:14px 28px;border-radius:6px;font-weight:600;font-size:15px;z-index:300;box-shadow:0 6px 24px rgba(0,0,0,.3);transition:opacity .3s;letter-spacing:.5px';
     document.body.appendChild(toast);
   }
   toast.textContent = message;
-  toast.style.background = type === 'success' ? '#4a7c4f' : type === 'error' ? '#a83838' : '#2a2620';
+  toast.style.background = type === 'success' ? '#4a7c4f' : type === 'error' ? '#a83838' : '#333333';
   toast.style.opacity = '1';
   setTimeout(() => { toast.style.opacity = '0' }, 2200);
 }
@@ -6129,11 +6133,11 @@ function showWelcomePopup(last, visitCount, daysSince, totalSpent, allVisits) {
   if (visitCount >= 10) {
     tierLabel = 'VIP CUSTOMER';
     tierEmoji = '⭐';
-    tierColor = '#c79c2a';
+    tierColor = '#e0a640';
   } else if (visitCount >= 5) {
     tierLabel = 'LOYAL CUSTOMER';
     tierEmoji = '🌟';
-    tierColor = '#8b6f47';
+    tierColor = '#a48d53';
   } else {
     tierLabel = 'RETURNING CUSTOMER';
     tierEmoji = '🚗';
@@ -6210,7 +6214,7 @@ function showWelcomePopup(last, visitCount, daysSince, totalSpent, allVisits) {
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:14px 0">
       <div style="padding:10px;background:var(--sandstone);border-radius:6px">
         <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--bronze);font-weight:600">Visits</div>
-        <div style="font-size:24px;font-weight:bold;color:var(--maroon);font-family:Georgia,serif;line-height:1;margin-top:3px">${visitCount + 1}</div>
+        <div style="font-size:24px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1;margin-top:3px">${visitCount + 1}</div>
         <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${ordinal(visitCount + 1)} today</div>
       </div>
       <div style="padding:10px;background:var(--sandstone);border-radius:6px">
@@ -6456,14 +6460,14 @@ let damageMarkers = []; // [{x, y}] in 0–100 % of the diagram
 
 // Top-down car outline, reused by the intake pad and the read-only view.
 const DAMAGE_CAR_SVG = `<svg viewBox="0 0 100 200" preserveAspectRatio="xMidYMid meet">
-  <rect x="16" y="8" width="68" height="184" rx="28" fill="#fff" stroke="#8b6f47" stroke-width="2"/>
-  <path d="M30 46 L70 46 L62 68 L38 68 Z" fill="#dce6ee" stroke="#8b6f47" stroke-width="1.5"/>
-  <rect x="34" y="72" width="32" height="54" rx="8" fill="#eef2f6" stroke="#8b6f47" stroke-width="1.5"/>
-  <path d="M38 130 L62 130 L70 152 L30 152 Z" fill="#dce6ee" stroke="#8b6f47" stroke-width="1.5"/>
-  <rect x="8" y="58" width="8" height="7" rx="2" fill="#fff" stroke="#8b6f47" stroke-width="1.5"/>
-  <rect x="84" y="58" width="8" height="7" rx="2" fill="#fff" stroke="#8b6f47" stroke-width="1.5"/>
-  <text x="50" y="24" text-anchor="middle" font-size="8" fill="#8b6f47" font-family="Georgia,serif">FRONT</text>
-  <text x="50" y="182" text-anchor="middle" font-size="8" fill="#8b6f47" font-family="Georgia,serif">REAR</text>
+  <rect x="16" y="8" width="68" height="184" rx="28" fill="#fff" stroke="#a48d53" stroke-width="2"/>
+  <path d="M30 46 L70 46 L62 68 L38 68 Z" fill="#dce6ee" stroke="#a48d53" stroke-width="1.5"/>
+  <rect x="34" y="72" width="32" height="54" rx="8" fill="#eef2f6" stroke="#a48d53" stroke-width="1.5"/>
+  <path d="M38 130 L62 130 L70 152 L30 152 Z" fill="#dce6ee" stroke="#a48d53" stroke-width="1.5"/>
+  <rect x="8" y="58" width="8" height="7" rx="2" fill="#fff" stroke="#a48d53" stroke-width="1.5"/>
+  <rect x="84" y="58" width="8" height="7" rx="2" fill="#fff" stroke="#a48d53" stroke-width="1.5"/>
+  <text x="50" y="24" text-anchor="middle" font-size="8" fill="#a48d53" font-family="'Inter',sans-serif">FRONT</text>
+  <text x="50" y="182" text-anchor="middle" font-size="8" fill="#a48d53" font-family="'Inter',sans-serif">REAR</text>
 </svg>`;
 
 function renderDamageMarkers() {
@@ -6535,7 +6539,7 @@ function showCustomerDetail(regoArg) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
       <div style="background:var(--sandstone);padding:12px;border-radius:4px;border-left:3px solid var(--maroon)">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Total Visits</div>
-        <div style="font-size:22px;color:var(--maroon);font-weight:bold;font-family:Georgia,serif">${matches.length}</div>
+        <div style="font-size:22px;color:var(--maroon);font-weight:bold;font-family:'Inter',sans-serif">${matches.length}</div>
       </div>
       <div style="background:var(--sandstone);padding:12px;border-radius:4px;border-left:3px solid var(--green)">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Lifetime Value</div>
@@ -6579,11 +6583,11 @@ function showCustomerDetail(regoArg) {
           const tOut = e.timeOut ? new Date(e.timeOut) : null;
           const dur = tOut ? fmtDuration(tOut - tIn) : 'On site';
           return `<tr>
-            <td style="padding:5px;border-bottom:1px solid #e8e0cd">${fmtDate(tIn)}</td>
-            <td style="padding:5px;border-bottom:1px solid #e8e0cd;font-family:'Courier New',monospace">${e.ticket}</td>
-            <td style="padding:5px;border-bottom:1px solid #e8e0cd">${dur}</td>
-            <td style="padding:5px;border-bottom:1px solid #e8e0cd;text-align:right;font-family:'Courier New',monospace">${e.totalFee ? fmtMoney(e.totalFee) : '—'}</td>
-            <td style="padding:5px;border-bottom:1px solid #e8e0cd;text-align:right;font-family:'Courier New',monospace">${e.tip ? fmtMoney(e.tip) : '—'}</td>
+            <td style="padding:5px;border-bottom:1px solid #ebebe9">${fmtDate(tIn)}</td>
+            <td style="padding:5px;border-bottom:1px solid #ebebe9;font-family:'Courier New',monospace">${e.ticket}</td>
+            <td style="padding:5px;border-bottom:1px solid #ebebe9">${dur}</td>
+            <td style="padding:5px;border-bottom:1px solid #ebebe9;text-align:right;font-family:'Courier New',monospace">${e.totalFee ? fmtMoney(e.totalFee) : '—'}</td>
+            <td style="padding:5px;border-bottom:1px solid #ebebe9;text-align:right;font-family:'Courier New',monospace">${e.tip ? fmtMoney(e.tip) : '—'}</td>
           </tr>`;
         }).join('')}
       </table>
@@ -7417,7 +7421,7 @@ async function checkPIN() {
         return `<button class="user-pick-btn" onclick="pickUser('${s.username.replace(/'/g, "\\'")}', '${(s.display_name||'').replace(/'/g, "\\'")}')">
           <span class="avatar">${initials}</span>
           <span style="flex:1">${s.display_name}</span>
-          ${s.role === 'admin' ? '<span style="font-size:10px;color:#8b6f47;font-weight:600;letter-spacing:1px">ADMIN</span>' : ''}
+          ${s.role === 'admin' ? '<span style="font-size:10px;color:#a48d53;font-weight:600;letter-spacing:1px">ADMIN</span>' : ''}
         </button>`;
       }).join('');
     }
@@ -7445,7 +7449,7 @@ async function doLogin() {
   const err = document.getElementById('login-password-error');
   if (!password) { err.textContent = 'Enter password'; return; }
   err.textContent = '⏳ Signing in…';
-  err.style.color = '#6b6155';
+  err.style.color = '#6f6b66';
   try {
     const user = await cloudLogin(selectedUserForLogin.username, password);
     if (!user) {
@@ -7542,7 +7546,7 @@ function showCloudLoadStatus(msg, type) {
     banner.style.color = '#c5e6c5';
   } else if (type === 'pending') {
     banner.style.background = '#5a4a2a';
-    banner.style.color = '#f0d9a8';
+    banner.style.color = '#e0a640';
   } else {
     banner.style.background = '#a83838';
     banner.style.color = '#fff';
@@ -7790,7 +7794,7 @@ function updateUserBadge() {
   if (!badge) {
     badge = document.createElement('div');
     badge.id = 'user-badge';
-    badge.style.cssText = 'font-size:10px;letter-spacing:1px;margin-top:2px;color:#f0d9a8;cursor:pointer';
+    badge.style.cssText = 'font-size:10px;letter-spacing:1px;margin-top:2px;color:#e0a640;cursor:pointer';
     const dateEl = document.querySelector('.header-date');
     if (dateEl) dateEl.appendChild(badge);
   }
@@ -8003,14 +8007,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
         <span>Parking time charge:</span> <strong id="checkout-parking">—</strong>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #d4c8b3">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #ebebe9">
         <span>Valet service fee:</span> <strong id="checkout-valet">—</strong>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px" id="checkout-subtotal-row">
         <span>Subtotal:</span> <strong id="checkout-subtotal">—</strong>
       </div>
       <div id="checkout-discount-lines"></div>
-      <div style="display:flex;justify-content:space-between;font-size:16px;color:var(--maroon);padding-top:6px;border-top:1px solid #d4c8b3">
+      <div style="display:flex;justify-content:space-between;font-size:16px;color:var(--maroon);padding-top:6px;border-top:1px solid #ebebe9">
         <span id="checkout-total-label"><b>TOTAL DUE:</b></span>
         <strong id="checkout-total" style="font-family:&#39;Courier New&#39;,monospace">—</strong>
       </div>
@@ -8072,7 +8076,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- CAMERA SCANNER MODAL -->
 <div class="camera-modal" id="camera-modal">
   <div class="camera-box">
-    <div style="font-family:Georgia,serif;font-size:18px;color:var(--maroon);margin-bottom:10px;letter-spacing:1.5px;text-transform:uppercase">📷 Camera Scanner</div>
+    <div style="font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:10px;letter-spacing:1.5px;text-transform:uppercase">📷 Camera Scanner</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;text-align:center">Point your camera at a ticket QR code</div>
     <video id="camera-video" class="camera-video" playsinline=""></video>
     <canvas id="camera-canvas" style="display:none"></canvas>
@@ -8087,7 +8091,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- PLATE SCANNER MODAL -->
 <div class="camera-modal" id="plate-modal">
   <div class="camera-box">
-    <div style="font-family:Georgia,serif;font-size:18px;color:var(--maroon);margin-bottom:6px;letter-spacing:1.5px;text-transform:uppercase">📷 Snap Number Plate</div>
+    <div style="font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:6px;letter-spacing:1.5px;text-transform:uppercase">📷 Snap Number Plate</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;text-align:center">Frame the plate clearly, then tap Capture</div>
     <video id="plate-video" class="camera-video" playsinline=""></video>
     <canvas id="plate-canvas" style="display:none"></canvas>
@@ -8304,7 +8308,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <span id="welcome-tier-label" style="font-weight:bold;letter-spacing:2px;font-size:11px;padding:4px 10px;border:2px solid;border-radius:20px;text-transform:uppercase">RETURNING CUSTOMER</span>
     </div>
 
-    <div id="welcome-greeting" style="font-family:Georgia,serif;font-size:28px;color:var(--maroon);line-height:1.2;margin-top:14px;margin-bottom:6px;font-weight:normal">Good afternoon!</div>
+    <div id="welcome-greeting" style="font-family:'Inter',sans-serif;font-size:28px;color:var(--maroon);line-height:1.2;margin-top:14px;margin-bottom:6px;font-weight:normal">Good afternoon!</div>
 
     <div id="welcome-vehicle" style="font-size:13px;color:var(--text-muted);margin-bottom:8px">—</div>
 
@@ -8357,11 +8361,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="pickup-alarm-eta" style="font-size:20px;font-weight:bold;color:#a83838;margin-bottom:16px">Customer wants their car</div>
 
     <div style="background:var(--sandstone);border-radius:10px;padding:18px 16px;margin-bottom:16px">
-      <div style="font-size:11px;letter-spacing:3px;color:#8b6f47;text-transform:uppercase">Parked in Bay</div>
-      <div id="pickup-alarm-bay" style="font-family:Georgia,serif;font-size:72px;font-weight:bold;color:var(--maroon);line-height:1;margin:6px 0">—</div>
+      <div style="font-size:11px;letter-spacing:3px;color:#a48d53;text-transform:uppercase">Parked in Bay</div>
+      <div id="pickup-alarm-bay" style="font-family:'Inter',sans-serif;font-size:72px;font-weight:bold;color:var(--maroon);line-height:1;margin:6px 0">—</div>
     </div>
 
-    <div id="pickup-alarm-car" style="font-size:17px;color:#2a2620;margin-bottom:4px">—</div>
+    <div id="pickup-alarm-car" style="font-size:17px;color:#333333;margin-bottom:4px">—</div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Ticket <strong id="pickup-alarm-ticket" style="font-family:'Courier New',monospace;color:var(--maroon)">—</strong></div>
     <div id="pickup-alarm-more" style="font-size:12px;color:#a83838;font-weight:bold;min-height:16px;margin-bottom:12px"></div>
 
@@ -8376,20 +8380,20 @@ document.addEventListener('DOMContentLoaded', () => {
      Surfaces the BAY number prominently so staff can fetch the car fast. -->
 <div class="modal" id="scan-result-modal">
   <div class="modal-box" style="max-width:520px;text-align:center">
-    <div style="font-size:11px;letter-spacing:3px;color:#8b6f47;text-transform:uppercase;margin-bottom:6px">Vehicle Located</div>
+    <div style="font-size:11px;letter-spacing:3px;color:#a48d53;text-transform:uppercase;margin-bottom:6px">Vehicle Located</div>
     <div id="scan-result-ticket" style="font-family:'Courier New',monospace;font-size:22px;color:var(--maroon);font-weight:bold;letter-spacing:3px;margin-bottom:14px">—</div>
 
     <div style="background:var(--sandstone);border-radius:10px;padding:22px 16px;margin-bottom:16px">
-      <div style="font-size:11px;letter-spacing:3px;color:#8b6f47;text-transform:uppercase">Parked in Bay</div>
-      <div id="scan-result-bay" style="font-family:Georgia,serif;font-size:90px;font-weight:bold;color:var(--maroon);line-height:1;margin:6px 0">—</div>
+      <div style="font-size:11px;letter-spacing:3px;color:#a48d53;text-transform:uppercase">Parked in Bay</div>
+      <div id="scan-result-bay" style="font-family:'Inter',sans-serif;font-size:90px;font-weight:bold;color:var(--maroon);line-height:1;margin:6px 0">—</div>
     </div>
 
-    <div style="font-size:18px;color:#2a2620;margin-bottom:4px">
+    <div style="font-size:18px;color:#333333;margin-bottom:4px">
       <b id="scan-result-brand">—</b> <span id="scan-result-model" style="color:var(--text-muted)"></span>
     </div>
     <div id="scan-result-rego" style="font-family:'Courier New',monospace;font-size:16px;color:#5a4f42;letter-spacing:2px;margin-bottom:4px">—</div>
     <div id="scan-result-customer" style="font-size:14px;color:#5a4f42;margin-bottom:4px"></div>
-    <div id="scan-result-duration" style="font-size:13px;color:#8b6f47;margin-bottom:14px"></div>
+    <div id="scan-result-duration" style="font-size:13px;color:#a48d53;margin-bottom:14px"></div>
 
     <div id="scan-result-status" style="margin-bottom:14px"></div>
 
