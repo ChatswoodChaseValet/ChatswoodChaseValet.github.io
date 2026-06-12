@@ -278,10 +278,10 @@ td{
 tr.active td{background:#faf9f7}
 tr:hover td{background:var(--bg)}
 .ticket-num{font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);letter-spacing:.5px}
-/* Currently On Site — larger, easier-to-read rows */
-#view-active table{font-size:15px}
-#view-active td{font-size:15px;padding:13px 12px}
-#view-active th{font-size:11px}
+/* Currently On Site + dashboard Recent Activity — larger, easier-to-read rows */
+#view-active table, #view-dashboard table{font-size:15px}
+#view-active td, #view-dashboard td{font-size:15px;padding:13px 12px}
+#view-active th, #view-dashboard th{font-size:11px}
 .status-pill{
   display:inline-block;
   padding:3px 9px;
@@ -945,13 +945,13 @@ body.dark-mode .scan-banner {
       <table>
         <thead>
           <tr>
-            <th>Ticket</th>
-            <th>Time In</th>
-            <th>Brand</th>
             <th>Rego</th>
+            <th>Brand</th>
             <th>Bay</th>
-            <th>Status</th>
+            <th>Time In</th>
             <th>Time Out</th>
+            <th>Status</th>
+            <th>Ticket</th>
           </tr>
         </thead>
         <tbody id="recent-tbody">
@@ -3830,15 +3830,15 @@ function renderDashboard() {
   } else {
     tbody.innerHTML = recent.map(e => `
       <tr class="${e.timeOut ? '' : 'active'}">
-        <td class="ticket-num">${e.ticket}</td>
-        <td>${fmtTime(new Date(e.timeIn))}</td>
-        <td><b>${e.brand}</b> ${e.model ? '<span style="color:var(--text-muted)">'+e.model+'</span>' : ''}</td>
         <td style="font-family:'Courier New',monospace">${e.rego}</td>
+        <td><b>${e.brand}</b> ${e.model ? '<span style="color:var(--text-muted)">'+e.model+'</span>' : ''}</td>
         <td>${e.bay}</td>
+        <td>${fmtTime(new Date(e.timeIn))}</td>
+        <td>${e.timeOut ? fmtTime(new Date(e.timeOut)) : '—'}</td>
         <td>${e.timeOut
           ? '<span class="status-pill status-completed">Completed</span>'
           : '<span class="status-pill status-active">On Site</span>'}</td>
-        <td>${e.timeOut ? fmtTime(new Date(e.timeOut)) : '—'}</td>
+        <td class="ticket-num">${e.ticket}</td>
       </tr>`).join('');
   }
 }
