@@ -278,6 +278,10 @@ td{
 tr.active td{background:#faf9f7}
 tr:hover td{background:var(--bg)}
 .ticket-num{font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);letter-spacing:.5px}
+/* Currently On Site — larger, easier-to-read rows */
+#view-active table{font-size:15px}
+#view-active td{font-size:15px;padding:13px 12px}
+#view-active th{font-size:11px}
 .status-pill{
   display:inline-block;
   padding:3px 9px;
@@ -1364,12 +1368,12 @@ body.dark-mode .scan-banner {
           <tr>
             <th>Ticket</th>
             <th>Customer</th>
-            <th>Time In</th>
-            <th>Duration</th>
+            <th>Rego</th>
             <th>Brand</th>
             <th>Model</th>
-            <th>Rego</th>
             <th>Bay</th>
+            <th>Time In</th>
+            <th>Duration</th>
             <th>Running Fee</th>
             <th>Action</th>
           </tr>
@@ -3928,12 +3932,12 @@ function renderActive() {
     return `<tr class="active" style="${rowStyle}">
       <td class="ticket-num">${e.ticket}</td>
       <td>${e.name || '—'}</td>
-      <td>${fmtTime(new Date(e.timeIn))}</td>
-      <td><span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span></td>
+      <td style="font-family:'Courier New',monospace">${e.rego}</td>
       <td><b>${e.brand}</b></td>
       <td>${e.model || '—'}</td>
-      <td style="font-family:'Courier New',monospace">${e.rego}</td>
       <td><b>${e.bay}</b></td>
+      <td>${fmtTime(new Date(e.timeIn))}</td>
+      <td><span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span></td>
       <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(fees.total)}</td>
       <td>
         ${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call ${e.phone}">📞</a>` : ''}
