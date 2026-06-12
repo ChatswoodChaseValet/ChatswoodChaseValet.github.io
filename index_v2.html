@@ -105,12 +105,14 @@ body{
 .header-subtitle{font-size:11px;letter-spacing:1.5px;color:var(--bronze);font-style:italic;text-transform:uppercase;margin-top:2px}
 .header-date{
   font-family:'Courier New',monospace;
-  font-size:14px;
-  color:var(--text-muted);
-  letter-spacing:1px;
+  font-size:13px;
+  font-weight:bold;
+  color:var(--text);
+  letter-spacing:.5px;
   text-align:right;
+  line-height:1.25;
 }
-.header-clock{font-size:18px;font-weight:bold;letter-spacing:2px;margin-top:2px}
+.header-clock{font-size:18px;font-weight:bold;letter-spacing:1px;color:var(--maroon)}
 
 /* ─── TABS ─── */
 .tabs{
@@ -832,7 +834,7 @@ body.dark-mode .scan-banner {
   <div class="header-date">
     <div id="header-date">Wednesday 03 June 2026</div>
     <div class="header-clock" id="header-clock">11:32</div>
-    <div id="online-indicator" style="font-size: 10px; letter-spacing: 1px; margin-top: 2px; color: rgb(126, 201, 127);">● Online</div>
+    <div id="online-indicator" style="font-size: 11px; font-weight: 600; letter-spacing: .5px; margin-top: 2px; color: #4a7c4f;">● Online</div>
   </div>
 </div>
 
@@ -2454,7 +2456,7 @@ function fmtMoney(amount) {
 function updateClock() {
   const now = new Date();
   document.getElementById('header-date').textContent =
-    now.toLocaleDateString('en-AU', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+    now.toLocaleDateString('en-AU', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
   document.getElementById('header-clock').textContent = fmtTime(now);
 }
 
@@ -6359,13 +6361,13 @@ function updateOnlineStatus() {
     if (banner) banner.style.display = 'none';
     if (indicator) {
       indicator.textContent = '● Online';
-      indicator.style.color = '#7ec97f';
+      indicator.style.color = '#4a7c4f';
     }
   } else {
     if (banner) banner.style.display = 'block';
     if (indicator) {
       indicator.textContent = '⚠ Offline';
-      indicator.style.color = '#ffbb77';
+      indicator.style.color = '#b5651d';
     }
     hapticFeedback('long');
   }
@@ -7798,7 +7800,7 @@ function updateUserBadge() {
   if (!badge) {
     badge = document.createElement('div');
     badge.id = 'user-badge';
-    badge.style.cssText = 'font-size:10px;letter-spacing:1px;margin-top:2px;color:#e0a640;cursor:pointer';
+    badge.style.cssText = 'font-size:11px;font-weight:600;letter-spacing:.5px;margin-top:3px;color:var(--maroon);cursor:pointer';
     const dateEl = document.querySelector('.header-date');
     if (dateEl) dateEl.appendChild(badge);
   }
