@@ -3995,9 +3995,10 @@ async function sendQRSms(id) {
   const url = buildTicketUrl(e);
   // Plain hyphen (not an em-dash) keeps the SMS in the cheaper GSM-7
   // encoding, so it stays fewer billable segments.
-  const msg = 'Chatswood Chase Valet ticket ' + e.ticket + '. '
-    + 'Complimentary Hands-Free Shopping, Level 1 shops only - call 0427000822. '
-    + 'Your QR + tap for car: ' + url;
+  // Kept to one GSM-7 SMS segment (~115 chars after the link is shortened) so
+  // each check-in text bills as a single message, not two.
+  const msg = 'Chatswood Chase Valet ticket ' + e.ticket
+    + '. QR, car pickup & hands-free shopping (or call 0427000822): ' + url;
 
   // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
   //    If it isn't deployed/configured yet, or the send fails, we quietly
@@ -4054,7 +4055,7 @@ async function sendQRSms(id) {
 // Customers are auto-texted their ticket on check-in via ClickSend. If the
 // balance runs dry the send silently fails (app falls back to the Messages
 // composer), so we warn admins when credit drops below this threshold. Each
-// text is ~2 segments (~$0.16), so $5 leaves a buffer of roughly 30 texts.
+// text is ~1 segment (~$0.08), so $5 leaves a buffer of roughly 60 texts.
 const SMS_LOW_BALANCE = 5;
 
 // Query the live ClickSend balance via the edge function (which holds the
