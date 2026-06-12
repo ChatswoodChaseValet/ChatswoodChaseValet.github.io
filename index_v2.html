@@ -3830,7 +3830,7 @@ function renderDashboard() {
   } else {
     tbody.innerHTML = recent.map(e => `
       <tr class="${e.timeOut ? '' : 'active'}">
-        <td style="font-family:'Courier New',monospace">${e.rego}</td>
+        <td style="font-family:'Courier New',monospace;font-weight:bold">${e.rego}</td>
         <td><b>${e.brand}</b> ${e.model ? '<span style="color:var(--text-muted)">'+e.model+'</span>' : ''}</td>
         <td>${e.bay}</td>
         <td>${fmtTime(new Date(e.timeIn))}</td>
@@ -3932,7 +3932,7 @@ function renderActive() {
     return `<tr class="active" style="${rowStyle}">
       <td class="ticket-num">${e.ticket}</td>
       <td>${e.name || '—'}</td>
-      <td style="font-family:'Courier New',monospace">${e.rego}</td>
+      <td style="font-family:'Courier New',monospace;font-weight:bold">${e.rego}</td>
       <td><b>${e.brand}</b></td>
       <td>${e.model || '—'}</td>
       <td><b>${e.bay}</b></td>
