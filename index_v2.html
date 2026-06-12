@@ -1678,6 +1678,13 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
+      <div class="section-title">📦 Bag Jobs by Staff</div>
+    </div>
+    <div id="rep-bag-staff"><div class="empty">No bag pickups in this range</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
       <div class="section-title">Daily Volume</div>
     </div>
     <div id="rep-daily-list">
@@ -4440,6 +4447,7 @@ function renderBagQueue() {
             <div style="font-size:18px;font-weight:bold;color:#333333">${e.bagLocation || 'Valet Desk'}</div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:4px">🛍️ ${e.bagCount || 1} bag${(e.bagCount || 1) !== 1 ? 's' : ''} · ${e.name || 'No name'}${e.bagNotes ? ' · ' + e.bagNotes : ''}</div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:2px">🚗 ${car} · Bay <b style="color:var(--maroon)">${e.bay || '—'}</b></div>
+            ${(e.bagAssigned || e.bagInCarBy) ? `<div style="font-size:12px;color:var(--bronze);font-weight:600;margin-top:4px">${e.bagAssigned ? '🙋 Collected: ' + e.bagAssigned : ''}${e.bagInCarBy ? (e.bagAssigned ? ' · ' : '') + '🚗 In car: ' + e.bagInCarBy : ''}</div>` : ''}
           </div>
           ${e.bagPhoto ? `<img src="${e.bagPhoto}" onclick="viewPhoto('${e.id}','bag')" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;flex-shrink:0" title="Proof photo sent to customer">` : ''}
         </div>
@@ -4471,6 +4479,7 @@ function requestBag(id, { location, count, notes }) {
   e.bagCount = count || 1;
   e.bagNotes = notes || '';
   e.bagAssigned = null;
+  e.bagInCarBy = null;
   e.bagDoneAt = null;
   bagBannerDismissed = false;
   saveData(id, { immediate: true });
@@ -4495,7 +4504,8 @@ function assignBag(id) {
 function bagInCar(id) {
   bagCapturePhoto(id, e => {
     e.bagStatus = 'in_car';
-    cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket });
+    e.bagInCarBy = (currentUser && currentUser.displayName) || 'Staff';
+    cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket, by: e.bagInCarBy });
     quickToast('🚗 Bags in car' + (e.phone ? ' · sending photo to customer' : ''));
     sendBagSms(e);
     if (typeof hapticFeedback === 'function') hapticFeedback('success');
@@ -4516,7 +4526,7 @@ function cancelBag(id) {
   const e = entries.find(x => x.id === id); if (!e) return;
   if (!confirm('Cancel this bag request?')) return;
   e.bagStatus = null; e.bagRequested = null; e.bagLocation = null; e.bagCount = null;
-  e.bagAssigned = null; e.bagNotes = null; e.bagDoneAt = null;
+  e.bagAssigned = null; e.bagInCarBy = null; e.bagNotes = null; e.bagDoneAt = null;
   saveData(id, { immediate: true });
   cloudAudit('bag_cancel', 'entry', id, { ticket: e.ticket });
   renderBagQueue();
@@ -4994,6 +5004,29 @@ function renderReports() {
   document.getElementById('rep-bags').textContent = bagJobs.length;
   const bagsSub = document.getElementById('rep-bags-sub');
   if (bagsSub) bagsSub.textContent = bagJobs.length ? `${bagDone} completed` : 'Hands-free shopping';
+
+  // Bag jobs by staff — credit both the collector and whoever put it in the car.
+  const bagStaffEl = document.getElementById('rep-bag-staff');
+  if (bagStaffEl) {
+    const staffCount = {};
+    bagJobs.forEach(e => {
+      const names = new Set([e.bagAssigned, e.bagInCarBy].filter(Boolean));
+      if (!names.size) names.add('Unassigned');
+      names.forEach(n => { staffCount[n] = (staffCount[n] || 0) + 1; });
+    });
+    const sorted = Object.entries(staffCount).sort((a, b) => b[1] - a[1]);
+    if (!sorted.length) {
+      bagStaffEl.innerHTML = '<div class="empty">No bag pickups in this range</div>';
+    } else {
+      const max = sorted[0][1];
+      bagStaffEl.innerHTML = sorted.map(([name, count]) => `
+        <div class="brand-row">
+          <div class="brand-name">${name}</div>
+          <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(count / max) * 100}%"></div></div>
+          <div class="brand-count">${count}</div>
+        </div>`).join('');
+    }
+  }
 
   // Brand breakdown
   renderBrandList(filtered, 'rep-brand-list');
@@ -7198,7 +7231,7 @@ function jsToDb(e) {
     discounts: e.discounts, discount_total: e.discountTotal,
     bag_status: e.bagStatus, bag_requested: e.bagRequested, bag_location: e.bagLocation,
     bag_count: e.bagCount, bag_assigned: e.bagAssigned, bag_notes: e.bagNotes,
-    bag_photo: e.bagPhoto, bag_done_at: e.bagDoneAt,
+    bag_photo: e.bagPhoto, bag_done_at: e.bagDoneAt, bag_in_car_by: e.bagInCarBy,
     updated_by: currentUser?.username,
     updated_at: new Date().toISOString(),
   };
@@ -7223,7 +7256,7 @@ function dbToJs(d) {
     discountTotal: d.discount_total !== null ? parseFloat(d.discount_total) : 0,
     bagStatus: d.bag_status, bagRequested: d.bag_requested, bagLocation: d.bag_location,
     bagCount: d.bag_count, bagAssigned: d.bag_assigned, bagNotes: d.bag_notes,
-    bagPhoto: d.bag_photo, bagDoneAt: d.bag_done_at,
+    bagPhoto: d.bag_photo, bagDoneAt: d.bag_done_at, bagInCarBy: d.bag_in_car_by,
   };
 }
 
