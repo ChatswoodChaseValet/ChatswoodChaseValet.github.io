@@ -6539,6 +6539,11 @@ let damageMarkers = []; // [{x, y}] in 0–100 % of the diagram
 
 // Top-down car outline, reused by the intake pad and the read-only view.
 const DAMAGE_CAR_SVG = `<svg viewBox="0 0 100 200" preserveAspectRatio="xMidYMid meet">
+  <!-- Wheels (drawn first so the body overlaps their inner half — tyres poke out the sides for marking rim/wheel dents) -->
+  <rect x="8" y="34" width="12" height="26" rx="4" fill="#4a4238" stroke="#2a2620" stroke-width="1"/>
+  <rect x="80" y="34" width="12" height="26" rx="4" fill="#4a4238" stroke="#2a2620" stroke-width="1"/>
+  <rect x="8" y="140" width="12" height="26" rx="4" fill="#4a4238" stroke="#2a2620" stroke-width="1"/>
+  <rect x="80" y="140" width="12" height="26" rx="4" fill="#4a4238" stroke="#2a2620" stroke-width="1"/>
   <rect x="16" y="8" width="68" height="184" rx="28" fill="#fff" stroke="#a48d53" stroke-width="2"/>
   <path d="M30 46 L70 46 L62 68 L38 68 Z" fill="#dce6ee" stroke="#a48d53" stroke-width="1.5"/>
   <rect x="34" y="72" width="32" height="54" rx="8" fill="#eef2f6" stroke="#a48d53" stroke-width="1.5"/>
