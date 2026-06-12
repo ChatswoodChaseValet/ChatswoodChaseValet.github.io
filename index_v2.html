@@ -5485,6 +5485,15 @@ function importJSONMerge(event) {
       if (!fresh.length) { alert(`Nothing to add — all ${incoming.length} record(s) already exist.`); return; }
       if (!confirm(`Add ${fresh.length} record(s) to your existing ${entries.length}?\n${skipped} duplicate(s) will be skipped.\n\nThis does NOT delete anything.`)) return;
 
+      // Normalise timestamp-typed columns so the cloud upsert can't be rejected.
+      // pickup_requested / pickup_eta are timestamptz in the DB: they must be an
+      // ISO string or null. Older exports (and converted imports) sometimes carry
+      // a boolean here, which makes the whole batch fail with a 400.
+      fresh.forEach(x => {
+        if (typeof x.pickupRequested !== 'string' || !x.pickupRequested) x.pickupRequested = null;
+        if (typeof x.pickupETA !== 'string' || !x.pickupETA) x.pickupETA = null;
+      });
+
       entries = entries.concat(fresh).sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
       // Persist locally directly (avoid saveData()'s per-entry full re-sync;
       // the cloud push below is a far more efficient bulk upsert).
@@ -5493,14 +5502,16 @@ function importJSONMerge(event) {
       renderDashboard();
 
       // Bulk-push the new rows to Supabase in chunks; queue any failures for retry.
-      let pushed = 0, failed = 0;
+      let pushed = 0, failed = 0, lastErr = '';
       if (typeof supa !== 'undefined' && supa) {
-        const CHUNK = 200;
+        const CHUNK = 100;
         for (let i = 0; i < fresh.length; i += CHUNK) {
           const slice = fresh.slice(i, i + CHUNK);
           const { error } = await supa.from('entries').upsert(slice.map(jsToDb));
           if (error) {
             failed += slice.length;
+            lastErr = error.message || String(error);
+            console.error('[merge import upsert failed]', error);
             slice.forEach(en => pendingWrites.push({ op: 'upsert', data: en, ts: Date.now() }));
           } else {
             pushed += slice.length;
@@ -5508,7 +5519,9 @@ function importJSONMerge(event) {
         }
         if (failed) localStorage.setItem('pending_writes', JSON.stringify(pendingWrites));
       }
-      alert(`Imported ${fresh.length} record(s).\nSkipped ${skipped} duplicate(s).\nCloud: ${pushed} synced${failed ? ', ' + failed + ' queued for retry' : ''}.`);
+      alert(`Imported ${fresh.length} record(s).\nSkipped ${skipped} duplicate(s).\n` +
+        `Cloud: ${pushed} synced${failed ? `, ${failed} failed — ${lastErr}` : ''}.` +
+        (failed ? '\n\n⚠ Some records did not reach the cloud. They are saved locally and queued for retry.' : ''));
     } catch (err) {
       alert('Merge import failed: ' + err.message);
     }
