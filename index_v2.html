@@ -7095,19 +7095,37 @@ async function cloudListStaff() {
 }
 
 async function cloudLogin(username, password) {
-  const hash = await hashPassword(password);
-  const { data, error } = await supa
-    .from('staff')
-    .select('*')
-    .eq('username', username)
-    .eq('is_active', true)
-    .single();
-  if (error || !data) return null;
-  if (data.password_hash !== hash) return null;
-  // Update last_login (fire and forget)
-  supa.from('staff').update({ last_login: new Date().toISOString() })
-    .eq('username', username).then(() => {});
-  return { username: data.username, displayName: data.display_name, role: data.role };
+  // Primary path: verify on the server (staff-auth Edge Function) so password
+  // hashes never reach the browser and aren't exposed via the public API.
+  try {
+    const { data, error } = await supa.functions.invoke('staff-auth', {
+      body: { action: 'login', username, password },
+    });
+    if (!error && data && Object.prototype.hasOwnProperty.call(data, 'user')) {
+      return data.user; // { username, displayName, role } or null
+    }
+  } catch (_) {
+    // fall through to the legacy path below
+  }
+  // Legacy fallback (kept so a server hiccup can't lock anyone out). This only
+  // works while the password_hash column is still readable by the anon key;
+  // once that column is locked down, login relies solely on the server path.
+  try {
+    const hash = await hashPassword(password);
+    const { data, error } = await supa
+      .from('staff')
+      .select('*')
+      .eq('username', username)
+      .eq('is_active', true)
+      .single();
+    if (error || !data) return null;
+    if (data.password_hash !== hash) return null;
+    supa.from('staff').update({ last_login: new Date().toISOString() })
+      .eq('username', username).then(() => {});
+    return { username: data.username, displayName: data.display_name, role: data.role };
+  } catch (_) {
+    return null;
+  }
 }
 
 async function cloudCreateStaff(username, displayName, password, role = 'staff') {
