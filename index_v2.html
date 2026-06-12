@@ -54,12 +54,12 @@ body{
   padding:9px 14px;
   font-size:14px;
   border:1.5px solid #d8d6d2;
-  background:rgba(255,255,255,.95);
+  background:var(--bg);
   color:var(--text);
   border-radius:4px;
   font-family:inherit;
 }
-.quick-search input:focus{outline:none;border-color:#e0a640;box-shadow:0 0 0 3px rgba(240,217,168,.25)}
+.quick-search input:focus{outline:none;border-color:#e0a640;box-shadow:0 0 0 3px rgba(224,166,64,.2)}
 .quick-results{
   position:absolute;
   top:calc(100% + 4px);
@@ -91,21 +91,22 @@ body{
 
 /* ─── HEADER ─── */
 .header{
-  background:var(--maroon);
-  color:var(--bone);
+  background:var(--white);
+  color:var(--text);
   padding:18px 32px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  box-shadow:0 2px 8px rgba(0,0,0,.08);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 1px 6px rgba(0,0,0,.05);
 }
 .header-left{display:flex;align-items:center;gap:18px}
 .header-logo{height:40px;width:auto;display:block}
-.header-subtitle{font-size:11px;letter-spacing:1.5px;color:var(--champagne);font-style:italic;text-transform:uppercase;margin-top:2px}
+.header-subtitle{font-size:11px;letter-spacing:1.5px;color:var(--bronze);font-style:italic;text-transform:uppercase;margin-top:2px}
 .header-date{
   font-family:'Courier New',monospace;
   font-size:14px;
-  color:#e0a640;
+  color:var(--text-muted);
   letter-spacing:1px;
   text-align:right;
 }
@@ -113,8 +114,8 @@ body{
 
 /* ─── TABS ─── */
 .tabs{
-  background:var(--white);
-  border-bottom:1px solid var(--border);
+  background:var(--maroon);
+  border-bottom:1px solid var(--maroon-dark);
   padding:0 32px;
   display:flex;
   gap:0;
@@ -127,7 +128,7 @@ body{
   text-transform:uppercase;
   font-weight:600;
   cursor:pointer;
-  color:var(--text-muted);
+  color:rgba(255,255,255,.78);
   border-bottom:3px solid transparent;
   transition:all .15s;
   background:none;
@@ -137,8 +138,8 @@ body{
   font-family:inherit;
   white-space:nowrap;
 }
-.tab:hover{color:var(--maroon);background:var(--bg)}
-.tab.active{color:var(--maroon);border-bottom-color:var(--maroon)}
+.tab:hover{color:#fff;background:var(--maroon-light)}
+.tab.active{color:#fff;border-bottom-color:var(--champagne)}
 /* Mobile (simple) mode — hide desktop-only tabs for an easier staff view */
 body.mobile-mode .tab.desktop-only{display:none}
 
@@ -332,11 +333,11 @@ tr:hover td{background:var(--bg)}
 .scan-controls{display:flex;gap:6px;flex-shrink:0}
 .scan-btn{
   padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.5px;
-  background:rgba(255,255,255,.12);color:#e0a640;border:1px solid #d8d6d2;
+  background:var(--white);color:var(--maroon);border:1px solid var(--border);
   border-radius:4px;cursor:pointer;font-family:inherit;white-space:nowrap;
   transition:all .15s;
 }
-.scan-btn:hover{background:rgba(255,255,255,.22)}
+.scan-btn:hover{background:var(--bg);border-color:var(--bronze)}
 .scan-btn.active{background:#e0a640;color:#531620;border-color:#e0a640;animation:scanPulse 2s ease-in-out infinite}
 @keyframes scanPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,217,168,.6)}50%{box-shadow:0 0 0 8px rgba(240,217,168,0)}}
 
@@ -808,7 +809,7 @@ body.dark-mode .scan-banner {
 
 <div class="header">
   <div class="header-left">
-    <img src="logo-gold.png" alt="Chatswood Chase" class="header-logo">
+    <img src="logo-maroon.png" alt="Chatswood Chase" class="header-logo">
     <div>
       <div class="header-subtitle">Valet — Dashboard &amp; Records</div>
     </div>
