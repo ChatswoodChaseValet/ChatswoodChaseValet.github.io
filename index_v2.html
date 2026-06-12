@@ -4671,7 +4671,7 @@ function renderLog() {
       <td><b>${e.brand}</b></td>
       <td>${e.model || '—'}</td>
       <td>${e.colour || '—'}</td>
-      <td style="font-family:'Courier New',monospace">${e.rego}</td>
+      <td style="font-family:'Courier New',monospace;font-weight:bold">${e.rego}</td>
       <td>${e.bay}</td>
       <td>${e.timeOut
         ? '<span class="status-pill status-completed">Completed</span>'
@@ -6772,7 +6772,7 @@ function renderCustomers() {
       <td><b>${c.name || '—'}</b></td>
       <td>${c.phone ? `<a href="tel:${c.phone}" onclick="event.stopPropagation()">${c.phone}</a>` : '—'}</td>
       <td>${vehicle}</td>
-      <td style="font-family:'Courier New',monospace">${c.rego}</td>
+      <td style="font-family:'Courier New',monospace;font-weight:bold">${c.rego}</td>
       <td><b>${c.visitCount}</b></td>
       <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(c.lifetime)}</td>
       <td>${lastText}</td>
