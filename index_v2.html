@@ -146,9 +146,10 @@ body{
 body.mobile-mode .tab.desktop-only{display:none}
 
 /* Pre-existing damage diagram (intake) */
-.damage-pad{position:relative;width:160px;max-width:60vw;margin:8px 0;aspect-ratio:1/2;background:var(--white);border:1px solid var(--border);border-radius:12px;cursor:crosshair;touch-action:manipulation;user-select:none}
+.damage-pad{position:relative;width:190px;max-width:62vw;margin:8px 0;aspect-ratio:308/471;background:var(--white);border:1px solid var(--border);border-radius:12px;cursor:crosshair;touch-action:manipulation;user-select:none}
 .damage-pad.readonly{cursor:default}
 .damage-pad svg{position:absolute;inset:0;width:100%;height:100%}
+.damage-pad img.damage-car{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;user-select:none;-webkit-user-drag:none}
 .damage-markers{position:absolute;inset:0;pointer-events:none}
 .damage-dot{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;background:#a83838;color:#fff;border:2px solid #fff;border-radius:50%;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4);pointer-events:auto;cursor:pointer}
 .damage-pad.readonly .damage-dot{cursor:default}
@@ -6538,29 +6539,16 @@ function clearPendingExtras() {
 let damageMarkers = []; // [{x, y}] in 0–100 % of the diagram
 
 // Top-down car outline, reused by the intake pad and the read-only view.
-const DAMAGE_CAR_SVG = `<svg viewBox="0 0 100 200" preserveAspectRatio="xMidYMid meet">
-  <!-- Wheels (drawn first so the body overlaps their inner half — tyres poke out the sides for marking rim/wheel dents) -->
-  <rect x="8" y="34" width="12" height="26" rx="4" fill="#4a4238" stroke="#2a2620" stroke-width="1"/>
-  <rect x="80" y="34" width="12" height="26" rx="4" fill="#4a4238" stroke="#2a2620" stroke-width="1"/>
-  <rect x="8" y="140" width="12" height="26" rx="4" fill="#4a4238" stroke="#2a2620" stroke-width="1"/>
-  <rect x="80" y="140" width="12" height="26" rx="4" fill="#4a4238" stroke="#2a2620" stroke-width="1"/>
-  <rect x="16" y="8" width="68" height="184" rx="28" fill="#fff" stroke="#a48d53" stroke-width="2"/>
-  <path d="M30 46 L70 46 L62 68 L38 68 Z" fill="#dce6ee" stroke="#a48d53" stroke-width="1.5"/>
-  <rect x="34" y="72" width="32" height="54" rx="8" fill="#eef2f6" stroke="#a48d53" stroke-width="1.5"/>
-  <path d="M38 130 L62 130 L70 152 L30 152 Z" fill="#dce6ee" stroke="#a48d53" stroke-width="1.5"/>
-  <rect x="8" y="58" width="8" height="7" rx="2" fill="#fff" stroke="#a48d53" stroke-width="1.5"/>
-  <rect x="84" y="58" width="8" height="7" rx="2" fill="#fff" stroke="#a48d53" stroke-width="1.5"/>
-  <text x="50" y="24" text-anchor="middle" font-size="8" fill="#a48d53" font-family="'Inter',sans-serif">FRONT</text>
-  <text x="50" y="182" text-anchor="middle" font-size="8" fill="#a48d53" font-family="'Inter',sans-serif">REAR</text>
-</svg>`;
+// Detailed top-down inspection diagram (raster image). Markers overlay on top.
+const DAMAGE_CAR_SVG = '<img class="damage-car" src="car-diagram.png" alt="Car diagram — tap to mark damage" draggable="false">';
 
 function renderDamageMarkers() {
   const pad = document.getElementById('damage-pad');
   const layer = document.getElementById('damage-markers');
   const count = document.getElementById('damage-count');
   if (!pad || !layer) return;
-  // Ensure the car SVG is present behind the markers layer
-  if (!pad.querySelector('svg')) pad.insertAdjacentHTML('afterbegin', DAMAGE_CAR_SVG);
+  // Ensure the car diagram is present behind the markers layer
+  if (!pad.querySelector('.damage-car')) pad.insertAdjacentHTML('afterbegin', DAMAGE_CAR_SVG);
   layer.innerHTML = damageMarkers.map((m, i) =>
     `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" onclick="removeDamageMarker(${i},event)" title="Tap to remove">${i + 1}</div>`
   ).join('');
