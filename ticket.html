@@ -157,6 +157,26 @@
       </div>
       <div id="req-result"></div>
     </div>
+
+    <!-- Customer "hands-free shopping" section — collect bags & put in car -->
+    <div class="req" id="bag-section" style="display:none">
+      <div class="req-title">📦 Hands-free shopping</div>
+      <div class="req-sub">Out shopping? We'll collect your bags and pop them in your car. Tap below and tell us where you are.</div>
+      <div id="bag-buttons" class="req-grid">
+        <button class="req-btn now" id="bag-start" style="grid-column:1 / -1">📦 Bring my shopping to the car</button>
+      </div>
+      <div id="bag-form" style="display:none;margin-top:12px;text-align:left">
+        <label style="font-size:12px;color:#a48d53;font-weight:bold;display:block;margin-bottom:4px">Where are you?</label>
+        <input id="bag-loc" type="text" placeholder="e.g. David Jones, Level 2 — or Valet Desk" maxlength="60"
+          style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1.5px solid #ebebe9;border-radius:10px;font-family:inherit;margin-bottom:10px">
+        <label style="font-size:12px;color:#a48d53;font-weight:bold;display:block;margin-bottom:4px">How many bags?</label>
+        <select id="bag-count" style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1.5px solid #ebebe9;border-radius:10px;font-family:inherit;margin-bottom:12px;background:#fff">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6+</option>
+        </select>
+        <button class="req-btn now" id="bag-send" style="width:100%">Send request</button>
+      </div>
+      <div id="bag-result"></div>
+    </div>
   </div>
 </div>
 
@@ -268,6 +288,23 @@
   // so a realtime echo of the customer's own tap doesn't clobber their UI.
   function applyLiveStatus(row, initial){
     if (!row) return;
+    // Hands-free shopping status (independent of the car-pickup state)
+    if (row.bag_status) {
+      var bagForm = document.getElementById('bag-form');
+      var bagBtns = document.getElementById('bag-buttons');
+      var bagRes = document.getElementById('bag-result');
+      if (bagRes) {
+        if (row.bag_status === 'in_car') {
+          if (bagForm) bagForm.style.display = 'none';
+          if (bagBtns) bagBtns.style.display = 'none';
+          bagRes.innerHTML = '<div class="req-status"><span class="big">📦 Your shopping is in your car!</span>All done — enjoy the rest of your day.</div>';
+        } else if (row.bag_status === 'requested' || row.bag_status === 'collecting') {
+          if (bagForm) bagForm.style.display = 'none';
+          if (bagBtns) bagBtns.style.display = 'none';
+          bagRes.innerHTML = '<div class="req-status"><span class="big">✅ On our way!</span>A valet is collecting your shopping' + (row.bag_location ? ' at <b>' + String(row.bag_location).replace(/</g,'&lt;') + '</b>' : '') + '. We\'ll text you when it\'s in your car.</div>';
+        }
+      }
+    }
     var buttons = document.getElementById('req-buttons');
     if (row.time_out) {
       buttons.style.display = 'none';
@@ -356,7 +393,7 @@
   (async function init(){
     try {
       var row = null;
-      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status';
+      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status,bag_status,bag_location';
 
       if (entryId) {
         var byId = await supa.from('entries').select(cols).eq('id', entryId).maybeSingle();
@@ -376,6 +413,7 @@
 
       if (!row || !entryId) return;           // couldn't match a car — just show the QR
       section.style.display = '';
+      if (!row.time_out) document.getElementById('bag-section').style.display = '';
       // Reflect the car's current state, then keep it live.
       applyLiveStatus(row, true);
       if (!row.time_out) watchEntry();
@@ -384,10 +422,44 @@
     }
   })();
 
-  document.getElementById('req-buttons').addEventListener('click', function(ev){
+  var reqButtonsEl = document.getElementById('req-buttons');
+  if (reqButtonsEl) reqButtonsEl.addEventListener('click', function(ev){
     var btn = ev.target.closest('.req-btn');
     if (!btn || btn.disabled) return;
     requestCar(parseInt(btn.getAttribute('data-min'), 10) || 0);
+  });
+
+  // ── Hands-free shopping (customer bag request) ──
+  var bagStartBtn = document.getElementById('bag-start');
+  var bagForm = document.getElementById('bag-form');
+  var bagResult = document.getElementById('bag-result');
+  var bagSendBtn = document.getElementById('bag-send');
+  if (bagStartBtn) bagStartBtn.addEventListener('click', function(){
+    document.getElementById('bag-buttons').style.display = 'none';
+    bagForm.style.display = '';
+    document.getElementById('bag-loc').focus();
+  });
+  if (bagSendBtn) bagSendBtn.addEventListener('click', async function(){
+    if (!entryId) { bagResult.innerHTML = '<div class="req-error">⚠ We couldn\'t match your ticket. Please see the valet desk.</div>'; return; }
+    var loc = (document.getElementById('bag-loc').value || '').trim() || 'Valet Desk';
+    var cnt = parseInt(document.getElementById('bag-count').value, 10) || 1;
+    bagSendBtn.disabled = true;
+    var now = new Date();
+    try {
+      var res = await supa.from('entries').update({
+        bag_status: 'requested', bag_requested: now.toISOString(),
+        bag_location: loc, bag_count: cnt, updated_at: now.toISOString()
+      }).eq('id', entryId).is('time_out', null).select('id');
+      if (res.error || !res.data || !res.data.length) {
+        bagResult.innerHTML = '<div class="req-error">⚠ Couldn\'t send your request. Please call the valet on 0427 000 822.</div>';
+        bagSendBtn.disabled = false; return;
+      }
+      bagForm.style.display = 'none';
+      bagResult.innerHTML = '<div class="req-status"><span class="big">✅ On our way!</span>A valet is coming to collect your shopping at <b>' + loc.replace(/</g,'&lt;') + '</b>. We\'ll text you when it\'s in your car.</div>';
+    } catch (e) {
+      bagResult.innerHTML = '<div class="req-error">⚠ We couldn\'t reach the valet right now. Please call 0427 000 822.</div>';
+      bagSendBtn.disabled = false;
+    }
   });
 })();
 </script>

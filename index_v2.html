@@ -807,6 +807,7 @@ body.dark-mode .scan-banner {
 </div>
 
 <!-- HEADER -->
+<div class="scan-banner" id="bag-banner" style="background:#531620;color:#fff;border-bottom-color:#3a0f17;display:none"></div>
 <div class="scan-banner" id="eod-banner" style="background:#e0a640;color:#5a3a00;border-bottom-color:#a06400;display:none"></div>
 
 <div class="scan-banner" id="offline-banner" style="background:#ffbb77;color:#5a3a00;border-bottom-color:#a06400;display:none">
@@ -849,6 +850,7 @@ body.dark-mode .scan-banner {
   <button class="tab" onclick="showView(&#39;new-entry&#39;)">🚗 New Entry</button>
   <button class="tab" onclick="showView(&#39;quick-pickup&#39;)">⚡ Quick Pickup</button>
   <button class="tab" onclick="showView(&#39;pickup-queue&#39;)">🔔 Queue<span id="pq-tab-badge" style="display:none;margin-left:6px;background:#a83838;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:bold;vertical-align:middle">0</span></button>
+  <button class="tab" onclick="showView(&#39;bags&#39;)">📦 Bags<span id="bag-tab-badge" style="display:none;margin-left:6px;background:#a83838;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:bold;vertical-align:middle">0</span></button>
   <button class="tab" onclick="showView(&#39;active&#39;)">🅿️ Active Cars</button>
   <button class="tab desktop-only" onclick="showView(&#39;log&#39;)">📋 Full Log</button>
   <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)">👥 Customers</button>
@@ -1353,6 +1355,21 @@ body.dark-mode .scan-banner {
       Tap <b>🚗 On the way</b> / <b>✅ Ready</b> to update the customer's ticket page, then <b>✓ Mark Out</b> when collected.
     </div>
     <div id="pq-queue" style="display:flex;flex-direction:column;gap:12px"></div>
+  </div>
+</div>
+
+<!-- ───────── BAG SERVICE VIEW (hands-free shopping) ───────── -->
+<div class="view" id="view-bags">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">📦 Hands-Free Shopping</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="bag-count">—</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
+      Open bag-collection jobs, oldest first. Customer requests (from their ticket page) and phone-ins appear here live.<br>
+      Tap <b>🙋 I'll get it</b> → collect the bags → <b>🚗 In car</b> (texts the customer) → <b>✅ Done</b>.
+    </div>
+    <div id="bag-queue" style="display:flex;flex-direction:column;gap:12px"></div>
   </div>
 </div>
 
@@ -2482,7 +2499,7 @@ function showView(name) {
   document.getElementById('view-' + name).classList.add('active');
   // Find tab and activate
   const tabs = document.querySelectorAll('.tab');
-  const names = ['dashboard','new-entry','quick-pickup','pickup-queue','active','log','customers','reports','settings'];
+  const names = ['dashboard','new-entry','quick-pickup','pickup-queue','bags','active','log','customers','reports','settings'];
   const i = names.indexOf(name);
   if (i >= 0 && tabs[i]) tabs[i].classList.add('active');
 
@@ -2490,6 +2507,7 @@ function showView(name) {
   if (name === 'new-entry') prepareNewEntry();
   if (name === 'quick-pickup') renderQuickPickup();
   if (name === 'pickup-queue') renderPickupQueue();
+  if (name === 'bags') renderBagQueue();
   if (name === 'active') renderActive();
   if (name === 'log') renderLog();
   if (name === 'customers') renderCustomers();
@@ -2503,7 +2521,7 @@ function showView(name) {
 // the counter PC want different modes. The toggle lives in the header so
 // staff can always switch back. Mobile mode keeps only the day-to-day tabs.
 // ═══════════════════════════════════════════════════
-const MOBILE_VIEWS = ['new-entry', 'quick-pickup', 'pickup-queue', 'active'];
+const MOBILE_VIEWS = ['new-entry', 'quick-pickup', 'pickup-queue', 'bags', 'active'];
 function getUiMode() {
   const saved = localStorage.getItem('valet_ui_mode');
   if (saved === 'mobile' || saved === 'desktop') return saved;
@@ -3946,6 +3964,7 @@ function renderActive() {
         <button class="btn btn-secondary btn-sm" onclick="printKeyTag('${e.id}')" title="Print key tag to BIXOLON printer">🖨</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">✎ Edit</button>
         ${pickupBtn}
+        <button class="btn btn-secondary btn-sm" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup" style="${e.bagStatus && e.bagStatus!=='done' ? 'background:#531620;color:#fff' : ''}">📦${e.bagStatus && e.bagStatus!=='done' ? '•' : ''}</button>
         <button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')" style="margin-left:4px">✓ Mark Out</button>
       </td>
     </tr>`;
@@ -4342,6 +4361,191 @@ function updateQueueBadge(count) {
   if (!badge) return;
   badge.textContent = count;
   badge.style.display = count > 0 ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════
+// HANDS-FREE SHOPPING (bag-to-car service)
+// bag_status: requested -> collecting -> in_car -> done
+// ═══════════════════════════════════════════════════
+function updateBagBadge(count) {
+  const badge = document.getElementById('bag-tab-badge');
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
+  // Live banner: show when there are unassigned ('requested') jobs.
+  const banner = document.getElementById('bag-banner');
+  if (banner) {
+    const newReqs = entries.filter(e => !e.timeOut && e.bagStatus === 'requested');
+    if (newReqs.length && !bagBannerDismissed) {
+      const latest = newReqs.sort((a,b)=>new Date(b.bagRequested)-new Date(a.bagRequested))[0];
+      banner.innerHTML = `📦 <strong>${newReqs.length} bag pickup${newReqs.length!==1?'s':''} waiting</strong> · newest: ${latest.bagLocation || 'Valet Desk'} `
+        + `<button onclick="showView('bags')" style="background:#fff;color:#531620;border:none;padding:2px 10px;border-radius:3px;margin-left:8px;cursor:pointer;font-weight:bold">Open</button>`
+        + `<button onclick="dismissBagBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:6px;cursor:pointer">Dismiss</button>`;
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+}
+let bagBannerDismissed = false;
+function dismissBagBanner() { bagBannerDismissed = true; const b = document.getElementById('bag-banner'); if (b) b.style.display = 'none'; }
+
+function renderBagQueue() {
+  const open = entries
+    .filter(e => !e.timeOut && e.bagStatus && e.bagStatus !== 'done')
+    .sort((a, b) => new Date(a.bagRequested || 0) - new Date(b.bagRequested || 0)); // oldest first
+  updateBagBadge(open.length);
+  const countEl = document.getElementById('bag-count');
+  if (countEl) countEl.textContent = open.length ? `${open.length} job${open.length !== 1 ? 's' : ''} open` : 'all clear';
+  const container = document.getElementById('bag-queue');
+  if (!container) return;
+  if (!open.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div>No bag pickups right now</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Customer requests and phone-ins appear here.</div></div>';
+    return;
+  }
+  const now = new Date();
+  container.innerHTML = open.map(e => {
+    const car = [e.brand, e.model].filter(Boolean).join(' ') + (e.rego ? ' · ' + e.rego : '');
+    const waited = Math.max(0, Math.round((now - new Date(e.bagRequested)) / 60000));
+    const st = e.bagStatus;
+    const hdr = st === 'requested' ? { bg: '#a83838', label: '🆕 Requested' }
+      : st === 'collecting' ? { bg: '#c79c2a', label: '🛍️ Collecting' + (e.bagAssigned ? ' · ' + e.bagAssigned : '') }
+      : { bg: 'var(--bronze)', label: '🚗 In car' };
+    const callBtn = e.phone
+      ? `<a href="tel:${e.phone}" class="btn btn-secondary" style="flex:0 0 auto;padding:13px 15px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" title="Call ${e.phone}">📞</a>`
+      : '';
+    const sbase = 'flex:1;padding:13px 8px;font-size:14px;font-weight:600';
+    let actions = '';
+    if (st === 'requested') {
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">🙋 I'll get it</button>`;
+    } else if (st === 'collecting') {
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">🚗 In car${e.phone ? ' + text' : ''}</button>`
+        + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add proof photo">📸${e.bagPhoto ? '✓' : ''}</button>`;
+    } else { // in_car
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}')">✅ Done</button>`
+        + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add proof photo">📸${e.bagPhoto ? '✓' : ''}</button>`;
+    }
+    return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+      <div style="background:${hdr.bg};color:#fff;padding:8px 14px;font-size:14px;font-weight:bold;display:flex;justify-content:space-between;align-items:center">
+        <span>${hdr.label}</span>
+        <span style="font-size:12px;font-weight:600;opacity:.9">Waiting ${waited}m · Ticket ${e.ticket}</span>
+      </div>
+      <div style="padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text-muted)">📍 Pickup at</div>
+            <div style="font-size:18px;font-weight:bold;color:#333333">${e.bagLocation || 'Valet Desk'}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:4px">🛍️ ${e.bagCount || 1} bag${(e.bagCount || 1) !== 1 ? 's' : ''} · ${e.name || 'No name'}${e.bagNotes ? ' · ' + e.bagNotes : ''}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">🚗 ${car} · Bay <b style="color:var(--maroon)">${e.bay || '—'}</b></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${callBtn}
+          <button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="cancelBag('${e.id}')" title="Cancel request">✕</button>
+          ${actions}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Staff logs a phone-in / walk-up request (prompt-based for speed).
+function logBagRequest(id) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  const location = prompt('Where are the bags? (shop name, or "Valet Desk")', e.bagLocation || 'Valet Desk');
+  if (location === null) return;
+  const countStr = prompt('How many bags?', String(e.bagCount || 1));
+  if (countStr === null) return;
+  requestBag(id, { location: (location.trim() || 'Valet Desk'), count: parseInt(countStr, 10) || 1, notes: '', source: 'staff' });
+}
+
+function requestBag(id, { location, count, notes }) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  e.bagStatus = 'requested';
+  e.bagRequested = new Date().toISOString();
+  e.bagLocation = location || 'Valet Desk';
+  e.bagCount = count || 1;
+  e.bagNotes = notes || '';
+  e.bagAssigned = null;
+  e.bagDoneAt = null;
+  bagBannerDismissed = false;
+  saveData(id, { immediate: true });
+  cloudAudit('bag_request', 'entry', id, { ticket: e.ticket, location: e.bagLocation, count: e.bagCount });
+  renderBagQueue();
+  if (typeof hapticFeedback === 'function') hapticFeedback('success');
+  quickToast('📦 Bag pickup added to the queue');
+}
+
+function assignBag(id) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  e.bagStatus = 'collecting';
+  e.bagAssigned = (currentUser && currentUser.displayName) || 'Staff';
+  saveData(id, { immediate: true });
+  cloudAudit('bag_collecting', 'entry', id, { ticket: e.ticket });
+  renderBagQueue();
+  if (typeof hapticFeedback === 'function') hapticFeedback('light');
+}
+
+async function bagInCar(id) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  e.bagStatus = 'in_car';
+  saveData(id, { immediate: true });
+  cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket });
+  renderBagQueue();
+  quickToast('🚗 Bags in car' + (e.phone ? ' · texting customer' : ''));
+  sendBagSms(e);
+}
+
+function bagDone(id) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  e.bagStatus = 'done';
+  e.bagDoneAt = new Date().toISOString();
+  saveData(id, { immediate: true });
+  cloudAudit('bag_done', 'entry', id, { ticket: e.ticket });
+  renderBagQueue();
+  if (typeof hapticFeedback === 'function') hapticFeedback('success');
+}
+
+function cancelBag(id) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  if (!confirm('Cancel this bag request?')) return;
+  e.bagStatus = null; e.bagRequested = null; e.bagLocation = null; e.bagCount = null;
+  e.bagAssigned = null; e.bagNotes = null; e.bagDoneAt = null;
+  saveData(id, { immediate: true });
+  cloudAudit('bag_cancel', 'entry', id, { ticket: e.ticket });
+  renderBagQueue();
+}
+
+// Proof photo (downscaled to keep the synced row small).
+function addBagPhoto(id) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+  inp.onchange = ev => {
+    const f = ev.target.files && ev.target.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1024;
+        let { width: w, height: h } = img;
+        if (w > max || h > max) { const r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        const e = entries.find(x => x.id === id); if (!e) return;
+        e.bagPhoto = cv.toDataURL('image/jpeg', 0.7);
+        saveData(id, { immediate: true });
+        renderBagQueue();
+        quickToast('📸 Proof photo saved');
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(f);
+  };
+  inp.click();
+}
+
+async function sendBagSms(e) {
+  if (!e.phone || !supa) return;
+  const msg = 'Chatswood Chase Valet: your shopping has been placed in your car (Ticket ' + e.ticket + '). Enjoy the rest of your day!';
+  try { await supa.functions.invoke('send-ticket-sms', { body: { to: e.phone, message: msg } }); } catch (_) { /* best effort */ }
 }
 
 function renderPickupQueue() {
@@ -6966,6 +7170,9 @@ function jsToDb(e) {
     pickup_requested: e.pickupRequested, pickup_eta: e.pickupETA,
     pickup_source: e.pickupSource, pickup_status: e.pickupStatus,
     discounts: e.discounts, discount_total: e.discountTotal,
+    bag_status: e.bagStatus, bag_requested: e.bagRequested, bag_location: e.bagLocation,
+    bag_count: e.bagCount, bag_assigned: e.bagAssigned, bag_notes: e.bagNotes,
+    bag_photo: e.bagPhoto, bag_done_at: e.bagDoneAt,
     updated_by: currentUser?.username,
     updated_at: new Date().toISOString(),
   };
@@ -6988,6 +7195,9 @@ function dbToJs(d) {
     pickupSource: d.pickup_source, pickupStatus: d.pickup_status,
     discounts: d.discounts || [],
     discountTotal: d.discount_total !== null ? parseFloat(d.discount_total) : 0,
+    bagStatus: d.bag_status, bagRequested: d.bag_requested, bagLocation: d.bag_location,
+    bagCount: d.bag_count, bagAssigned: d.bag_assigned, bagNotes: d.bag_notes,
+    bagPhoto: d.bag_photo, bagDoneAt: d.bag_done_at,
   };
 }
 
@@ -7489,18 +7699,20 @@ function refreshActiveViews() {
   try { renderActive(); } catch(e) {}
   try { renderQuickPickup(); } catch(e) {}
   try { renderPickupQueue(); } catch(e) {}
+  try { renderBagQueue(); } catch(e) {}
   try { renderLog(); } catch(e) {}
 }
 
 function refreshActiveViewOnly() {
   // For situations where we only want to refresh the currently visible view
-  const views = ['dashboard','quick-pickup','pickup-queue','active','log','customers','reports'];
+  const views = ['dashboard','quick-pickup','pickup-queue','bags','active','log','customers','reports'];
   views.forEach(name => {
     const v = document.getElementById('view-' + name);
     if (v && v.classList.contains('active')) {
       if (name === 'dashboard') renderDashboard();
       else if (name === 'quick-pickup') renderQuickPickup();
       else if (name === 'pickup-queue') renderPickupQueue();
+      else if (name === 'bags') renderBagQueue();
       else if (name === 'active') renderActive();
       else if (name === 'log') renderLog();
       else if (name === 'customers') renderCustomers();
