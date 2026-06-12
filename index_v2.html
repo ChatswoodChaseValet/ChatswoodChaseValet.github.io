@@ -4422,8 +4422,7 @@ function renderBagQueue() {
     if (st === 'requested') {
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">🙋 I'll get it</button>`;
     } else if (st === 'collecting') {
-      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">🚗 In car${e.phone ? ' + text' : ''}</button>`
-        + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add proof photo">📸${e.bagPhoto ? '✓' : ''}</button>`;
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">📸 In car (take photo)</button>`;
     } else { // in_car
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}')">✅ Done</button>`
         + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add proof photo">📸${e.bagPhoto ? '✓' : ''}</button>`;
@@ -4441,6 +4440,7 @@ function renderBagQueue() {
             <div style="font-size:13px;color:var(--text-muted);margin-top:4px">🛍️ ${e.bagCount || 1} bag${(e.bagCount || 1) !== 1 ? 's' : ''} · ${e.name || 'No name'}${e.bagNotes ? ' · ' + e.bagNotes : ''}</div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:2px">🚗 ${car} · Bay <b style="color:var(--maroon)">${e.bay || '—'}</b></div>
           </div>
+          ${e.bagPhoto ? `<img src="${e.bagPhoto}" onclick="viewPhoto('${e.id}','bag')" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;flex-shrink:0" title="Proof photo sent to customer">` : ''}
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           ${callBtn}
@@ -4489,14 +4489,16 @@ function assignBag(id) {
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
 }
 
-async function bagInCar(id) {
-  const e = entries.find(x => x.id === id); if (!e) return;
-  e.bagStatus = 'in_car';
-  saveData(id, { immediate: true });
-  cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket });
-  renderBagQueue();
-  quickToast('🚗 Bags in car' + (e.phone ? ' · texting customer' : ''));
-  sendBagSms(e);
+// Mark bags in the car. REQUIRES a proof photo (opens the camera first); the
+// photo is shown to the customer on their ticket page and linked in the SMS.
+function bagInCar(id) {
+  bagCapturePhoto(id, e => {
+    e.bagStatus = 'in_car';
+    cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket });
+    quickToast('🚗 Bags in car' + (e.phone ? ' · sending photo to customer' : ''));
+    sendBagSms(e);
+    if (typeof hapticFeedback === 'function') hapticFeedback('success');
+  });
 }
 
 function bagDone(id) {
@@ -4519,8 +4521,10 @@ function cancelBag(id) {
   renderBagQueue();
 }
 
-// Proof photo (downscaled to keep the synced row small).
-function addBagPhoto(id) {
+// Open the camera, downscale the photo, store it on the entry, persist once,
+// then run an optional callback (used by "In car" to also flip the status).
+// Cancelling the camera does nothing — so the status only advances with a photo.
+function bagCapturePhoto(id, after) {
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
   inp.onchange = ev => {
@@ -4530,15 +4534,16 @@ function addBagPhoto(id) {
       const img = new Image();
       img.onload = () => {
         const max = 1024;
-        let { width: w, height: h } = img;
+        let w = img.width, h = img.height;
         if (w > max || h > max) { const r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
         const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
         cv.getContext('2d').drawImage(img, 0, 0, w, h);
         const e = entries.find(x => x.id === id); if (!e) return;
         e.bagPhoto = cv.toDataURL('image/jpeg', 0.7);
+        if (typeof after === 'function') after(e);
         saveData(id, { immediate: true });
         renderBagQueue();
-        quickToast('📸 Proof photo saved');
+        if (typeof after !== 'function') quickToast('📸 Proof photo saved');
       };
       img.src = reader.result;
     };
@@ -4547,10 +4552,15 @@ function addBagPhoto(id) {
   inp.click();
 }
 
+// Retake / add a proof photo without changing the status.
+function addBagPhoto(id) { bagCapturePhoto(id); }
+
 async function sendBagSms(e) {
   if (!e.phone || !supa) return;
-  const msg = 'Chatswood Chase Valet: your shopping has been placed in your car (Ticket ' + e.ticket + '). Enjoy the rest of your day!';
-  try { await supa.functions.invoke('send-ticket-sms', { body: { to: e.phone, message: msg } }); } catch (_) { /* best effort */ }
+  const url = buildTicketUrl(e);
+  const msg = 'Chatswood Chase Valet: your shopping is now in your car (Ticket ' + e.ticket + '). '
+    + 'See the photo: ' + url;
+  try { await supa.functions.invoke('send-ticket-sms', { body: { to: e.phone, message: msg, shortenUrl: url } }); } catch (_) { /* best effort */ }
 }
 
 function renderPickupQueue() {
@@ -4899,17 +4909,20 @@ function renderLog() {
   }).join('');
 }
 
-function viewPhoto(id) {
+function viewPhoto(id, which) {
   const e = entries.find(x => x.id === id);
-  if (!e || !e.photo) return;
+  if (!e) return;
+  const src = which === 'bag' ? e.bagPhoto : e.photo;
+  if (!src) return;
+  const caption = which === 'bag' ? 'Bag proof photo (sent to customer)' : (e.brand + ' ' + (e.model || ''));
   const w = window.open('', '_blank', 'width=800,height=900');
   w.document.write(`<title>Photo — ${e.ticket} ${e.rego}</title>
     <body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;color:#fff;font-family:'Inter',sans-serif">
     <div style="padding:14px;text-align:center">
       <div style="font-size:18px;letter-spacing:2px">${e.ticket} · ${e.rego}</div>
-      <div style="font-size:12px;color:#aaa;margin-top:4px">${e.brand} ${e.model || ''} · Bay ${e.bay} · ${fmtDate(new Date(e.timeIn))}</div>
+      <div style="font-size:12px;color:#aaa;margin-top:4px">${caption} · Bay ${e.bay} · ${fmtDate(new Date(e.timeIn))}</div>
     </div>
-    <img src="${e.photo}" style="max-width:100%;max-height:80vh;object-fit:contain"/>
+    <img src="${src}" style="max-width:100%;max-height:80vh;object-fit:contain"/>
     </body>`);
   w.document.close();
 }

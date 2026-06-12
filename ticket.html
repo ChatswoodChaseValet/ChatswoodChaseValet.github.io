@@ -297,7 +297,10 @@
         if (row.bag_status === 'in_car') {
           if (bagForm) bagForm.style.display = 'none';
           if (bagBtns) bagBtns.style.display = 'none';
-          bagRes.innerHTML = '<div class="req-status"><span class="big">📦 Your shopping is in your car!</span>All done — enjoy the rest of your day.</div>';
+          var bagImg = row.bag_photo
+            ? '<br><img src="' + row.bag_photo + '" alt="Your shopping in your car" style="max-width:100%;border-radius:10px;margin-top:10px;border:1px solid #ebebe9">'
+            : '';
+          bagRes.innerHTML = '<div class="req-status"><span class="big">📦 Your shopping is in your car!</span>Here\'s a photo from our valet. Enjoy the rest of your day.' + bagImg + '</div>';
         } else if (row.bag_status === 'requested' || row.bag_status === 'collecting') {
           if (bagForm) bagForm.style.display = 'none';
           if (bagBtns) bagBtns.style.display = 'none';
@@ -393,7 +396,7 @@
   (async function init(){
     try {
       var row = null;
-      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status,bag_status,bag_location';
+      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status,bag_status,bag_location,bag_photo';
 
       if (entryId) {
         var byId = await supa.from('entries').select(cols).eq('id', entryId).maybeSingle();
