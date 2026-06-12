@@ -6607,6 +6607,38 @@ function showCustomerDetail(regoArg) {
 
   const baysUsed = [...new Set(matches.map(e => e.bay))];
 
+  // Other vehicles seen under the SAME phone number (one person, many cars).
+  // The customer list is keyed by plate, so this surfaces a person's other cars.
+  const phoneDigits = (last.phone || '').replace(/\D/g, '');
+  let otherCarsHtml = '';
+  if (phoneDigits.length >= 8) {
+    const curKey = normaliseRego(rego);
+    const byRego = {};
+    entries.forEach(e => {
+      if ((e.phone || '').replace(/\D/g, '') !== phoneDigits) return;
+      const k = normaliseRego(e.rego);
+      if (!k || k === curKey) return;
+      (byRego[k] = byRego[k] || []).push(e);
+    });
+    const others = Object.keys(byRego).map(k => {
+      const v = byRego[k].sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
+      return { rego: v[0].rego, brand: v[0].brand || '', model: v[0].model || '', colour: v[0].colour || '', count: v.length, last: v[0].timeIn };
+    }).sort((a, b) => new Date(b.last) - new Date(a.last));
+    if (others.length) {
+      otherCarsHtml = `
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">🚗 Other Vehicles · Same Phone (${others.length})</div>
+          ${others.map(o => {
+            const veh = (o.brand + (o.model ? ' ' + o.model : '') + (o.colour ? ' · ' + o.colour : '')).trim() || '—';
+            return `<div onclick="showCustomerDetail('${o.rego.replace(/'/g, "\\'")}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:var(--sandstone);border-radius:4px;margin-bottom:6px;cursor:pointer">
+              <div><span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${o.rego}</span><span style="color:var(--text-muted);font-size:12px"> · ${veh}</span></div>
+              <div style="font-size:12px;color:var(--text-muted);white-space:nowrap">${o.count} visit${o.count !== 1 ? 's' : ''} · ${fmtDate(new Date(o.last))}</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }
+  }
+
   document.getElementById('customer-modal-title').textContent =
     (last.name || 'Customer') + ' — ' + rego;
 
@@ -6642,6 +6674,8 @@ function showCustomerDetail(regoArg) {
         ${baysUsed.length > 1 ? '<strong>Bays used:</strong> ' + baysUsed.join(', ') + '<br>' : ''}
       </div>
     </div>
+
+    ${otherCarsHtml}
 
     <div>
       <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Recent Visits</div>
