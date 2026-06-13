@@ -3,6 +3,11 @@
 // provider). The ClickSend credentials live in Supabase secrets, never
 // in the public dashboard page.
 //
+// Two actions:
+//   1) Send SMS  — body { "to", "message", "shortenUrl" } -> { ok, status }
+//   2) Balance   — body { "action": "balance" }           -> { ok, balance, prefix, currency }
+//      (reuses the same sealed ClickSend key; never exposes it)
+//
 // Deploy:
 //   supabase functions deploy send-ticket-sms --project-ref ebqiitxiyzzbkgyfypss
 // Secrets (set once):
@@ -10,9 +15,6 @@
 //                        CLICKSEND_API_KEY=xxxxxxxx \
 //                        CLICKSEND_SENDER=ChatswdVlt \
 //                        --project-ref ebqiitxiyzzbkgyfypss
-//
-// Request body:  { "to": "0433273377", "message": "..." }
-// Response:      { "ok": true, "status": "SUCCESS" }  (or ok:false + error)
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
@@ -33,6 +35,10 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...CORS, "Content-Type": "application/json" },
   });
+}
+
+function authHeader(): string {
+  return "Basic " + btoa(`${USERNAME}:${API_KEY}`);
 }
 
 // Normalise an Australian mobile to E.164 (+61…). Accepts "0433 273 377",
@@ -79,16 +85,44 @@ serve(async (req: Request) => {
     return json({ ok: false, error: "SMS not configured (missing ClickSend secrets)" }, 503);
   }
 
-  let to = "", message = "", shortenUrl = "";
+  let body: Record<string, unknown> = {};
   try {
-    const body = await req.json();
-    to = (body.to ?? "").toString().trim();
-    message = (body.message ?? "").toString();
-    // Optional: a long URL inside `message` to swap for a short one.
-    shortenUrl = (body.shortenUrl ?? "").toString().trim();
+    body = await req.json();
   } catch {
     return json({ ok: false, error: "invalid JSON body" }, 400);
   }
+
+  // ── Action: balance check ──────────────────────────────────────────────
+  // Returns the live ClickSend account balance using the same sealed key,
+  // without ever exposing the key to the public caller.
+  if (body && body.action === "balance") {
+    try {
+      const res = await fetch("https://rest.clicksend.com/v3/account", {
+        headers: { "Authorization": authHeader() },
+      });
+      const data = await res.json();
+      const acct = (data?.data ?? {}) as Record<string, any>;
+      const balance = parseFloat(acct.balance);
+      const prefix = acct?.currency?.currency_prefix ?? "$";
+      const currency = acct?.currency?.currency_code ?? "";
+      console.log(`[send-ticket-sms] balance check httpOk=${res.ok} balance=${acct.balance} ${currency}`);
+      return json({
+        ok: res.ok && !isNaN(balance),
+        balance: isNaN(balance) ? null : balance,
+        prefix,
+        currency,
+      }, res.ok ? 200 : 502);
+    } catch (e) {
+      console.error(`[send-ticket-sms] BALANCE ERROR ${String(e)}`);
+      return json({ ok: false, error: String(e) }, 502);
+    }
+  }
+
+  // ── Action: send SMS (default) ─────────────────────────────────────────
+  const to = (body.to ?? "").toString().trim();
+  let message = (body.message ?? "").toString();
+  // Optional: a long URL inside `message` to swap for a short one.
+  const shortenUrl = (body.shortenUrl ?? "").toString().trim();
   if (!to || !message) return json({ ok: false, error: "missing 'to' or 'message'" }, 400);
 
   // Replace the long ticket link with a tidy short link before sending. If the
@@ -105,7 +139,7 @@ serve(async (req: Request) => {
     const res = await fetch("https://rest.clicksend.com/v3/sms/send", {
       method: "POST",
       headers: {
-        "Authorization": "Basic " + btoa(`${USERNAME}:${API_KEY}`),
+        "Authorization": authHeader(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
