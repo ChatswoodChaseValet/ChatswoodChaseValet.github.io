@@ -50,17 +50,21 @@ function mask(n: string): string {
   return n.length > 4 ? n.slice(0, 3) + "***" + n.slice(-3) : "***";
 }
 
-// Shorten a long ticket URL via TinyURL's keyless API so the customer sees
-// a clean "tinyurl.com/xxxx" link instead of the raw GitHub Pages address.
-// Server-side avoids browser CORS limits. Returns null on any failure so the
-// caller can fall back to the original (still-working) long URL.
+// Shorten a long ticket URL via is.gd's keyless API so the customer sees a
+// clean "is.gd/xxxx" link instead of the raw GitHub Pages address. is.gd does
+// a direct 301 redirect (no "preview / go to destination" interstitial that
+// TinyURL sometimes shows), so the QR page opens straight away. Server-side
+// avoids browser CORS limits. Returns null on any failure so the caller can
+// fall back to the original (still-working) long URL.
 async function shorten(longUrl: string): Promise<string | null> {
   try {
     const r = await fetch(
-      "https://tinyurl.com/api-create.php?url=" + encodeURIComponent(longUrl),
+      "https://is.gd/create.php?format=simple&url=" + encodeURIComponent(longUrl),
     );
     if (!r.ok) return null;
     const t = (await r.text()).trim();
+    // format=simple returns just the short URL, or an "Error: ..." string on
+    // failure (which won't match this, so we fall back to the long URL).
     return /^https?:\/\/\S+$/.test(t) ? t : null;
   } catch {
     return null;
