@@ -4642,6 +4642,7 @@ function requestBag(id, { location, count, notes }) {
   e.bagAssigned = null;
   e.bagInCarBy = null;
   e.bagDoneAt = null;
+  e.bagPhoto = null;   // fresh round — drop the previous delivery's photo
   bagBannerDismissed = false;
   saveData(id, { immediate: true });
   cloudAudit('bag_request', 'entry', id, { ticket: e.ticket, location: e.bagLocation, count: e.bagCount });

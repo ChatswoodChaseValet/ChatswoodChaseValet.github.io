@@ -300,7 +300,8 @@
           var bagImg = row.bag_photo
             ? '<br><img src="' + row.bag_photo + '" alt="Your shopping in your car" style="max-width:100%;border-radius:10px;margin-top:10px;border:1px solid #ebebe9">'
             : '';
-          bagRes.innerHTML = '<div class="req-status"><span class="big">📦 Your shopping is in your car!</span>Here\'s a photo from our valet. Enjoy the rest of your day.' + bagImg + '</div>';
+          bagRes.innerHTML = '<div class="req-status"><span class="big">📦 Your shopping is in your car!</span>Here\'s a photo from our valet. Enjoy the rest of your day.' + bagImg + '</div>'
+            + '<button class="req-btn now" type="button" id="bag-again" style="width:100%;margin-top:12px" onclick="startBagAgain()">📦 Shopping at another shop? Send my bags again</button>';
         } else if (row.bag_status === 'requested' || row.bag_status === 'collecting') {
           if (bagForm) bagForm.style.display = 'none';
           if (bagBtns) bagBtns.style.display = 'none';
@@ -442,6 +443,17 @@
     bagForm.style.display = '';
     document.getElementById('bag-loc').focus();
   });
+  // Re-open the request form after a previous lot was delivered, so the
+  // customer can send bags again from a different shop.
+  window.startBagAgain = function(){
+    if (bagResult) bagResult.innerHTML = '';
+    if (bagForm) bagForm.style.display = '';
+    if (bagSendBtn) bagSendBtn.disabled = false;
+    var loc = document.getElementById('bag-loc');
+    if (loc) { loc.value = ''; loc.focus(); }
+    var cntSel = document.getElementById('bag-count');
+    if (cntSel) cntSel.selectedIndex = 0;
+  };
   if (bagSendBtn) bagSendBtn.addEventListener('click', async function(){
     if (!entryId) { bagResult.innerHTML = '<div class="req-error">⚠ We couldn\'t match your ticket. Please see the valet desk.</div>'; return; }
     var loc = (document.getElementById('bag-loc').value || '').trim() || 'Valet Desk';
@@ -451,7 +463,10 @@
     try {
       var res = await supa.from('entries').update({
         bag_status: 'requested', bag_requested: now.toISOString(),
-        bag_location: loc, bag_count: cnt, updated_at: now.toISOString()
+        bag_location: loc, bag_count: cnt, updated_at: now.toISOString(),
+        // Fresh round — clear the previous delivery's photo/status so it
+        // doesn't show against this new request.
+        bag_photo: null, bag_in_car_by: null, bag_done_at: null, bag_assigned: null
       }).eq('id', entryId).is('time_out', null).select('id');
       if (res.error || !res.data || !res.data.length) {
         bagResult.innerHTML = '<div class="req-error">⚠ Couldn\'t send your request. Please call the valet on 0427 000 822.</div>';
