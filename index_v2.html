@@ -1964,8 +1964,22 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
-      <div class="section-title">🖨 Key-Tag Printer (BIXOLON)</div>
+      <div class="section-title">🖨 Key-Tag Printer</div>
     </div>
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-label">Printer</label>
+      <select id="s-printer-type" class="form-input" onchange="updatePrinterTypeUI()">
+        <option value="bixolon">BIXOLON SPP-R200III — Bluetooth receipt (phone/tablet)</option>
+        <option value="zebra">Zebra ZD421 — desktop label printer (USB)</option>
+      </select>
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:10px;background:var(--sandstone);padding:12px 14px;border-radius:4px;margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" id="s-print-station" style="margin-top:3px;flex:0 0 auto;width:18px;height:18px">
+      <span style="font-size:12px;line-height:1.6">
+        <strong>Use this device as the Print Station.</strong> Turn this ON only on the computer wired to the printer. It will automatically print a key tag whenever <em>any</em> device checks a customer in — so staff can intake on their phones and the tag prints here. Leave it OFF on phones.
+      </span>
+    </label>
+    <div id="bixolon-setup">
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
       Print the key tag (ticket #, bay, plate + scannable barcode) straight to a BIXOLON
       <strong>SPP-R200III</strong>. Because this is a web app, a small free bridge app must run on this device:
@@ -1999,6 +2013,27 @@ body.dark-mode .scan-banner {
     </div>
     <div style="font-size:11px;color:var(--text-muted);margin:4px 0 12px;line-height:1.6">
       Leave Connection on <strong>HTTP</strong> and address as <strong>127.0.0.1:18080</strong> to start. If printing is blocked because this site is HTTPS, switch the WebPrint app to its secure mode and pick <strong>HTTPS</strong> here (adjust the port if it differs).
+    </div>
+    </div><!-- /bixolon-setup -->
+    <div id="zebra-setup" style="display:none">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+        Print the key tag straight to a <strong>Zebra ZD421</strong> connected by USB to this desktop. A small free Zebra app must be running on this PC:
+      </p>
+      <div style="background:var(--sandstone);padding:12px 14px;border-radius:4px;margin-bottom:14px;font-size:12px;line-height:1.7">
+        <strong>One-time setup on this desktop:</strong>
+        <ol style="margin:6px 0 0 18px;padding:0">
+          <li>Install <strong>Zebra Browser Print</strong> (free) from zebra.com, then plug the ZD421 in over USB and turn it on.</li>
+          <li>Open <strong>Browser Print</strong> — it should list the ZD421. Set it as the <strong>default</strong> printer.</li>
+          <li>Because this site is HTTPS, visit <strong>https://localhost:9101</strong> once in this browser and accept its security warning (this trusts Browser Print). Then tap <strong>Test Print</strong> below.</li>
+        </ol>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Printer name (optional — blank uses the default printer)</label>
+        <input type="text" id="s-printer-zebra-name" class="form-input" placeholder="leave blank to use the default">
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin:8px 0 12px;line-height:1.6">
+        Labels are laid out for <strong>2&quot; &times; 3&quot;</strong> stock at 203&nbsp;dpi. If text sits off the label after a test print, tell me and I'll nudge the layout.
+      </div>
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="savePrinterSettings()">Save Printer</button>
@@ -2864,7 +2899,8 @@ function saveEntry() {
 
   // Auto-print the key tag on check-in when a printer is set up. The toast
   // still shows a 🖨 button as a reprint option; stays silent with no printer.
-  if ((settings.printerName || '').trim()) {
+  if (printerConfigured()) {
+    autoPrintedIds.add(entry.id);   // so the realtime echo doesn't reprint it
     printKeyTag(entry);
   }
 
@@ -3032,7 +3068,7 @@ function dismissSaveToast() {
   }
 
   // Build and print one key tag for an entry (accepts an entry object or an id)
-  window.printKeyTag = function (entryOrId) {
+  window._printKeyTagBixolon = function (entryOrId) {
     var e = (typeof entryOrId === 'string') ? entries.find(function (x) { return x.id === entryOrId; }) : entryOrId;
     if (!e) { flashScanStatus('Entry not found', 'error'); return; }
     var name = (settings.printerName || '').trim();
@@ -3060,7 +3096,7 @@ function dismissSaveToast() {
   };
 
   // Test print from Settings
-  window.printTestTag = function () {
+  window._printTestTagBixolon = function () {
     var name = (settings.printerName || '').trim();
     if (!name) { alert('Enter your BIXOLON printer name first, then Save.'); return; }
     applyTransportFromSettings();
@@ -3081,6 +3117,129 @@ function dismissSaveToast() {
     sendJob(name, '🖨 Test tag sent — check the printer');
   };
 })();
+
+// ═══════════════════════════════════════════════════
+// KEY-TAG PRINTING — Zebra ZD421 (ZPL via Zebra Browser Print)
+// Browser Print is a free local agent on the desktop; it exposes a
+// REST endpoint (http://localhost:9100, or https://localhost:9101 when
+// the app is served over HTTPS) that we POST raw ZPL to. Exposes
+// window._printKeyTagZebra(entryOrId) and window._printTestTagZebra().
+// ═══════════════════════════════════════════════════
+(function () {
+  // The agent listens on 9100 (http) and 9101 (https). When the app is
+  // served over HTTPS (GitHub Pages) we must use the https agent or the
+  // browser blocks it as mixed content.
+  function zBase() {
+    return (location.protocol === 'https:') ? 'https://localhost:9101' : 'http://localhost:9100';
+  }
+
+  function zReq(method, path, body, ok, err) {
+    var x = new XMLHttpRequest();
+    try { x.open(method, zBase() + path, true); } catch (e) { err('connect'); return; }
+    if (body != null) x.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+    x.timeout = 8000;
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) return;
+      if (x.status >= 200 && x.status < 300) ok(x.responseText);
+      else err('http ' + x.status);
+    };
+    x.onerror = function () { err('connect'); };
+    x.ontimeout = function () { err('timeout'); };
+    x.send(body != null ? body : null);
+  }
+
+  // Resolve the printer device object Browser Print needs for /write.
+  function getDevice(cb, err) {
+    var name = (settings.printerZebraName || '').trim();
+    if (name) {
+      zReq('GET', '/available', null, function (t) {
+        var list = [];
+        try { var j = JSON.parse(t); list = j.printer || j.device || []; } catch (e) {}
+        var d = null;
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].name === name || list[i].uid === name) { d = list[i]; break; }
+        }
+        if (d) cb(d); else err('noname');
+      }, err);
+    } else {
+      zReq('GET', '/default?type=printer', null, function (t) {
+        var d = null;
+        try { d = JSON.parse(t); } catch (e) { d = null; }
+        if (d && (d.uid || d.name || d.connection)) cb(d); else err('nodefault');
+      }, err);
+    }
+  }
+
+  function zebraPrint(zpl, friendlyAction) {
+    var name = (settings.printerZebraName || '').trim();
+    function onErr(e) {
+      if (e === 'connect' || e === 'timeout') {
+        flashScanStatus('🖨 Zebra Browser Print not reachable — open it on the desktop, and visit https://localhost:9101 once to accept its security prompt', 'error');
+      } else if (e === 'noname') {
+        flashScanStatus('🖨 No Zebra printer named "' + name + '" — leave the name blank to use the default', 'error');
+      } else if (e === 'nodefault') {
+        flashScanStatus('🖨 No default printer set in Zebra Browser Print', 'error');
+      } else {
+        flashScanStatus('🖨 Zebra error: ' + e, 'error');
+      }
+    }
+    getDevice(function (device) {
+      zReq('POST', '/write', JSON.stringify({ device: device, data: zpl }),
+        function () { flashScanStatus(friendlyAction, 'success'); }, onErr);
+    }, onErr);
+  }
+
+  // ^ and ~ are ZPL command prefixes — strip them from data so they
+  // can't break the field.
+  function zSan(s) { return String(s == null ? '' : s).replace(/[\^~]/g, ' '); }
+
+  // Build one 2"x3" key tag at 203 dpi (406 x 609 dots). Centred via ^FB.
+  function buildZebraZpl(d) {
+    var W = 406;
+    var data = zSan(d.barcode || '');
+    // Rough Code128 width: 11 modules/char + 35 for start/check/stop, x2 dots.
+    var bw = (11 * data.length + 35) * 2;
+    var bx = Math.max(0, Math.round((W - bw) / 2));
+    var z = '';
+    z += '^XA^CI28^PW' + W + '^LL609^LH0,0';
+    z += '^FO0,18^A0N,26,26^FB' + W + ',1,0,C^FD' + zSan('CHATSWOOD CHASE VALET') + '^FS';
+    z += '^FO0,52^GB' + W + ',2,2^FS';
+    z += '^FO0,64^A0N,22,22^FB' + W + ',1,0,C^FD' + zSan('TICKET') + '^FS';
+    z += '^FO0,90^A0N,56,56^FB' + W + ',1,0,C^FD' + zSan(d.ticket) + '^FS';
+    z += '^FO0,156^A0N,42,42^FB' + W + ',1,0,C^FD' + zSan('BAY ' + (d.bay || '-')) + '^FS';
+    z += '^FO0,206^A0N,42,42^FB' + W + ',1,0,C^FD' + zSan('PLATE ' + (d.plate || '-')) + '^FS';
+    z += '^FO0,256^GB' + W + ',2,2^FS';
+    if (d.name) z += '^FO0,268^A0N,30,30^FB' + W + ',1,0,C^FD' + zSan(d.name) + '^FS';
+    z += '^FO0,304^A0N,24,24^FB' + W + ',1,0,C^FD' + zSan('In: ' + (d.timeStr || '')) + '^FS';
+    z += '^BY2,3,90^FO' + bx + ',340^BCN,90,Y,N,N^FD' + data + '^FS';
+    z += '^XZ';
+    return z;
+  }
+
+  window._printKeyTagZebra = function (entryOrId) {
+    var e = (typeof entryOrId === 'string') ? entries.find(function (x) { return x.id === entryOrId; }) : entryOrId;
+    if (!e) { flashScanStatus('Entry not found', 'error'); return; }
+    var zpl = buildZebraZpl({ ticket: e.ticket, bay: e.bay, plate: e.rego, name: e.name, timeStr: fmtTime(new Date(e.timeIn)), barcode: e.ticket });
+    zebraPrint(zpl, '🖨 Key tag printed');
+  };
+
+  window._printTestTagZebra = function () {
+    var zpl = buildZebraZpl({ ticket: 'TEST-001', bay: '1', plate: 'ABC123', name: 'Test Customer', timeStr: fmtTime(new Date()), barcode: 'TEST-001' });
+    zebraPrint(zpl, '🖨 Test tag sent — check the printer');
+  };
+})();
+
+// Dispatcher — routes to the configured printer type. Call sites keep
+// using printKeyTag()/printTestTag(); printerConfigured() gates auto-print.
+window.printerConfigured = function () {
+  return (settings.printerType === 'zebra') ? true : !!((settings.printerName || '').trim());
+};
+window.printKeyTag = function (x) {
+  return (settings.printerType === 'zebra' ? window._printKeyTagZebra : window._printKeyTagBixolon)(x);
+};
+window.printTestTag = function () {
+  return (settings.printerType === 'zebra' ? window._printTestTagZebra : window._printTestTagBixolon)();
+};
 
 // Lightweight transient toast (reuses the save-toast styling/element)
 // for one-line confirmations like "Ticket texted to customer".
@@ -3781,7 +3940,7 @@ function saveEditCar() {
   // The key tag shows ticket, bay and plate (ticket is also the barcode), so
   // reprint if any of those changed — but only when a printer is set up, so
   // editing stays silent until then.
-  if (tagChanged && (settings.printerName || '').trim()) {
+  if (tagChanged && printerConfigured()) {
     printKeyTag(e);
   }
 }
@@ -5613,12 +5772,19 @@ function renderSettings() {
   if (prKey) prKey.value = settings.plateRecognizerKey || '';
   updatePlateRecognizerUI();
   // Populate Key-Tag Printer settings
+  const pType = document.getElementById('s-printer-type');
+  if (pType) pType.value = settings.printerType || 'bixolon';
   const pName = document.getElementById('s-printer-name');
   if (pName) pName.value = settings.printerName || '';
   const pMode = document.getElementById('s-printer-mode');
   if (pMode) pMode.value = settings.printerMode || 'http:';
   const pServer = document.getElementById('s-printer-server');
   if (pServer) pServer.value = settings.printerServer || '127.0.0.1:18080';
+  const pZName = document.getElementById('s-printer-zebra-name');
+  if (pZName) pZName.value = settings.printerZebraName || '';
+  const pStation = document.getElementById('s-print-station');
+  if (pStation) pStation.checked = !!settings.printStation;
+  updatePrinterTypeUI();
   // Show current user
   const userEl = document.getElementById('settings-current-user');
   if (userEl && currentUser) {
@@ -5644,11 +5810,26 @@ function saveSettings() {
 }
 
 function savePrinterSettings() {
+  const typeEl = document.getElementById('s-printer-type');
+  settings.printerType = typeEl ? typeEl.value : (settings.printerType || 'bixolon');
   settings.printerName = document.getElementById('s-printer-name').value.trim();
   settings.printerMode = document.getElementById('s-printer-mode').value || 'http:';
   settings.printerServer = document.getElementById('s-printer-server').value.trim() || '127.0.0.1:18080';
+  const zNameEl = document.getElementById('s-printer-zebra-name');
+  if (zNameEl) settings.printerZebraName = zNameEl.value.trim();
+  const stationEl = document.getElementById('s-print-station');
+  if (stationEl) settings.printStation = stationEl.checked;
   saveSettingsToStorage();
   alert('Printer settings saved.');
+}
+
+// Show only the setup block for the selected printer type.
+function updatePrinterTypeUI() {
+  const t = (document.getElementById('s-printer-type') || {}).value || 'bixolon';
+  const bx = document.getElementById('bixolon-setup');
+  const zb = document.getElementById('zebra-setup');
+  if (bx) bx.style.display = (t === 'zebra') ? 'none' : '';
+  if (zb) zb.style.display = (t === 'zebra') ? '' : 'none';
 }
 
 // ═══════════════════════════════════════════════════
@@ -7213,6 +7394,9 @@ let currentUser = null; // { username, displayName, role }
 let realtimeChannel = null;
 let cloudSettings = {}; // Settings synced from cloud
 let pendingWrites = []; // Offline queue
+// Print Station: ids already auto-printed on THIS device, so a check-in
+// that prints locally isn't printed again when its realtime echo arrives.
+let autoPrintedIds = new Set();
 
 // ─── Field name conversion (JS camelCase ↔ DB snake_case) ───
 function jsToDb(e) {
@@ -7441,6 +7625,20 @@ function startRealtimeSync() {
     .subscribe();
 }
 
+// Print Station auto-print. Only devices with "Print Station" turned ON
+// (typically the desktop wired to the Zebra) print incoming check-ins.
+// Deduped by id so a check-in done on this same device — which already
+// printed locally — isn't printed twice when its realtime echo returns.
+function maybeAutoPrintTag(entry) {
+  if (!entry || !entry.id) return;
+  if (!settings.printStation) return;       // this device isn't the print station
+  if (!printerConfigured()) return;         // no printer set up here
+  if (entry.timeOut) return;                // already checked out — skip
+  if (autoPrintedIds.has(entry.id)) return; // printed here already
+  autoPrintedIds.add(entry.id);
+  printKeyTag(entry);
+}
+
 function handleRealtimeEntryChange(payload) {
   if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
     const newEntry = dbToJs(payload.new);
@@ -7449,6 +7647,9 @@ function handleRealtimeEntryChange(payload) {
     else entries.unshift(newEntry);
     // Re-sort by time_in desc
     entries.sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
+    // Print Station: a new check-in arrived (possibly from a phone that
+    // can't reach this printer) → print its key tag here.
+    if (payload.eventType === 'INSERT') maybeAutoPrintTag(newEntry);
     // A customer just tapped "bring my car" on their SMS ticket link →
     // raise the alarm on this device (popup + chime + vibrate).
     maybeAlarmCustomerPickup(newEntry);
