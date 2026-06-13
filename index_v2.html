@@ -425,6 +425,15 @@ tr:hover td{background:var(--bg)}
   .btn-row{flex-direction:column;align-items:stretch}
   .btn-row .btn{width:100%}
   .modal-box{padding:18px}
+
+  /* New Entry form on phones: bigger, easier-to-read fields with more
+     breathing room between questions. 16px inputs also stop iOS zooming
+     in when a field is tapped. */
+  #view-new-entry .form-grid{gap:20px;margin-bottom:18px}
+  #view-new-entry .form-field{gap:8px}
+  #view-new-entry .form-label{font-size:13px;letter-spacing:1px}
+  #view-new-entry .form-input,
+  #view-new-entry .form-select{font-size:16px;padding:13px 13px}
 }
 
 /* Print-friendly */
