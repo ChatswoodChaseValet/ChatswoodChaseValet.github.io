@@ -4631,14 +4631,55 @@ function renderBagQueue() {
   }).join('');
 }
 
-// Staff logs a phone-in / walk-up request (prompt-based for speed).
+// Shop list for hands-free shopping (Level 1). Used by the staff "log
+// request" modal; the customer ticket page (ticket.html) keeps its own copy,
+// so update both when the shops change.
+const L1_SHOPS = ['Bvlgari', 'Burberry', 'Cartier', 'Céline', 'Chaumet', 'Dior', 'Dolce & Gabbana', 'Emporio Armani', 'FRED', 'Hermès', 'Jaeger-LeCoultre', 'Louis Vuitton', 'Moncler', 'Rimowa'];
+
+// Staff logs a phone-in / walk-up bag request via a shop-picker modal, so it
+// matches what the customer sees (no free-typing the shop each time).
 function logBagRequest(id) {
   const e = entries.find(x => x.id === id); if (!e) return;
-  const location = prompt('Where are the bags? (shop name, or "Valet Desk")', e.bagLocation || 'Valet Desk');
-  if (location === null) return;
-  const countStr = prompt('How many bags?', String(e.bagCount || 1));
-  if (countStr === null) return;
-  requestBag(id, { location: (location.trim() || 'Valet Desk'), count: parseInt(countStr, 10) || 1, notes: '', source: 'staff' });
+  const modal = document.getElementById('bag-request-modal');
+  modal.dataset.entryId = id;
+  const shop = document.getElementById('bag-req-shop');
+  if (shop) {
+    shop.innerHTML = '<option value="">— Choose shop —</option>'
+      + L1_SHOPS.map(s => '<option>' + s.replace(/</g, '&lt;') + '</option>').join('')
+      + '<option value="__other__">Other / not listed…</option>';
+    shop.value = '';
+  }
+  const loc = document.getElementById('bag-req-loc');
+  if (loc) { loc.value = ''; loc.style.display = 'none'; }
+  const cnt = document.getElementById('bag-req-count');
+  if (cnt) cnt.selectedIndex = 0;
+  modal.classList.add('show');
+}
+
+// Reveal the free-text box only when "Other / not listed" is picked.
+function bagReqShopChanged() {
+  const shop = document.getElementById('bag-req-shop');
+  const loc = document.getElementById('bag-req-loc');
+  const other = shop && shop.value === '__other__';
+  if (loc) { loc.style.display = other ? '' : 'none'; if (other) loc.focus(); }
+}
+
+function closeBagRequestModal() {
+  document.getElementById('bag-request-modal').classList.remove('show');
+}
+
+function confirmBagRequest() {
+  const modal = document.getElementById('bag-request-modal');
+  const id = modal.dataset.entryId;
+  const shop = document.getElementById('bag-req-shop');
+  const loc = document.getElementById('bag-req-loc');
+  const cnt = document.getElementById('bag-req-count');
+  const sel = shop ? shop.value : '';
+  if (!sel) { alert('Please choose the shop (or pick "Other / not listed").'); return; }
+  const location = (sel === '__other__') ? ((loc.value || '').trim() || 'Valet Desk') : sel;
+  const count = parseInt(cnt.value, 10) || 1;
+  closeBagRequestModal();
+  requestBag(id, { location, count, notes: '', source: 'staff' });
 }
 
 function requestBag(id, { location, count, notes }) {
@@ -9129,6 +9170,29 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" onclick="bagAlarmCollect()" style="flex:1;font-size:16px;padding:16px" title="Marks this as being collected and opens the bag queue">🛍 On my way</button>
       <button class="btn btn-secondary" onclick="acknowledgeBagAlarm()" style="flex:1;font-size:16px;padding:16px">✓ Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF "LOG BAG REQUEST" MODAL — shop picker for phone-in / walk-up
+     hands-free requests, mirroring the customer ticket page. -->
+<div class="modal" id="bag-request-modal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">📦 Log bag pickup</div>
+    <div class="form-field" style="margin-bottom:12px">
+      <label class="form-label">Which shop?</label>
+      <select id="bag-req-shop" class="form-input" onchange="bagReqShopChanged()"></select>
+    </div>
+    <input id="bag-req-loc" class="form-input" type="text" placeholder="Type the shop or location" maxlength="60" style="display:none;margin-bottom:12px">
+    <div class="form-field" style="margin-bottom:16px">
+      <label class="form-label">How many bags?</label>
+      <select id="bag-req-count" class="form-input">
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6+</option>
+      </select>
+    </div>
+    <div class="btn-row" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeBagRequestModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmBagRequest()">📦 Add to queue</button>
     </div>
   </div>
 </div>
