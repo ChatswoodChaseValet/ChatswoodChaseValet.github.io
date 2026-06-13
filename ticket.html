@@ -166,9 +166,27 @@
         <button class="req-btn now" id="bag-start" style="grid-column:1 / -1">📦 Bring my shopping to the car</button>
       </div>
       <div id="bag-form" style="display:none;margin-top:12px;text-align:left">
-        <label style="font-size:12px;color:#a48d53;font-weight:bold;display:block;margin-bottom:4px">Where are you?</label>
-        <input id="bag-loc" type="text" placeholder="e.g. David Jones, Level 2 — or Valet Desk" maxlength="60"
-          style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1.5px solid #ebebe9;border-radius:10px;font-family:inherit;margin-bottom:10px">
+        <label style="font-size:12px;color:#a48d53;font-weight:bold;display:block;margin-bottom:4px">Which shop are you at?</label>
+        <select id="bag-shop" style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1.5px solid #ebebe9;border-radius:10px;font-family:inherit;margin-bottom:10px;background:#fff">
+          <option value="">— Choose your shop —</option>
+          <option>Bvlgari</option>
+          <option>Burberry</option>
+          <option>Cartier</option>
+          <option>Céline</option>
+          <option>Chaumet</option>
+          <option>Dior</option>
+          <option>Dolce &amp; Gabbana</option>
+          <option>Emporio Armani</option>
+          <option>FRED</option>
+          <option>Hermès</option>
+          <option>Jaeger-LeCoultre</option>
+          <option>Louis Vuitton</option>
+          <option>Moncler</option>
+          <option>Rimowa</option>
+          <option value="__other__">Other / not listed…</option>
+        </select>
+        <input id="bag-loc" type="text" placeholder="Type your shop or where you are" maxlength="60"
+          style="display:none;width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1.5px solid #ebebe9;border-radius:10px;font-family:inherit;margin-bottom:10px">
         <label style="font-size:12px;color:#a48d53;font-weight:bold;display:block;margin-bottom:4px">How many bags?</label>
         <select id="bag-count" style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1.5px solid #ebebe9;border-radius:10px;font-family:inherit;margin-bottom:12px;background:#fff">
           <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6+</option>
@@ -438,10 +456,20 @@
   var bagForm = document.getElementById('bag-form');
   var bagResult = document.getElementById('bag-result');
   var bagSendBtn = document.getElementById('bag-send');
+  var bagShopSel = document.getElementById('bag-shop');
+  var bagLocInput = document.getElementById('bag-loc');
   if (bagStartBtn) bagStartBtn.addEventListener('click', function(){
     document.getElementById('bag-buttons').style.display = 'none';
     bagForm.style.display = '';
-    document.getElementById('bag-loc').focus();
+    if (bagShopSel) bagShopSel.focus();
+  });
+  // Show the free-text box only when "Other / not listed" is picked.
+  if (bagShopSel) bagShopSel.addEventListener('change', function(){
+    var other = bagShopSel.value === '__other__';
+    if (bagLocInput) {
+      bagLocInput.style.display = other ? '' : 'none';
+      if (other) { bagLocInput.value = ''; bagLocInput.focus(); }
+    }
   });
   // Re-open the request form after a previous lot was delivered, so the
   // customer can send bags again from a different shop.
@@ -449,14 +477,17 @@
     if (bagResult) bagResult.innerHTML = '';
     if (bagForm) bagForm.style.display = '';
     if (bagSendBtn) bagSendBtn.disabled = false;
-    var loc = document.getElementById('bag-loc');
-    if (loc) { loc.value = ''; loc.focus(); }
+    if (bagShopSel) { bagShopSel.selectedIndex = 0; bagShopSel.focus(); }
+    if (bagLocInput) { bagLocInput.value = ''; bagLocInput.style.display = 'none'; }
     var cntSel = document.getElementById('bag-count');
     if (cntSel) cntSel.selectedIndex = 0;
   };
   if (bagSendBtn) bagSendBtn.addEventListener('click', async function(){
     if (!entryId) { bagResult.innerHTML = '<div class="req-error">⚠ We couldn\'t match your ticket. Please see the valet desk.</div>'; return; }
-    var loc = (document.getElementById('bag-loc').value || '').trim() || 'Valet Desk';
+    // Location comes from the shop dropdown; "Other" reveals the text box.
+    var sel = bagShopSel ? bagShopSel.value : '';
+    if (!sel) { bagResult.innerHTML = '<div class="req-error">⚠ Please choose your shop from the list.</div>'; return; }
+    var loc = (sel === '__other__') ? ((bagLocInput.value || '').trim() || 'Valet Desk') : sel;
     var cnt = parseInt(document.getElementById('bag-count').value, 10) || 1;
     bagSendBtn.disabled = true;
     var now = new Date();
