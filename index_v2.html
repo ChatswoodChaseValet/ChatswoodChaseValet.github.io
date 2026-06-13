@@ -3193,12 +3193,6 @@ function dismissSaveToast() {
   // can't break the field.
   function zSan(s) { return String(s == null ? '' : s).replace(/[\^~]/g, ' '); }
 
-  // Shorten a car brand for the tag: first 4 letters, UPPERCASE
-  // (Toyota -> TOYO, Suzuki -> SUZU, Mercedes -> MERC, BMW -> BMW).
-  function shortBrand(b) {
-    return String(b == null ? '' : b).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 4);
-  }
-
   // Build one 2"x3" key tag at 203 dpi (406 x 609 dots). Centred via ^FB.
   function buildZebraZpl(d) {
     var W = 406;
@@ -3207,7 +3201,7 @@ function dismissSaveToast() {
     // Rough Code128 width: 11 modules/char + 35 for start/check/stop.
     var bw = (11 * data.length + 35) * mw;
     var bx = Math.max(0, Math.round((W - bw) / 2));
-    var sb = shortBrand(d.brand);
+    var sb = String(d.brand || '').trim().toUpperCase();   // full car brand name, UPPERCASE
     var z = '';
     z += '^XA^CI28^PW' + W + '^LL609^LH0,0';
     z += '^FO0,18^A0N,26,26^FB' + W + ',1,0,C^FD' + zSan('CHATSWOOD CHASE VALET') + '^FS';
@@ -3215,7 +3209,7 @@ function dismissSaveToast() {
     z += '^FO0,66^A0N,28,28^FB' + W + ',1,0,C^FD' + zSan('TICKET  ' + (d.ticket || '-')) + '^FS';  // ticket# on the TICKET line, same size
     z += '^FO0,106^A0N,42,42^FB' + W + ',1,0,C^FD' + zSan('BAY ' + (d.bay || '-')) + '^FS';
     z += '^FO0,156^A0N,52,52^FB' + W + ',1,0,C^FD' + zSan(d.plate || '-') + '^FS';   // plate only, no "PLATE" label
-    if (sb) z += '^FO0,216^A0N,32,32^FB' + W + ',1,0,C^FD' + zSan(sb) + '^FS';        // short car brand, UPPERCASE
+    if (sb) z += '^FO0,216^A0N,32,32^FB' + W + ',1,0,C^FD' + zSan(sb) + '^FS';        // full car brand name, UPPERCASE
     z += '^FO0,258^GB' + W + ',2,2^FS';
     if (d.name) z += '^FO0,268^A0N,30,30^FB' + W + ',1,0,C^FD' + zSan(d.name) + '^FS';
     z += '^FO0,304^A0N,24,24^FB' + W + ',1,0,C^FD' + zSan('In: ' + (d.timeStr || '')) + '^FS';
