@@ -824,7 +824,7 @@ body.dark-mode .scan-banner {
 </div>
 
 <div class="scan-banner" id="scan-banner">
-  🔫 SCAN MODE ACTIVE — Point your scanner at any ticket QR code · Press Esc to exit
+  🔫 SCANNER ALWAYS ON — just scan a key tag anywhere; no need to click first
 </div>
 
 <div class="header">
@@ -6062,20 +6062,13 @@ let scanModeActive = false;
 let scanBuffer = '';
 let scanBufferTimer = null;
 
+// Scanning is always live now (see the global keydown handler below). This
+// button just shows/hides an on-screen reminder banner; the button itself
+// stays "ON" to signal the scanner is always ready.
 function toggleScanMode() {
   scanModeActive = !scanModeActive;
-  const btn = document.getElementById('btn-scan-mode');
   const banner = document.getElementById('scan-banner');
-  if (scanModeActive) {
-    btn.classList.add('active');
-    banner.classList.add('show');
-    btn.textContent = '🔫 Scan Mode ON';
-  } else {
-    btn.classList.remove('active');
-    banner.classList.remove('show');
-    btn.textContent = '🔫 Scan Mode';
-    scanBuffer = '';
-  }
+  if (banner) banner.classList.toggle('show', scanModeActive);
 }
 
 function processScannedCode(code) {
@@ -6167,36 +6160,52 @@ function flashScanStatus(message, type) {
   setTimeout(() => { toast.style.opacity = '0' }, 2200);
 }
 
-// Listen for keystrokes globally when scan mode is on
+// Always-on hardware-scanner capture. A USB/Bluetooth barcode scanner
+// "types" the ticket very fast and ends with Enter; we capture that burst
+// anywhere on the page so staff just scan — no clicking into a box first.
+// Normal (slower) typing and any focused form field are left untouched.
+let lastScanKeyAt = 0;
 document.addEventListener('keydown', e => {
-  if (!scanModeActive) return;
-  // Don't intercept if user is actively typing in a form (e.g. editing entry)
-  const tag = document.activeElement.tagName;
-  if (['INPUT','TEXTAREA','SELECT'].includes(tag)) {
-    // Allow exit via Esc even when in a field
-    if (e.key === 'Escape') toggleScanMode();
-    return;
-  }
-  if (e.key === 'Escape') {
-    toggleScanMode();
-    return;
-  }
-  if (e.key === 'Enter') {
-    if (scanBuffer) {
-      processScannedCode(scanBuffer);
-      scanBuffer = '';
-    }
-    e.preventDefault();
-    return;
-  }
-  // Reset buffer if user pauses too long (real typing vs scanner)
-  if (scanBufferTimer) clearTimeout(scanBufferTimer);
-  scanBufferTimer = setTimeout(() => { scanBuffer = '' }, 200);
+  // Never hijack typing in a form field (New Entry, search, settings, etc.).
+  const el = document.activeElement;
+  if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+  // Ignore shortcut combos — those aren't scanner output.
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-  if (e.key.length === 1) {
-    scanBuffer += e.key;
+  const now = Date.now();
+  const gap = now - lastScanKeyAt;
+  lastScanKeyAt = now;
+
+  if (e.key === 'Enter') {
+    // A scanner ends its burst with Enter. Only act on a real code (len>=2)
+    // so a stray Enter does nothing.
+    if (scanBuffer.length >= 2) {
+      processScannedCode(scanBuffer);
+      e.preventDefault();   // don't let the terminating Enter click a focused button
+    }
+    scanBuffer = '';
+    return;
   }
+  // A pause between keys means human typing, not a scanner burst → start fresh.
+  // (Scanner keystrokes arrive within a few ms of each other.)
+  if (gap > 120) scanBuffer = '';
+  if (e.key.length === 1) scanBuffer += e.key;
+  // Safety: clear a stalled buffer so stray keys never accumulate into a "scan".
+  if (scanBufferTimer) clearTimeout(scanBufferTimer);
+  scanBufferTimer = setTimeout(() => { scanBuffer = ''; }, 300);
 });
+
+// Scanning is live the moment the page loads — show that on the button.
+function initScannerButton() {
+  const btn = document.getElementById('btn-scan-mode');
+  if (btn) {
+    btn.classList.add('active');
+    btn.textContent = '🔫 Scanner ON';
+    btn.title = 'Scanner is always on — just scan a key tag anywhere, no need to click first';
+  }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initScannerButton);
+else initScannerButton();
 
 // ═══════════════════════════════════════════════════
 // CAMERA SCANNER (phone or PC webcam)
