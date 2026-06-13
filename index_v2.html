@@ -4643,6 +4643,7 @@ function requestBag(id, { location, count, notes }) {
   e.bagInCarBy = null;
   e.bagDoneAt = null;
   bagBannerDismissed = false;
+  bagAlertSeen.add(bagAlertKey(e));   // we logged this ourselves — don't self-alarm on the echo
   saveData(id, { immediate: true });
   cloudAudit('bag_request', 'entry', id, { ticket: e.ticket, location: e.bagLocation, count: e.bagCount });
   renderBagQueue();
@@ -7655,6 +7656,8 @@ function handleRealtimeEntryChange(payload) {
     // A customer just tapped "bring my car" on their SMS ticket link →
     // raise the alarm on this device (popup + chime + vibrate).
     maybeAlarmCustomerPickup(newEntry);
+    // A customer requested hands-free shopping → raise the bag alarm.
+    maybeAlarmBagRequest(newEntry);
   } else if (payload.eventType === 'DELETE') {
     entries = entries.filter(e => e.id !== payload.old.id);
   }
@@ -7793,6 +7796,91 @@ function startPickupAlarmSound() {
 function stopPickupAlarmSound() {
   if (pickupAlarmTimer) { clearInterval(pickupAlarmTimer); pickupAlarmTimer = null; }
   if (navigator.vibrate) navigator.vibrate(0);
+}
+
+// ═══════════════════════════════════════════════════
+// CUSTOMER BAG-REQUEST ALARM
+// Same attention-grabbing popup + chime + vibrate as the car-pickup
+// alarm, but for hands-free shopping. Fires when a bag request
+// (bag_status='requested') arrives that this device hasn't alarmed yet.
+// Reuses the pickup alarm's sound so the behaviour is identical.
+// ═══════════════════════════════════════════════════
+let bagAlertSeen = new Set();   // keys we've already handled (id|requestedAt)
+let bagAlertQueue = [];         // entry ids waiting to be shown
+let currentBagAlarmId = null;   // entry currently shown in the bag alarm modal
+
+function bagAlertKey(e) {
+  return (e.id || '') + '|' + (e.bagRequested || '');
+}
+
+// Mark all current bag requests as already-seen so login / cloud-load
+// doesn't replay alarms for the existing backlog.
+function seedBagAlertBaseline() {
+  bagAlertSeen = new Set();
+  entries.forEach(e => {
+    if (e.bagStatus === 'requested') bagAlertSeen.add(bagAlertKey(e));
+  });
+}
+
+function maybeAlarmBagRequest(e) {
+  if (!e || e.bagStatus !== 'requested' || e.timeOut) return;
+  const key = bagAlertKey(e);
+  if (bagAlertSeen.has(key)) return;        // already alarmed (or we logged it ourselves)
+  bagAlertSeen.add(key);
+  bagAlertQueue.push(e.id);
+  const bagModal = document.getElementById('bag-alarm-modal');
+  const pickupModal = document.getElementById('pickup-alarm-modal');
+  // Don't stack on top of an alarm that's already open; it'll show next.
+  if (bagModal && !bagModal.classList.contains('show')
+      && !(pickupModal && pickupModal.classList.contains('show'))) {
+    showNextBagAlarm();
+  }
+}
+
+function showNextBagAlarm() {
+  const modal = document.getElementById('bag-alarm-modal');
+  if (!modal) return;
+  let e = null;
+  while (bagAlertQueue.length) {
+    const id = bagAlertQueue.shift();
+    e = entries.find(x => x.id === id && !x.timeOut && x.bagStatus === 'requested');
+    if (e) break;
+    e = null;
+  }
+  if (!e) { stopPickupAlarmSound(); modal.classList.remove('show'); currentBagAlarmId = null; return; }
+
+  currentBagAlarmId = e.id;
+  const cnt = Number(e.bagCount) || 1;
+  document.getElementById('bag-alarm-loc').textContent = e.bagLocation || 'Valet Desk';
+  document.getElementById('bag-alarm-count').textContent = cnt + (cnt === 1 ? ' bag' : ' bags');
+  document.getElementById('bag-alarm-ticket').textContent = e.ticket || '—';
+  document.getElementById('bag-alarm-car').textContent =
+    [e.brand, e.model].filter(Boolean).join(' ') + (e.rego ? ' · ' + e.rego : '');
+
+  const more = bagAlertQueue.length;
+  document.getElementById('bag-alarm-more').textContent =
+    more > 0 ? `+${more} more bag request${more > 1 ? 's' : ''} waiting` : '';
+
+  modal.classList.add('show');
+  startPickupAlarmSound();
+  if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+}
+
+// "On my way" — mark the job as being collected, then clear this alarm.
+function bagAlarmCollect() {
+  if (currentBagAlarmId) { try { assignBag(currentBagAlarmId); } catch (e) {} }
+  acknowledgeBagAlarm();
+}
+
+function acknowledgeBagAlarm() {
+  stopPickupAlarmSound();
+  if (bagAlertQueue.length) {
+    showNextBagAlarm();              // show the next queued request
+  } else {
+    document.getElementById('bag-alarm-modal').classList.remove('show');
+    currentBagAlarmId = null;
+    try { showView('bags'); } catch (e) {}   // jump to the bag queue to action it
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -8122,6 +8210,7 @@ async function completeLogin() {
   // Treat all existing pickup requests as already-seen so we only alarm for
   // NEW customer requests that arrive after login (not the backlog).
   seedPickupAlertBaseline();
+  seedBagAlertBaseline();
   // 5) Start real-time sync AFTER the initial fetch so we don't process
   //    events against a half-populated entries array.
   startRealtimeSync();
@@ -9003,6 +9092,30 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" onclick="alarmOnTheWay()" style="flex:1;font-size:16px;padding:16px" title="Tells the customer their car is on its way">🚗 On the way</button>
       <button class="btn btn-secondary" onclick="acknowledgePickupAlarm()" style="flex:1;font-size:16px;padding:16px">✓ Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- BAG-REQUEST ALARM — full-attention popup (chime + vibrate) when a
+     customer requests hands-free shopping. Mirrors the car-pickup alarm. -->
+<div class="modal" id="bag-alarm-modal">
+  <div class="modal-box" style="max-width:460px;text-align:center;border:3px solid #a48d53">
+    <div style="font-size:13px;letter-spacing:3px;color:#a48d53;text-transform:uppercase;font-weight:bold;margin-bottom:6px">🛍 Bag Pickup Requested</div>
+    <div style="font-size:20px;font-weight:bold;color:#a48d53;margin-bottom:16px">A customer wants their shopping collected</div>
+
+    <div style="background:var(--sandstone);border-radius:10px;padding:18px 16px;margin-bottom:16px">
+      <div style="font-size:11px;letter-spacing:3px;color:#a48d53;text-transform:uppercase">Collect from</div>
+      <div id="bag-alarm-loc" style="font-family:'Inter',sans-serif;font-size:30px;font-weight:bold;color:var(--maroon);line-height:1.2;margin:8px 0">—</div>
+      <div id="bag-alarm-count" style="font-size:15px;color:#333333;font-weight:600">—</div>
+    </div>
+
+    <div id="bag-alarm-car" style="font-size:17px;color:#333333;margin-bottom:4px">—</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Ticket <strong id="bag-alarm-ticket" style="font-family:'Courier New',monospace;color:var(--maroon)">—</strong></div>
+    <div id="bag-alarm-more" style="font-size:12px;color:#a48d53;font-weight:bold;min-height:16px;margin-bottom:12px"></div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="bagAlarmCollect()" style="flex:1;font-size:16px;padding:16px" title="Marks this as being collected and opens the bag queue">🛍 On my way</button>
+      <button class="btn btn-secondary" onclick="acknowledgeBagAlarm()" style="flex:1;font-size:16px;padding:16px">✓ Got it</button>
     </div>
   </div>
 </div>
