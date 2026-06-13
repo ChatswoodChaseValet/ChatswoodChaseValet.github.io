@@ -6124,7 +6124,7 @@ function showScanResult(entry) {
   const regoEl = document.getElementById('scan-result-rego');
   regoEl.style.fontSize = '40px';
   let _fs = 40;
-  while (regoEl.scrollWidth > regoEl.clientWidth && _fs > 16) { _fs -= 2; regoEl.style.fontSize = _fs + 'px'; }
+  while (regoEl.scrollWidth > regoEl.clientWidth && _fs > 12) { _fs -= 1; regoEl.style.fontSize = _fs + 'px'; }
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 
@@ -9219,11 +9219,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="scan-result-ticket" style="font-family:'Courier New',monospace;font-size:22px;color:var(--maroon);font-weight:bold;letter-spacing:3px;margin-bottom:14px">—</div>
 
     <div style="display:flex;gap:12px;margin-bottom:16px">
-      <div style="flex:1;background:var(--sandstone);border-radius:10px;padding:18px 10px">
+      <div style="flex:1;min-width:0;background:var(--sandstone);border-radius:10px;padding:18px 10px">
         <div style="font-size:11px;letter-spacing:2px;color:#a48d53;text-transform:uppercase">Parked in Bay</div>
         <div id="scan-result-bay" style="font-family:'Inter',sans-serif;font-size:78px;font-weight:bold;color:var(--maroon);line-height:1;margin:6px 0">—</div>
       </div>
-      <div style="flex:1;background:var(--sandstone);border-radius:10px;padding:18px 10px;display:flex;flex-direction:column;justify-content:center">
+      <div style="flex:1;min-width:0;background:var(--sandstone);border-radius:10px;padding:18px 10px;display:flex;flex-direction:column;justify-content:center">
         <div style="font-size:11px;letter-spacing:2px;color:#a48d53;text-transform:uppercase">Number Plate</div>
         <div id="scan-result-rego" style="font-family:'Courier New',monospace;font-size:40px;font-weight:bold;color:var(--maroon);letter-spacing:1px;line-height:1.1;margin:6px 0;white-space:nowrap;overflow:hidden">—</div>
       </div>
