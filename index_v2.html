@@ -6120,6 +6120,11 @@ function showScanResult(entry) {
     btn.dataset.mode = 'checkout';
   }
   m.classList.add('show');
+  // Shrink the plate so it always stays on one line, however long it is.
+  const regoEl = document.getElementById('scan-result-rego');
+  regoEl.style.fontSize = '40px';
+  let _fs = 40;
+  while (regoEl.scrollWidth > regoEl.clientWidth && _fs > 16) { _fs -= 2; regoEl.style.fontSize = _fs + 'px'; }
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 
@@ -9220,7 +9225,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div style="flex:1;background:var(--sandstone);border-radius:10px;padding:18px 10px;display:flex;flex-direction:column;justify-content:center">
         <div style="font-size:11px;letter-spacing:2px;color:#a48d53;text-transform:uppercase">Number Plate</div>
-        <div id="scan-result-rego" style="font-family:'Courier New',monospace;font-size:40px;font-weight:bold;color:var(--maroon);letter-spacing:2px;line-height:1.1;margin:6px 0;word-break:break-all">—</div>
+        <div id="scan-result-rego" style="font-family:'Courier New',monospace;font-size:40px;font-weight:bold;color:var(--maroon);letter-spacing:1px;line-height:1.1;margin:6px 0;white-space:nowrap;overflow:hidden">—</div>
       </div>
     </div>
 
