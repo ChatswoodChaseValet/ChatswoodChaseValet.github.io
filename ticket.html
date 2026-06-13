@@ -294,7 +294,7 @@
       var bagBtns = document.getElementById('bag-buttons');
       var bagRes = document.getElementById('bag-result');
       if (bagRes) {
-        if (row.bag_status === 'in_car') {
+        if (row.bag_status === 'in_car' || row.bag_status === 'done') {
           if (bagForm) bagForm.style.display = 'none';
           if (bagBtns) bagBtns.style.display = 'none';
           var bagImg = row.bag_photo
