@@ -4643,12 +4643,15 @@ function requestBag(id, { location, count, notes }) {
   e.bagInCarBy = null;
   e.bagDoneAt = null;
   bagBannerDismissed = false;
-  bagAlertSeen.add(bagAlertKey(e));   // we logged this ourselves — don't self-alarm on the echo
   saveData(id, { immediate: true });
   cloudAudit('bag_request', 'entry', id, { ticket: e.ticket, location: e.bagLocation, count: e.bagCount });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
   quickToast('📦 Bag pickup added to the queue');
+  // Raise the attention alarm here too, so a phone-in request is just as
+  // loud as a customer self-service one. Deduped by key, so the realtime
+  // echo won't pop it a second time.
+  maybeAlarmBagRequest(e);
 }
 
 function assignBag(id) {
