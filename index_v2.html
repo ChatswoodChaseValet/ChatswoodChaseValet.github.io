@@ -3193,6 +3193,29 @@ function dismissSaveToast() {
   // can't break the field.
   function zSan(s) { return String(s == null ? '' : s).replace(/[\^~]/g, ' '); }
 
+  // Shorten a car brand for the tag (Toyota -> Toy, Mercedes -> Merc).
+  // Known brands use a hand-picked abbreviation; anything else falls
+  // back to its first 4 letters, capitalised.
+  function shortBrand(b) {
+    var s = String(b == null ? '' : b).trim();
+    if (!s) return '';
+    var key = s.toLowerCase().replace(/[^a-z]/g, '');
+    var map = {
+      toyota: 'Toy', mazda: 'Maz', mercedes: 'Merc', mercedesbenz: 'Merc', benz: 'Merc',
+      bmw: 'BMW', audi: 'Audi', volkswagen: 'VW', vw: 'VW', hyundai: 'Hyu', honda: 'Hon',
+      nissan: 'Nis', kia: 'Kia', subaru: 'Sub', mitsubishi: 'Mits', lexus: 'Lex',
+      ford: 'Ford', holden: 'Hol', tesla: 'Tes', landrover: 'LRov', rangerover: 'RRov',
+      jeep: 'Jeep', volvo: 'Vol', porsche: 'Por', suzuki: 'Suz', renault: 'Ren',
+      peugeot: 'Peu', isuzu: 'Isu', mg: 'MG', skoda: 'Sko', jaguar: 'Jag', mini: 'Mini',
+      genesis: 'Gen', chery: 'Chery', gwm: 'GWM', haval: 'Hav', ldv: 'LDV', ram: 'RAM',
+      alfaromeo: 'Alfa', fiat: 'Fiat', citroen: 'Cit', cupra: 'Cup', byd: 'BYD'
+    };
+    if (map[key]) return map[key];
+    var f = s.replace(/[^A-Za-z]/g, '');
+    if (!f) return s.slice(0, 4);
+    return f.charAt(0).toUpperCase() + f.slice(1, 4).toLowerCase();
+  }
+
   // Build one 2"x3" key tag at 203 dpi (406 x 609 dots). Centred via ^FB.
   function buildZebraZpl(d) {
     var W = 406;
@@ -3200,18 +3223,20 @@ function dismissSaveToast() {
     // Rough Code128 width: 11 modules/char + 35 for start/check/stop, x2 dots.
     var bw = (11 * data.length + 35) * 2;
     var bx = Math.max(0, Math.round((W - bw) / 2));
+    var sb = shortBrand(d.brand);
     var z = '';
     z += '^XA^CI28^PW' + W + '^LL609^LH0,0';
     z += '^FO0,18^A0N,26,26^FB' + W + ',1,0,C^FD' + zSan('CHATSWOOD CHASE VALET') + '^FS';
     z += '^FO0,52^GB' + W + ',2,2^FS';
     z += '^FO0,64^A0N,22,22^FB' + W + ',1,0,C^FD' + zSan('TICKET') + '^FS';
     z += '^FO0,90^A0N,56,56^FB' + W + ',1,0,C^FD' + zSan(d.ticket) + '^FS';
-    z += '^FO0,156^A0N,42,42^FB' + W + ',1,0,C^FD' + zSan('BAY ' + (d.bay || '-')) + '^FS';
-    z += '^FO0,206^A0N,42,42^FB' + W + ',1,0,C^FD' + zSan('PLATE ' + (d.plate || '-')) + '^FS';
-    z += '^FO0,256^GB' + W + ',2,2^FS';
-    if (d.name) z += '^FO0,268^A0N,30,30^FB' + W + ',1,0,C^FD' + zSan(d.name) + '^FS';
-    z += '^FO0,304^A0N,24,24^FB' + W + ',1,0,C^FD' + zSan('In: ' + (d.timeStr || '')) + '^FS';
-    z += '^BY2,3,90^FO' + bx + ',340^BCN,90,Y,N,N^FD' + data + '^FS';
+    z += '^FO0,156^A0N,40,40^FB' + W + ',1,0,C^FD' + zSan('BAY ' + (d.bay || '-')) + '^FS';
+    z += '^FO0,204^A0N,50,50^FB' + W + ',1,0,C^FD' + zSan(d.plate || '-') + '^FS';   // plate only, no "PLATE" label
+    if (sb) z += '^FO0,260^A0N,30,30^FB' + W + ',1,0,C^FD' + zSan(sb) + '^FS';        // short car brand
+    z += '^FO0,298^GB' + W + ',2,2^FS';
+    if (d.name) z += '^FO0,308^A0N,30,30^FB' + W + ',1,0,C^FD' + zSan(d.name) + '^FS';
+    z += '^FO0,344^A0N,24,24^FB' + W + ',1,0,C^FD' + zSan('In: ' + (d.timeStr || '')) + '^FS';
+    z += '^BY2,3,86^FO' + bx + ',380^BCN,86,Y,N,N^FD' + data + '^FS';
     z += '^XZ';
     return z;
   }
@@ -3219,12 +3244,12 @@ function dismissSaveToast() {
   window._printKeyTagZebra = function (entryOrId) {
     var e = (typeof entryOrId === 'string') ? entries.find(function (x) { return x.id === entryOrId; }) : entryOrId;
     if (!e) { flashScanStatus('Entry not found', 'error'); return; }
-    var zpl = buildZebraZpl({ ticket: e.ticket, bay: e.bay, plate: e.rego, name: e.name, timeStr: fmtTime(new Date(e.timeIn)), barcode: e.ticket });
+    var zpl = buildZebraZpl({ ticket: e.ticket, bay: e.bay, plate: e.rego, brand: e.brand, name: e.name, timeStr: fmtTime(new Date(e.timeIn)), barcode: e.ticket });
     zebraPrint(zpl, '🖨 Key tag printed');
   };
 
   window._printTestTagZebra = function () {
-    var zpl = buildZebraZpl({ ticket: 'TEST-001', bay: '1', plate: 'ABC123', name: 'Test Customer', timeStr: fmtTime(new Date()), barcode: 'TEST-001' });
+    var zpl = buildZebraZpl({ ticket: 'TEST-001', bay: '1', plate: 'ABC123', brand: 'Toyota', name: 'Test Customer', timeStr: fmtTime(new Date()), barcode: 'TEST-001' });
     zebraPrint(zpl, '🖨 Test tag sent — check the printer');
   };
 })();
