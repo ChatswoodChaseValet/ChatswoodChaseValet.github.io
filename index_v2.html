@@ -4600,32 +4600,43 @@ function toggleBagDetail(id) {
 }
 
 function renderBagQueue() {
-  const open = entries
+  const active = entries
     .filter(e => !e.timeOut && e.bagStatus && e.bagStatus !== 'done')
     .sort((a, b) => new Date(a.bagRequested || 0) - new Date(b.bagRequested || 0)); // oldest first
-  updateBagBadge(open.length);
+  // Completed deliveries for cars still on site stay visible (in green) so staff
+  // can see the job is done; they drop off once the car is checked out.
+  const doneOnSite = entries
+    .filter(e => !e.timeOut && e.bagStatus === 'done')
+    .sort((a, b) => new Date(b.bagDoneAt || 0) - new Date(a.bagDoneAt || 0)); // most recent first
+  const list = active.concat(doneOnSite);
+  updateBagBadge(active.length);   // badge + alarm count = outstanding work only
   const countEl = document.getElementById('bag-count');
-  if (countEl) countEl.textContent = open.length ? `${open.length} job${open.length !== 1 ? 's' : ''} open` : 'all clear';
+  if (countEl) countEl.textContent = active.length ? `${active.length} job${active.length !== 1 ? 's' : ''} open` : 'all clear';
   const container = document.getElementById('bag-queue');
   if (!container) return;
-  if (!open.length) {
+  if (!list.length) {
     container.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div>No bag pickups right now</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Customer requests and phone-ins appear here.</div></div>';
     return;
   }
   const now = new Date();
   const STEPS = ['Requested', 'Collecting', 'In car', 'Done'];
   const STEP_INDEX = { requested: 0, collecting: 1, in_car: 2, done: 3 };
-  container.innerHTML = open.map(e => {
+  container.innerHTML = list.map(e => {
     const car = [e.brand, e.model].filter(Boolean).join(' ') + (e.rego ? ' · ' + e.rego : '');
     const waited = Math.max(0, Math.round((now - new Date(e.bagRequested)) / 60000));
     const loggedTime = e.bagRequested ? fmtTime(new Date(e.bagRequested)) : '—';
-    // Elapsed minutes go amber after 8 min, red after 15 — so a job that's
-    // been sitting too long stands out at a glance.
-    const waitColor = waited >= 15 ? '#a83838' : waited >= 8 ? '#c79c2a' : 'var(--text-muted)';
     const st = e.bagStatus;
-    const hdr = st === 'requested' ? { bg: '#a83838', label: '🆕 Requested' }
-      : st === 'collecting' ? { bg: '#c79c2a', label: '🛍️ Collecting' + (e.bagAssigned ? ' · ' + e.bagAssigned : '') }
-      : { bg: 'var(--bronze)', label: '🚗 In car' };
+    // Traffic light: green = done, red = a call that's waited more than
+    // 10 minutes, yellow = pending (anything else still open).
+    const isDone = st === 'done';
+    const overdue = !isDone && waited > 10;
+    const rowColor = isDone ? '#3a7d44' : overdue ? '#a83838' : '#e0a640';
+    const timeColor = isDone ? '#3a7d44' : overdue ? '#a83838' : '#a87f00';
+    const label = st === 'requested' ? '🆕 Requested'
+      : st === 'collecting' ? '🛍️ Collecting' + (e.bagAssigned ? ' · ' + e.bagAssigned : '')
+      : st === 'in_car' ? '🚗 In car'
+      : '✅ Done' + (e.bagInCarBy ? ' · ' + e.bagInCarBy : '');
+    const hdr = { bg: rowColor, label };
 
     // Status progress bar: Requested → Collecting → In car → Done.
     const curIdx = STEP_INDEX[st] ?? 0;
@@ -4650,10 +4661,10 @@ function renderBagQueue() {
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">🙋 I'll get it</button>`;
     } else if (st === 'collecting') {
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">📸 In car (take photo)</button>`;
-    } else { // in_car
+    } else if (st === 'in_car') {
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}')">✅ Done</button>`
         + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add / retake proof photo">📸${e.bagPhoto ? '✓' : ''}</button>`;
-    }
+    } // 'done' → no primary action; the ✕ below clears it from the list
 
     // Thumbnail of the proof photo once staff have loaded the car and snapped it.
     const thumb = e.bagPhoto
@@ -4673,8 +4684,9 @@ function renderBagQueue() {
           <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hdr.label} · 📍 ${e.bagLocation || 'Valet Desk'} · ${e.ticket}</div>
         </div>
         <div style="text-align:right;flex:0 0 auto">
-          <div style="font-size:14px;font-weight:bold;color:${waitColor}">${waited}m</div>
-          <div style="font-size:11px;color:var(--text-muted)">${loggedTime}</div>
+          ${isDone
+            ? `<div style="font-size:13px;font-weight:bold;color:#3a7d44">✅ Done</div><div style="font-size:11px;color:var(--text-muted)">${e.bagDoneAt ? fmtTime(new Date(e.bagDoneAt)) : ''}</div>`
+            : `<div style="font-size:14px;font-weight:bold;color:${timeColor}">${waited}m</div><div style="font-size:11px;color:var(--text-muted)">${loggedTime}</div>`}
         </div>
         <span style="font-size:16px;color:var(--text-muted);flex:0 0 auto">${expanded ? '▾' : '▸'}</span>
       </div>`;
@@ -4682,7 +4694,7 @@ function renderBagQueue() {
     // Full detail — only rendered for the open row.
     const detail = !expanded ? '' : `${stepper}
       <div style="padding:14px;border-top:1px solid var(--border)">
-        <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">📞 Logged <b style="color:#333">${loggedTime}</b> · <b style="color:${waitColor}">${waited} min ago</b></div>
+        <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">📞 Logged <b style="color:#333">${loggedTime}</b> · ${isDone ? `<b style="color:#3a7d44">✅ Done${e.bagDoneAt ? ' ' + fmtTime(new Date(e.bagDoneAt)) : ''}</b>` : `<b style="color:${timeColor}">${waited} min ago</b>`}</div>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;color:var(--text-muted)">📍 Pickup at</div>
