@@ -7252,7 +7252,10 @@ function showCustomerDetail(regoArg) {
     </div>
 
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Customer Info</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Customer Info</div>
+        <button class="btn btn-secondary btn-sm" onclick="editCustomerByRego('${rego.replace(/'/g, "\\'")}')" title="Fix the name, phone or vehicle if it was entered wrong">✎ Edit details</button>
+      </div>
       <div style="line-height:1.7">
         ${last.name ? '<strong>Name:</strong> ' + last.name + '<br>' : ''}
         ${last.phone ? '<strong>Phone:</strong> ' + last.phone + '<br>' : ''}
@@ -7296,6 +7299,99 @@ function showCustomerDetail(regoArg) {
 
 function closeCustomerModal() {
   document.getElementById('customer-modal').classList.remove('show');
+}
+
+// Escape a value for safe use inside a double-quoted HTML attribute.
+function escAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Swap the customer modal into an edit form. Corrections apply to every visit
+// for this car, so the customer record stays consistent (staff sometimes log
+// the wrong name/phone/vehicle).
+function editCustomerByRego(rego) {
+  const matches = findCustomerByRego(rego);
+  if (!matches) return;
+  const c = matches[0]; // most recent visit holds the current details
+  const n = matches.length;
+  document.getElementById('customer-modal-title').textContent = 'Edit — ' + (c.name || rego);
+  document.getElementById('customer-modal-body').innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+      Fixes apply across all <b>${n}</b> visit${n !== 1 ? 's' : ''} for this car.
+    </div>
+    <div class="form-field" style="margin-bottom:10px">
+      <label class="form-label">Customer Name</label>
+      <input type="text" id="cust-edit-name" class="form-input" maxlength="50" autocomplete="off" value="${escAttr(c.name)}">
+    </div>
+    <div class="form-field" style="margin-bottom:10px">
+      <label class="form-label">Mobile</label>
+      <input type="tel" id="cust-edit-phone" class="form-input" maxlength="20" autocomplete="off" placeholder="0412 345 678" value="${escAttr(c.phone)}">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="form-field">
+        <label class="form-label">Car Brand</label>
+        <input type="text" id="cust-edit-brand" class="form-input" list="brand-list" autocomplete="off" value="${escAttr(c.brand)}">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Model</label>
+        <input type="text" id="cust-edit-model" class="form-input" autocomplete="off" value="${escAttr(c.model)}">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-field">
+        <label class="form-label">Colour</label>
+        <input type="text" id="cust-edit-colour" class="form-input" maxlength="20" autocomplete="off" value="${escAttr(c.colour)}">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Plate</label>
+        <input type="text" id="cust-edit-rego" class="form-input" maxlength="12" autocomplete="off" style="text-transform:uppercase;font-family:'Courier New',monospace" value="${escAttr(c.rego)}">
+      </div>
+    </div>
+    <div id="cust-edit-error" style="color:var(--red);font-size:12px;margin-top:10px;min-height:16px"></div>
+    <div class="btn-row" style="justify-content:flex-end;margin-top:6px">
+      <button class="btn btn-secondary" onclick="showCustomerDetail('${rego.replace(/'/g, "\\'")}')">← Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomerEdit('${rego.replace(/'/g, "\\'")}')">✓ Save details</button>
+    </div>
+  `;
+}
+
+function saveCustomerEdit(origRego) {
+  const matches = findCustomerByRego(origRego);
+  if (!matches) return;
+  const err = document.getElementById('cust-edit-error');
+  const name = document.getElementById('cust-edit-name').value.trim();
+  const phone = document.getElementById('cust-edit-phone').value.trim();
+  const brand = document.getElementById('cust-edit-brand').value.trim();
+  const model = document.getElementById('cust-edit-model').value.trim();
+  const colour = document.getElementById('cust-edit-colour').value.trim();
+  const rego = document.getElementById('cust-edit-rego').value.trim().toUpperCase();
+
+  if (!name) { err.textContent = 'Customer name is required.'; return; }
+  if (phone && !isValidAUMobile(phone)) { err.textContent = 'Enter a valid Australian mobile (e.g. 0412 345 678), or leave blank.'; return; }
+  if (!rego) { err.textContent = 'Plate is required.'; return; }
+
+  // If the plate is being changed to one that already belongs to a different
+  // customer, saving merges the two — confirm before doing that.
+  const matchIds = new Set(matches.map(e => e.id));
+  if (normaliseRego(rego) !== normaliseRego(origRego)) {
+    const clash = entries.some(e => !matchIds.has(e.id) && normaliseRego(e.rego) === normaliseRego(rego));
+    if (clash && !confirm(`Another customer already uses plate ${rego}. Saving will merge them into one record. Continue?`)) return;
+  }
+
+  matches.forEach(e => {
+    e.name = name; e.phone = phone; e.brand = brand;
+    e.model = model; e.colour = colour; e.rego = rego;
+    entriesSyncQueue.add(e.id);
+  });
+  saveData(matches[0].id, { immediate: true });
+  cloudAudit('edit_customer', 'customer', origRego, { name, rego, visits: matches.length });
+
+  renderCustomers();
+  showCustomerDetail(rego);  // reopen detail with the corrected info
+  quickToast('✓ Updated across ' + matches.length + ' visit' + (matches.length !== 1 ? 's' : ''));
+  if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 
 // ═══════════════════════════════════════════════════
