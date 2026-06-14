@@ -864,8 +864,8 @@ body.dark-mode .scan-banner {
   </div>
 
   <div class="header-date">
-    <div id="header-date">Wednesday 03 June 2026</div>
     <div class="header-clock" id="header-clock">11:32</div>
+    <div id="header-date">03/06/26</div>
     <div id="online-indicator" style="font-size: 11px; font-weight: 600; letter-spacing: .5px; margin-top: 2px; color: #4a7c4f;">● Online</div>
   </div>
 </div>
@@ -2557,7 +2557,7 @@ function fmtMoney(amount) {
 function updateClock() {
   const now = new Date();
   document.getElementById('header-date').textContent =
-    now.toLocaleDateString('en-AU', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+    now.toLocaleDateString('en-AU', { day:'2-digit', month:'2-digit', year:'2-digit' });
   document.getElementById('header-clock').textContent = fmtTime(now);
 }
 
