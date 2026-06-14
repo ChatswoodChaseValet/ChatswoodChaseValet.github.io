@@ -4630,8 +4630,8 @@ function renderBagQueue() {
     // 10 minutes, yellow = pending (anything else still open).
     const isDone = st === 'done';
     const overdue = !isDone && waited > 10;
-    const rowColor = isDone ? '#3a7d44' : overdue ? '#a83838' : '#e0a640';
-    const timeColor = isDone ? '#3a7d44' : overdue ? '#a83838' : '#a87f00';
+    const rowColor = isDone ? '#3a7d44' : overdue ? '#e07a7a' : '#e0a640';
+    const timeColor = isDone ? '#3a7d44' : overdue ? '#cf6363' : '#a87f00';
     const label = st === 'requested' ? '🆕 Requested'
       : st === 'collecting' ? '🛍️ Collecting' + (e.bagAssigned ? ' · ' + e.bagAssigned : '')
       : st === 'in_car' ? '🚗 In car'
@@ -4679,10 +4679,9 @@ function renderBagQueue() {
 
     // Collapsed one-liner — always shown. Tap to open/close the detail.
     // Traffic-light circle: red (with a halo) once a call has waited >10 min,
-    // yellow while pending, green when done.
-    const dot = `<span title="${isDone ? 'Done' : overdue ? 'Waiting over 10 min' : 'Pending'}" style="flex:0 0 auto;width:16px;height:16px;border-radius:50%;background:${rowColor};border:2px solid #fff;box-shadow:0 0 0 1px ${rowColor}${overdue ? ',0 0 0 5px rgba(168,56,56,.30)' : ''}"></span>`;
+    // yellow while pending, green when done. Sits on the right next to the time.
+    const dot = `<span title="${isDone ? 'Done' : overdue ? 'Waiting over 10 min' : 'Pending'}" style="flex:0 0 auto;width:16px;height:16px;border-radius:50%;background:${rowColor};border:2px solid #fff;box-shadow:0 0 0 1px ${rowColor}${overdue ? ',0 0 0 5px rgba(224,122,122,.35)' : ''}"></span>`;
     const summary = `<div onclick="toggleBagDetail('${e.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-left:5px solid ${hdr.bg}">
-        ${dot}
         <div style="flex:1;min-width:0">
           <div style="font-weight:bold;font-size:15px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name || 'No name'} <span style="color:var(--text-muted);font-weight:600;font-size:13px">· 🛍️ ${cnt}</span></div>
           <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hdr.label} · 📍 ${e.bagLocation || 'Valet Desk'} · ${e.ticket}</div>
@@ -4692,6 +4691,7 @@ function renderBagQueue() {
             ? `<div style="font-size:13px;font-weight:bold;color:#3a7d44">✅ Done</div><div style="font-size:11px;color:var(--text-muted)">${e.bagDoneAt ? fmtTime(new Date(e.bagDoneAt)) : ''}</div>`
             : `<div style="font-size:14px;font-weight:bold;color:${timeColor}">${waited}m</div><div style="font-size:11px;color:var(--text-muted)">${loggedTime}</div>`}
         </div>
+        ${dot}
         <span style="font-size:16px;color:var(--text-muted);flex:0 0 auto">${expanded ? '▾' : '▸'}</span>
       </div>`;
 
