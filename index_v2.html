@@ -4740,8 +4740,8 @@ function renderBagQueue() {
         <span style="font-size:16px;color:var(--text-muted);flex:0 0 auto">${expanded ? '▾' : '▸'}</span>
       </div>`;
 
-    // Full detail — only rendered for the open row.
-    const detail = !expanded ? '' : `${stepper}
+    // Full detail — only rendered for the open row (the stepper above is always shown).
+    const detail = !expanded ? '' : `
       <div style="padding:14px;border-top:1px solid var(--border)">
         <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">📞 Logged <b style="color:#333">${loggedTime}</b> · ${isDone ? `<b style="color:#3a7d44">✅ Done${e.bagDoneAt ? ' ' + fmtTime(new Date(e.bagDoneAt)) : ''}</b>` : `<b class="bag-wait" data-req="${e.bagRequested}" style="color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(e.bagRequested))}</b> waiting`}</div>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
@@ -4763,6 +4763,7 @@ function renderBagQueue() {
 
     return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:8px">
       ${summary}
+      ${stepper}
       ${detail}
     </div>`;
   }).join('');
