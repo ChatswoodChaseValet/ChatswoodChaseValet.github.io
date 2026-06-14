@@ -349,6 +349,8 @@ tr:hover td{background:var(--bg)}
 .scan-btn:hover{background:var(--bg);border-color:var(--bronze)}
 .scan-btn.active{background:#e0a640;color:#531620;border-color:#e0a640;animation:scanPulse 2s ease-in-out infinite}
 @keyframes scanPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,217,168,.6)}50%{box-shadow:0 0 0 8px rgba(240,217,168,0)}}
+@keyframes bagDotFlash{0%,100%{opacity:1}50%{opacity:.25}}
+.bag-dot-flash{animation:bagDotFlash 1s ease-in-out infinite}
 
 /* Scan mode overlay banner */
 .scan-banner{
@@ -4599,6 +4601,34 @@ function toggleBagDetail(id) {
   renderBagQueue();
 }
 
+// Elapsed time as a stopwatch: m:ss (or h:mm:ss past an hour).
+function fmtElapsed(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const s = total % 60, m = Math.floor(total / 60) % 60, h = Math.floor(total / 3600);
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+// Once a second, live-update the waiting timers and the status-circle colour
+// (yellow → red past 10 min) without re-rendering the whole list, so the
+// flashing animation stays smooth. Only runs while the Bags tab is visible.
+function tickBagTimers() {
+  const view = document.getElementById('view-bags');
+  if (!view || !view.classList.contains('active')) return;
+  const now = Date.now();
+  document.querySelectorAll('#bag-queue .bag-wait[data-req]').forEach(el => {
+    const ms = now - new Date(el.dataset.req).getTime();
+    el.textContent = fmtElapsed(ms);
+    el.style.color = ms > 600000 ? '#cf6363' : '#a87f00';
+  });
+  document.querySelectorAll('#bag-queue .bag-dot[data-req]').forEach(el => {
+    const c = (now - new Date(el.dataset.req).getTime()) > 600000 ? '#e07a7a' : '#e0a640';
+    el.style.background = c;
+    el.style.boxShadow = `0 0 0 1px ${c}`;
+  });
+}
+setInterval(tickBagTimers, 1000);
+
 function renderBagQueue() {
   const active = entries
     .filter(e => !e.timeOut && e.bagStatus && e.bagStatus !== 'done')
@@ -4680,7 +4710,7 @@ function renderBagQueue() {
     // Collapsed one-liner — always shown. Tap to open/close the detail.
     // Traffic-light circle: red (with a halo) once a call has waited >10 min,
     // yellow while pending, green when done. Sits on the right next to the time.
-    const dot = `<span title="${isDone ? 'Done' : overdue ? 'Waiting over 10 min' : 'Pending'}" style="flex:0 0 auto;width:16px;height:16px;border-radius:50%;background:${rowColor};border:2px solid #fff;box-shadow:0 0 0 1px ${rowColor}${overdue ? ',0 0 0 5px rgba(224,122,122,.35)' : ''}"></span>`;
+    const dot = `<span class="bag-dot${isDone ? '' : ' bag-dot-flash'}"${isDone ? '' : ` data-req="${e.bagRequested}"`} title="${isDone ? 'Done' : overdue ? 'Waiting over 10 min' : 'Pending'}" style="flex:0 0 auto;width:16px;height:16px;border-radius:50%;background:${rowColor};border:2px solid #fff;box-shadow:0 0 0 1px ${rowColor}"></span>`;
     const summary = `<div onclick="toggleBagDetail('${e.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-left:5px solid ${hdr.bg}">
         <div style="flex:1;min-width:0">
           <div style="font-weight:bold;font-size:15px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name || 'No name'} <span style="color:var(--text-muted);font-weight:600;font-size:13px">· 🛍️ ${cnt}</span></div>
@@ -4689,7 +4719,7 @@ function renderBagQueue() {
         <div style="text-align:right;flex:0 0 auto">
           ${isDone
             ? `<div style="font-size:13px;font-weight:bold;color:#3a7d44">✅ Done</div><div style="font-size:11px;color:var(--text-muted)">${e.bagDoneAt ? fmtTime(new Date(e.bagDoneAt)) : ''}</div>`
-            : `<div style="font-size:14px;font-weight:bold;color:${timeColor}">${waited}m</div><div style="font-size:11px;color:var(--text-muted)">${loggedTime}</div>`}
+            : `<div class="bag-wait" data-req="${e.bagRequested}" style="font-size:14px;font-weight:bold;color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(e.bagRequested))}</div><div style="font-size:11px;color:var(--text-muted)">${loggedTime}</div>`}
         </div>
         ${dot}
         <span style="font-size:16px;color:var(--text-muted);flex:0 0 auto">${expanded ? '▾' : '▸'}</span>
@@ -4698,7 +4728,7 @@ function renderBagQueue() {
     // Full detail — only rendered for the open row.
     const detail = !expanded ? '' : `${stepper}
       <div style="padding:14px;border-top:1px solid var(--border)">
-        <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">📞 Logged <b style="color:#333">${loggedTime}</b> · ${isDone ? `<b style="color:#3a7d44">✅ Done${e.bagDoneAt ? ' ' + fmtTime(new Date(e.bagDoneAt)) : ''}</b>` : `<b style="color:${timeColor}">${waited} min ago</b>`}</div>
+        <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">📞 Logged <b style="color:#333">${loggedTime}</b> · ${isDone ? `<b style="color:#3a7d44">✅ Done${e.bagDoneAt ? ' ' + fmtTime(new Date(e.bagDoneAt)) : ''}</b>` : `<b class="bag-wait" data-req="${e.bagRequested}" style="color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(e.bagRequested))}</b> waiting`}</div>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;color:var(--text-muted)">📍 Pickup at</div>
