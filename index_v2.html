@@ -4542,14 +4542,42 @@ function updateQueueBadge(count) {
 // HANDS-FREE SHOPPING (bag-to-car service)
 // bag_status: requested -> collecting -> in_car -> done
 // ═══════════════════════════════════════════════════
+// ── Hands-free shopping permission ──────────────────────────────
+// Who may receive bag-collection alerts: admins always, plus any staff the
+// admin has switched on. The enabled usernames live in the synced
+// app_settings under 'bag_staff', so the right can be granted or revoked
+// from any device with no database change.
+function bagStaffList() {
+  const v = cloudSettings && cloudSettings.bag_staff;
+  return Array.isArray(v) ? v : [];
+}
+function canHandleBags(user) {
+  user = user || currentUser;
+  if (!user) return false;
+  if (user.role === 'admin') return true;       // admins always hear bag alerts
+  return bagStaffList().includes(user.username);
+}
+async function toggleBagStaff(username) {
+  const list = bagStaffList().slice();
+  const i = list.indexOf(username);
+  const enabling = i < 0;
+  if (enabling) list.push(username); else list.splice(i, 1);
+  cloudSettings.bag_staff = list;
+  try { await cloudSaveSetting('bag_staff', list); } catch (e) {}
+  cloudAudit('bag_staff', 'staff', username, { enabled: enabling });
+  renderStaffList();
+}
+
 function updateBagBadge(count) {
+  // Only admins and hands-free-enabled staff get any bag alert at all.
+  const allowed = canHandleBags();
   const badge = document.getElementById('bag-tab-badge');
-  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
+  if (badge) { badge.textContent = count; badge.style.display = (allowed && count > 0) ? '' : 'none'; }
   // Live banner: show when there are unassigned ('requested') jobs.
   const banner = document.getElementById('bag-banner');
   if (banner) {
     const newReqs = entries.filter(e => !e.timeOut && e.bagStatus === 'requested');
-    if (newReqs.length && !bagBannerDismissed) {
+    if (allowed && newReqs.length && !bagBannerDismissed) {
       const latest = newReqs.sort((a,b)=>new Date(b.bagRequested)-new Date(a.bagRequested))[0];
       banner.innerHTML = `📦 <strong>${newReqs.length} bag pickup${newReqs.length!==1?'s':''} waiting</strong> · newest: ${latest.bagLocation || 'Valet Desk'} `
         + `<button onclick="showView('bags')" style="background:#fff;color:#531620;border:none;padding:2px 10px;border-radius:3px;margin-left:8px;cursor:pointer;font-weight:bold">Open</button>`
@@ -7868,6 +7896,7 @@ function seedBagAlertBaseline() {
 }
 
 function maybeAlarmBagRequest(e) {
+  if (!canHandleBags()) return;             // only admins + hands-free staff are alerted
   if (!e || e.bagStatus !== 'requested' || e.timeOut) return;
   const key = bagAlertKey(e);
   if (bagAlertSeen.has(key)) return;        // already alarmed (or we logged it ourselves)
@@ -8082,6 +8111,14 @@ function handleRealtimeSettingsChange(payload) {
     if (payload.new.key === 'handover_notes') {
       const ta = document.getElementById('handover-notes');
       if (ta && document.activeElement !== ta) ta.value = payload.new.value || '';
+    }
+    if (payload.new.key === 'bag_staff') {
+      // The hands-free roster changed — refresh this device's bag badge/banner
+      // (and the staff list if an admin is viewing it) so the new permission
+      // takes effect immediately without a reload.
+      const open = entries.filter(e => !e.timeOut && e.bagStatus && e.bagStatus !== 'done');
+      updateBagBadge(open.length);
+      try { renderStaffList(); } catch (e) {}
     }
   }
 }
@@ -8384,6 +8421,9 @@ async function renderStaffList() {
           <div style="font-size:11px;color:var(--text-muted)">@${s.username} · ${s.role === 'admin' ? '👑 Admin' : '👤 Staff'} · Last login: ${lastLogin}</div>
         </div>
         <div style="display:flex;gap:6px">
+          ${s.role === 'admin'
+            ? `<span class="btn btn-sm" style="background:transparent;border:none;color:var(--bronze);cursor:default" title="Admins always receive hands-free shopping (bag) alerts">🛍️ Bags ✓</span>`
+            : `<button class="btn btn-sm" onclick="toggleBagStaff('${s.username.replace(/'/g, "\\'")}')" title="Hands-free shopping: whether this person receives bag-collection alerts" style="${bagStaffList().includes(s.username) ? 'background:#531620;color:#fff;border:1px solid #531620' : 'background:var(--bone);color:var(--text);border:1px solid var(--border)'}">🛍️ Bags ${bagStaffList().includes(s.username) ? 'On' : 'Off'}</button>`}
           <button class="btn btn-secondary btn-sm" onclick="openEditStaffModal('${s.username.replace(/'/g, "\\'")}', '${(s.display_name||'').replace(/'/g, "\\'")}', '${s.role}')">✎ Edit</button>
           ${!isMe ? `<button class="btn btn-danger btn-sm" onclick="toggleStaffActive('${s.username.replace(/'/g, "\\'")}', ${!s.is_active})">${s.is_active ? '🚫 Disable' : '✓ Enable'}</button>` : ''}
         </div>
