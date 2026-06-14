@@ -4543,10 +4543,11 @@ function updateQueueBadge(count) {
 // bag_status: requested -> collecting -> in_car -> done
 // ═══════════════════════════════════════════════════
 // ── Hands-free shopping permission ──────────────────────────────
-// Who may receive bag-collection alerts: admins always, plus any staff the
-// admin has switched on. The enabled usernames live in the synced
-// app_settings under 'bag_staff', so the right can be granted or revoked
-// from any device with no database change.
+// Who may receive bag-collection alerts: anyone (admin or staff) the admin
+// has switched on. The enabled usernames live in the synced app_settings
+// under 'bag_staff', so the right can be granted or revoked from any device
+// with no database change. Admins are not auto-enabled — they have the same
+// On/Off toggle as everyone else.
 function bagStaffList() {
   const v = cloudSettings && cloudSettings.bag_staff;
   return Array.isArray(v) ? v : [];
@@ -4554,7 +4555,6 @@ function bagStaffList() {
 function canHandleBags(user) {
   user = user || currentUser;
   if (!user) return false;
-  if (user.role === 'admin') return true;       // admins always hear bag alerts
   return bagStaffList().includes(user.username);
 }
 async function toggleBagStaff(username) {
@@ -8421,9 +8421,7 @@ async function renderStaffList() {
           <div style="font-size:11px;color:var(--text-muted)">@${s.username} · ${s.role === 'admin' ? '👑 Admin' : '👤 Staff'} · Last login: ${lastLogin}</div>
         </div>
         <div style="display:flex;gap:6px">
-          ${s.role === 'admin'
-            ? `<span class="btn btn-sm" style="background:transparent;border:none;color:var(--bronze);cursor:default" title="Admins always receive hands-free shopping (bag) alerts">🛍️ Bags ✓</span>`
-            : `<button class="btn btn-sm" onclick="toggleBagStaff('${s.username.replace(/'/g, "\\'")}')" title="Hands-free shopping: whether this person receives bag-collection alerts" style="${bagStaffList().includes(s.username) ? 'background:#531620;color:#fff;border:1px solid #531620' : 'background:var(--bone);color:var(--text);border:1px solid var(--border)'}">🛍️ Bags ${bagStaffList().includes(s.username) ? 'On' : 'Off'}</button>`}
+          <button class="btn btn-sm" onclick="toggleBagStaff('${s.username.replace(/'/g, "\\'")}')" title="Hands-free shopping: whether this person receives bag-collection alerts" style="${bagStaffList().includes(s.username) ? 'background:#531620;color:#fff;border:1px solid #531620' : 'background:var(--bone);color:var(--text);border:1px solid var(--border)'}">🛍️ Bags ${bagStaffList().includes(s.username) ? 'On' : 'Off'}</button>
           <button class="btn btn-secondary btn-sm" onclick="openEditStaffModal('${s.username.replace(/'/g, "\\'")}', '${(s.display_name||'').replace(/'/g, "\\'")}', '${s.role}')">✎ Edit</button>
           ${!isMe ? `<button class="btn btn-danger btn-sm" onclick="toggleStaffActive('${s.username.replace(/'/g, "\\'")}', ${!s.is_active})">${s.is_active ? '🚫 Disable' : '✓ Enable'}</button>` : ''}
         </div>
