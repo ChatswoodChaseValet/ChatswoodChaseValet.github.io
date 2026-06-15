@@ -4248,14 +4248,86 @@ function dashPointerDnDInit() {
     const p = dashPtr; dashPtr = null;
     if (p.card) p.card.classList.remove('dragging');
     p.grid.querySelectorAll('.dash-card.drag-over').forEach(c => c.classList.remove('drag-over'));
-    if (p.dragging && p.target && p.target !== p.id) {
-      const l = getDashLayout(); const from = l.findIndex(x => x.id === p.id), to = l.findIndex(x => x.id === p.target);
-      if (from >= 0 && to >= 0) { const [m] = l.splice(from,1); l.splice(to,0,m); dashApply(l); }
+    if (p.dragging) {
+      if (p.target && p.target !== p.id) {
+        const l = getDashLayout(); const from = l.findIndex(x => x.id === p.id), to = l.findIndex(x => x.id === p.target);
+        if (from >= 0 && to >= 0) { const [m] = l.splice(from,1); l.splice(to,0,m); dashApply(l); }
+      }
+    } else {
+      openWidgetDetail(p.id);   // a tap (no drag) opens the widget's detail
     }
   };
   document.addEventListener('pointerup', end);
   document.addEventListener('pointercancel', end);
 }
+
+// Tap a widget → show the underlying rows (e.g. which customers are returning).
+const WDET_LABELS = { name:'Customer', rego:'Plate', bay:'Spot', brand:'Vehicle', timein:'In', timeout:'Out', when:'Date', duration:'Stay', fee:'Fee', tip:'Tip', visits:'Visits' };
+function widgetCell(e, c) {
+  switch (c) {
+    case 'name': return e.name || '—';
+    case 'rego': return e.rego || '—';
+    case 'bay': return e.bay || '—';
+    case 'brand': return ((e.brand||'') + (e.model ? ' ' + e.model : '')) || '—';
+    case 'timein': return e.timeIn ? fmtTime(new Date(e.timeIn)) : '—';
+    case 'timeout': return e.timeOut ? fmtTime(new Date(e.timeOut)) : '—';
+    case 'when': return e.timeIn ? fmtDate(new Date(e.timeIn)) : '—';
+    case 'duration': return e.timeOut ? fmtDuration(new Date(e.timeOut) - new Date(e.timeIn)) : 'On site';
+    case 'fee': return e.totalFee != null ? fmtMoney(e.totalFee) : '—';
+    case 'tip': return e.tip ? fmtMoney(e.tip) : '—';
+    case 'visits': return String(e._visits || '');
+  }
+  return '';
+}
+function openWidgetDetail(id) {
+  const inst = getDashLayout().find(x => x.id === id) || dashNormalize(id);
+  const def = dashWidgetDef(id);
+  if (!inst || !def) return;
+  const r = inst.range || 'today';
+  const now = Date.now(), midnight = new Date(); midnight.setHours(0,0,0,0);
+  const start = r === 'all' ? 0 : r === '7days' ? now - 7*864e5 : midnight.getTime();
+  const inByIn = entries.filter(e => new Date(e.timeIn).getTime() >= start);
+  const comp = entries.filter(e => e.timeOut && new Date(e.timeOut).getTime() >= start);
+  const active = entries.filter(e => !e.timeOut);
+  const today = new Date();
+  const todayIn = entries.filter(e => isSameDay(e.timeIn, today));
+  const dcol = r !== 'today' ? ['when'] : [];
+  let data = [], cols = [], note = '';
+  switch (id) {
+    case 'turnover': case 'occupancy':
+      data = active; cols = ['name','rego','bay','brand','timein']; note = active.length + ' on site now'; break;
+    case 'onsite':
+      data = active; cols = (inst.cols && inst.cols.length) ? inst.cols : ['name','rego','bay']; note = active.length + ' on site'; break;
+    case 'returning': {
+      const counts = {}, firstSeen = {};
+      entries.forEach(e => { const k = normaliseRego(e.rego); if (!k) return; counts[k] = (counts[k]||0)+1; const t = new Date(e.timeIn).getTime(); if (firstSeen[k] == null || t < firstSeen[k]) firstSeen[k] = t; });
+      data = inByIn.filter(e => { const k = normaliseRego(e.rego); return k && firstSeen[k] < new Date(e.timeIn).getTime(); })
+        .map(e => Object.assign({}, e, { _visits: counts[normaliseRego(e.rego)] }));
+      cols = ['name','rego','brand', ...dcol, 'timein','visits']; note = data.length + ' returning customers'; break;
+    }
+    case 'dwell':
+      data = comp.slice().sort((a,b) => (new Date(b.timeOut)-new Date(b.timeIn)) - (new Date(a.timeOut)-new Date(a.timeIn)));
+      cols = ['name','rego','brand', ...dcol, 'timein','timeout','duration']; note = data.length + ' completed visits'; break;
+    case 'busiest':
+      data = todayIn.slice().sort((a,b) => new Date(a.timeIn) - new Date(b.timeIn));
+      cols = ['name','rego','brand','timein']; note = data.length + ' cars in today'; break;
+    case 'brands':
+      data = inByIn.slice().sort((a,b) => (a.brand||'').localeCompare(b.brand||''));
+      cols = ['brand','name','rego', ...dcol, 'timein']; note = data.length + ' cars'; break;
+    case 'money':
+      data = comp.slice().sort((a,b) => (b.totalFee||0) - (a.totalFee||0));
+      cols = ['name','rego','brand', ...dcol, 'fee','tip','timeout']; note = data.length + ' completed'; break;
+  }
+  document.getElementById('widget-detail-title').textContent = (inst.title && inst.title.trim()) ? inst.title.trim() : def.title;
+  document.getElementById('widget-detail-note').textContent = note + ' · ' + (r === '7days' ? 'last 7 days' : r === 'all' ? 'all time' : 'today');
+  const head = cols.map(c => `<th style="text-align:left;padding:6px 12px 6px 0;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--bronze);white-space:nowrap">${WDET_LABELS[c]||c}</th>`).join('');
+  const rows = data.length
+    ? data.map(e => `<tr style="border-top:1px solid var(--border)">${cols.map(c => `<td style="padding:7px 12px 7px 0;font-size:13px;white-space:nowrap">${escAttr(String(widgetCell(e,c)))}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${cols.length}" style="padding:16px;color:var(--text-muted);font-style:italic">No data</td></tr>`;
+  document.getElementById('widget-detail-body').innerHTML = `<div style="overflow:auto;max-height:62vh"><table style="width:100%;border-collapse:collapse"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('widget-detail-modal').classList.add('show');
+}
+function closeWidgetDetail() { document.getElementById('widget-detail-modal').classList.remove('show'); }
 
 function renderDashCustomizeBody() {
   const layout = getDashLayout();
@@ -9456,6 +9528,18 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="btn btn-secondary" onclick="closePlateScan()">Cancel</button>
     </div>
     <button class="btn btn-primary" id="plate-use-btn" onclick="useDetectedPlate()" style="display:none;margin-top:10px;width:100%">✓ Use This Plate</button>
+  </div>
+</div>
+
+<!-- WIDGET DETAIL MODAL — tap a dashboard widget to see its underlying rows -->
+<div class="modal" id="widget-detail-modal">
+  <div class="modal-box" style="max-width:700px;max-height:84vh;overflow-y:auto">
+    <div class="modal-title" id="widget-detail-title">Detail</div>
+    <div id="widget-detail-note" style="font-size:12px;color:var(--text-muted);margin-bottom:12px"></div>
+    <div id="widget-detail-body"></div>
+    <div class="btn-row" style="justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-primary" onclick="closeWidgetDetail()">Close</button>
+    </div>
   </div>
 </div>
 
