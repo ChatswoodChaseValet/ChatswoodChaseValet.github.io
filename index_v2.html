@@ -2016,6 +2016,22 @@ body.dark-mode .scan-banner {
 
   <div class="section">
     <div class="section-header">
+      <div class="section-title">Car Park Capacity</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">
+      Number of <strong>open spots</strong> available to the valet (keep the reserved spots out of this count). Drives the dashboard <strong>Occupancy</strong> gauge. Synced to all devices.
+    </div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Open spots</label>
+        <input type="number" id="s-capacity" class="form-input" min="1" max="2000" placeholder="e.g. 77">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveCapacity()">Save Capacity</button>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
       <div class="section-title">Key-Tag Printer</div>
     </div>
     <div class="form-field" style="margin-bottom:14px">
@@ -4021,7 +4037,22 @@ function donutSVG(pct, centre, sub) {
 
 // Build the dashboard infographic widgets from the live entries data.
 // Widgets available for the customisable dashboard infographic grid.
-const TOTAL_SPOTS = 150; // car park capacity — numbered spots 1–150
+const DEFAULT_CAPACITY = 77; // open spots (the rest are kept for reserve)
+// Editable in Settings and synced across devices via cloud app_settings.
+function getCapacity() {
+  const v = cloudSettings && Number(cloudSettings.capacity);
+  return (v && v > 0) ? Math.round(v) : DEFAULT_CAPACITY;
+}
+function saveCapacity() {
+  const n = parseInt(document.getElementById('s-capacity').value, 10);
+  if (!n || n < 1) { alert('Enter a valid number of open spots (1 or more).'); return; }
+  cloudSettings.capacity = n;
+  try { cloudSaveSetting('capacity', n); } catch (e) {}
+  cloudAudit('set_capacity', 'settings', 'capacity', { capacity: n });
+  const v = document.getElementById('view-dashboard');
+  if (v && v.classList.contains('active')) { try { renderDashboard(); } catch (e) {} }
+  if (typeof quickToast === 'function') quickToast('✓ Capacity set to ' + n + ' open spots');
+}
 const DASH_WIDGETS = [
   { id:'turnover',  title:'Turnover Today' },
   { id:'occupancy', title:'Occupancy' },
@@ -4066,9 +4097,10 @@ function renderDashInfographics(active, todayIn, todayOut) {
   const dwellMax = Math.max(1, ...buckets.map(b => b.n));
   const dwellTot = completedAll.length;
 
-  // Occupancy: cars on site against the car park's total numbered spots.
-  const occPct = Math.round(onSite / TOTAL_SPOTS * 100);
-  const freeSpots = Math.max(0, TOTAL_SPOTS - onSite);
+  // Occupancy: cars on site against the open spots (capacity).
+  const cap = getCapacity();
+  const occPct = Math.round(onSite / cap * 100);
+  const freeSpots = Math.max(0, cap - onSite);
 
   // Busiest hours today (cars checked in, by hour of day).
   const hourMap = {};
@@ -4095,7 +4127,7 @@ function renderDashInfographics(active, todayIn, todayOut) {
   const cards = {
     turnover: `<div class="dash-card"><h3>Turnover Today</h3><div class="dash-donut">${donutSVG(pctOut, onSite, 'ON SITE')}<div class="cap">${inToday} in · ${outToday} out today</div></div></div>`,
     dwell: `<div class="dash-card"><h3>Dwell Time · all visits</h3>${rows(buckets.map(b => ({ lbl:b.lbl, pct: b.n/dwellMax*100, val: dwellTot ? Math.round(b.n/dwellTot*100)+'%' : '0%' })))}</div>`,
-    occupancy: `<div class="dash-card"><h3>Occupancy</h3><div class="dash-donut">${donutSVG(occPct, occPct+'%', 'OCCUPIED')}<div class="cap">${onSite} of ${TOTAL_SPOTS} spots · ${freeSpots} free</div></div></div>`,
+    occupancy: `<div class="dash-card"><h3>Occupancy</h3><div class="dash-donut">${donutSVG(occPct, occPct+'%', 'OCCUPIED')}<div class="cap">${onSite} of ${cap} spots · ${freeSpots} free</div></div></div>`,
     busiest: `<div class="dash-card"><h3>Busiest Hours Today</h3>${rows(hours.map(x => ({ lbl: hr(x.h), pct: x.n/hourMax*100, val:x.n })))}</div>`,
     brands: `<div class="dash-card"><h3>Top Brands Today</h3>${rows(brands.map(([b,n]) => ({ lbl:b, pct: n/brandMax*100, val:n })))}</div>`,
     money: `<div class="dash-card"><h3>Revenue &amp; Tips Today</h3><div class="dash-figs"><div><div class="fig">${fmtMoney(revToday)}</div><div class="figlbl">Revenue</div></div><div><div class="fig">${fmtMoney(tipsToday)}</div><div class="figlbl">Tips</div></div><div><div class="fig">${fmtMoney(avgFee)}</div><div class="figlbl">Avg fee</div></div></div></div>`,
@@ -6125,6 +6157,8 @@ function renderComparison() {
 }
 function renderSettings() {
   updatePushUI();
+  const capEl = document.getElementById('s-capacity');
+  if (capEl) capEl.value = getCapacity();
   // Populate Plate Recognizer settings
   const prKey = document.getElementById('s-pr-key');
   if (prKey) prKey.value = settings.plateRecognizerKey || '';
@@ -8499,10 +8533,12 @@ function handleRealtimeSettingsChange(payload) {
       updateBagBadge(open.length);
       try { renderStaffList(); } catch (e) {}
     }
-    if (payload.new.key === 'dash_layout') {
-      // Dashboard layout changed on another device — re-render if it's open.
+    if (payload.new.key === 'dash_layout' || payload.new.key === 'capacity') {
+      // Dashboard layout/capacity changed on another device — re-render if open.
       const v = document.getElementById('view-dashboard');
       if (v && v.classList.contains('active')) { try { renderDashboard(); } catch (e) {} }
+      const capEl = document.getElementById('s-capacity');
+      if (capEl && payload.new.key === 'capacity') capEl.value = getCapacity();
     }
   }
 }
