@@ -197,9 +197,11 @@ body.mobile-mode .tab.desktop-only{display:none}
 .cfg-opts{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:12px;color:var(--text-muted)}
 .cfg-opt{display:inline-flex;align-items:center;gap:6px}
 .cfg-opt select{font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:#fff}
-.dash-card[draggable="true"]{cursor:move}
 .dash-card.drag-over{outline:2px dashed var(--bronze);outline-offset:2px}
-.dash-card h3 .dash-drag{color:var(--text-muted);cursor:grab;margin-right:5px;font-weight:400}
+.dash-card.dragging{opacity:.4}
+.dash-card h3 .dash-drag{color:var(--text-muted);cursor:grab;margin-right:6px;font-weight:400;padding:2px 5px;font-size:17px;touch-action:none;border-radius:4px}
+.dash-card h3 .dash-drag:hover{background:#f0e9e2;color:var(--maroon)}
+.dash-card h3 .dash-drag:active{cursor:grabbing}
 .dash-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
 .dash-card-head h3{margin:0}
 .dash-x{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:3px 6px;border-radius:4px;flex:0 0 auto}
@@ -4113,6 +4115,7 @@ function setDashLayout(arr) {
 function renderDashInfographics(active, todayIn, todayOut) {
   const ig = document.getElementById('dash-infographics');
   if (!ig) return;
+  dashPointerDnDInit();
   const now = Date.now();
   const midnight = new Date(); midnight.setHours(0,0,0,0);
   const rangeStart = r => r === 'all' ? 0 : r === '7days' ? now - 7*864e5 : midnight.getTime();
@@ -4189,10 +4192,7 @@ function renderDashInfographics(active, todayIn, todayOut) {
     const t = inst.title && inst.title.trim() ? inst.title.trim()
       : def.title + (def.opts.includes('range') && inst.range !== 'today' ? ' · ' + rangeLabel(inst.range) : '');
     const span = inst.span === 99 ? 'grid-column:1/-1' : inst.span === 2 ? 'grid-column:span 2' : '';
-    return `<div class="dash-card" draggable="true"
-      ondragstart="dashDragStart(event,'${inst.id}')" ondragover="dashDragOver(event)"
-      ondragenter="this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')"
-      ondrop="this.classList.remove('drag-over');dashDrop(event,'${inst.id}')" style="${span}">
+    return `<div class="dash-card" data-wid="${inst.id}" style="${span}">
       <div class="dash-card-head"><h3><span class="dash-drag" title="Drag to reorder">⠿</span> ${escAttr(t)}</h3>
       <button class="dash-x" title="Remove from dashboard" onclick="dashRemove('${inst.id}')">✕</button></div>${body(inst)}</div>`;
   }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “⚙ Customize dashboard”.</div>';
@@ -4216,6 +4216,47 @@ function dashToggleCol(id, col, on) { const l = getDashLayout(); const w = l.fin
 function dashDragStart(ev, id) { dashDragId = id; ev.dataTransfer.effectAllowed = 'move'; }
 function dashDragOver(ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; }
 function dashDrop(ev, targetId) { ev.preventDefault(); if (!dashDragId || dashDragId === targetId) return; const l = getDashLayout(); const from = l.findIndex(x => x.id === dashDragId), to = l.findIndex(x => x.id === targetId); if (from < 0 || to < 0) return; const [m] = l.splice(from,1); l.splice(to,0,m); dashDragId = null; dashApply(l); }
+
+// Pointer-based drag-reorder for the dashboard cards — works with both a mouse
+// AND a touchscreen (native HTML5 drag does not work on touch). Grab the ⠿
+// handle and drag a widget onto another to drop it there.
+let dashPtr = null;
+function dashPointerDnDInit() {
+  if (dashPointerDnDInit._done) return; dashPointerDnDInit._done = true;
+  document.addEventListener('pointerdown', ev => {
+    const handle = ev.target.closest && ev.target.closest('.dash-drag');
+    if (!handle) return;
+    const card = handle.closest('.dash-card'), grid = handle.closest('#dash-infographics');
+    if (!card || !grid || !card.getAttribute('data-wid')) return;
+    ev.preventDefault();
+    dashPtr = { id: card.getAttribute('data-wid'), card, grid, x: ev.clientX, y: ev.clientY, dragging: false, target: null };
+  });
+  document.addEventListener('pointermove', ev => {
+    if (!dashPtr) return;
+    if (!dashPtr.dragging) {
+      if (Math.hypot(ev.clientX - dashPtr.x, ev.clientY - dashPtr.y) < 6) return;
+      dashPtr.dragging = true; dashPtr.card.classList.add('dragging');
+    }
+    ev.preventDefault();
+    dashPtr.grid.querySelectorAll('.dash-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const over = el && el.closest && el.closest('.dash-card');
+    if (over && over !== dashPtr.card && dashPtr.grid.contains(over)) { over.classList.add('drag-over'); dashPtr.target = over.getAttribute('data-wid'); }
+    else dashPtr.target = null;
+  }, { passive: false });
+  const end = () => {
+    if (!dashPtr) return;
+    const p = dashPtr; dashPtr = null;
+    if (p.card) p.card.classList.remove('dragging');
+    p.grid.querySelectorAll('.dash-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+    if (p.dragging && p.target && p.target !== p.id) {
+      const l = getDashLayout(); const from = l.findIndex(x => x.id === p.id), to = l.findIndex(x => x.id === p.target);
+      if (from >= 0 && to >= 0) { const [m] = l.splice(from,1); l.splice(to,0,m); dashApply(l); }
+    }
+  };
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+}
 
 function renderDashCustomizeBody() {
   const layout = getDashLayout();
