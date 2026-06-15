@@ -5083,10 +5083,10 @@ function tickBagTimers() {
   document.querySelectorAll('#bag-queue .bag-wait[data-req]').forEach(el => {
     const ms = now - new Date(el.dataset.req).getTime();
     el.textContent = fmtElapsed(ms);
-    el.style.color = ms > 600000 ? '#cf6363' : '#a87f00';
+    el.style.color = ms > 600000 ? '#d32f2f' : '#a87f00';
   });
   document.querySelectorAll('#bag-queue .bag-dot[data-req]').forEach(el => {
-    const c = (now - new Date(el.dataset.req).getTime()) > 600000 ? '#e07a7a' : '#e0a640';
+    const c = (now - new Date(el.dataset.req).getTime()) > 600000 ? '#d32f2f' : '#e0a640';
     el.style.background = c;
     el.style.boxShadow = `0 0 0 1px ${c}`;
   });
@@ -5124,8 +5124,8 @@ function renderBagQueue() {
     // 10 minutes, yellow = pending (anything else still open).
     const isDone = st === 'done';
     const overdue = !isDone && waited > 10;
-    const rowColor = isDone ? '#3a7d44' : overdue ? '#e07a7a' : '#e0a640';
-    const timeColor = isDone ? '#3a7d44' : overdue ? '#cf6363' : '#a87f00';
+    const rowColor = isDone ? '#3a7d44' : overdue ? '#d32f2f' : '#e0a640';
+    const timeColor = isDone ? '#3a7d44' : overdue ? '#d32f2f' : '#a87f00';
     const label = st === 'requested' ? 'Requested'
       : st === 'collecting' ? 'Collecting' + (e.bagAssigned ? ' · ' + e.bagAssigned : '')
       : st === 'in_car' ? 'In car'
