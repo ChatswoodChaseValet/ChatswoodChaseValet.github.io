@@ -193,6 +193,8 @@ body.mobile-mode .tab.desktop-only{display:none}
 .flyout-item.active{background:var(--maroon-light);color:#fff}
 .set-section{display:none}
 .set-section.show{display:block}
+.rep-section{display:none}
+.rep-section.show{display:block}
 @media (max-width:820px){
   .nav-flyout.open{flex-direction:row;flex-wrap:wrap;flex:none;width:100%}
   .flyout-item{width:auto;border-radius:20px;border:1px solid rgba(255,255,255,.25)}
@@ -945,6 +947,18 @@ body.dark-mode .scan-banner {
   <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)" aria-label="Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="tab-label">Customers</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;reports&#39;)" aria-label="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="tab-label">Reports</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;settings&#39;)" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="tab-label">Settings</span></button>
+</div>
+
+<!-- Reports sub-menu flyout -->
+<div id="reports-flyout" class="nav-flyout">
+  <div class="nav-flyout-title">Reports</div>
+  <button class="flyout-item" data-group="peak" onclick="showReportsGroup('peak')">Peak Times</button>
+  <button class="flyout-item" data-group="volume" onclick="showReportsGroup('volume')">Daily Volume</button>
+  <button class="flyout-item" data-group="spend" onclick="showReportsGroup('spend')">Customer Spend</button>
+  <button class="flyout-item" data-group="brands" onclick="showReportsGroup('brands')">Brands</button>
+  <button class="flyout-item" data-group="bagstaff" onclick="showReportsGroup('bagstaff')">Bag Jobs by Staff</button>
+  <button class="flyout-item" data-group="discounts" onclick="showReportsGroup('discounts')">Discounts</button>
+  <button class="flyout-item" data-group="comparison" onclick="showReportsGroup('comparison')">Period Comparison</button>
 </div>
 
 <!-- Settings sub-menu flyout — pops out beside the rail when Settings is open -->
@@ -1740,21 +1754,21 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section">
+  <div class="section rep-section" data-repgroup="peak">
     <div class="section-header">
       <div class="section-title">Peak Times &amp; Stay Patterns</div>
     </div>
     <div id="rep-insights"><div class="empty">No data in this range</div></div>
   </div>
 
-  <div class="section">
+  <div class="section rep-section" data-repgroup="spend">
     <div class="section-header">
       <div class="section-title">Customer Spend</div>
     </div>
     <div id="rep-spend"><div class="empty">No completed trips in this range</div></div>
   </div>
 
-  <div class="section">
+  <div class="section rep-section" data-repgroup="brands">
     <div class="section-header">
       <div class="section-title">Brand Breakdown</div>
     </div>
@@ -1782,14 +1796,14 @@ body.dark-mode .scan-banner {
     </div></div>
   </div>
 
-  <div class="section">
+  <div class="section rep-section" data-repgroup="bagstaff">
     <div class="section-header">
       <div class="section-title">Bag Jobs by Staff</div>
     </div>
     <div id="rep-bag-staff"><div class="empty">No bag pickups in this range</div></div>
   </div>
 
-  <div class="section">
+  <div class="section rep-section" data-repgroup="volume">
     <div class="section-header">
       <div class="section-title">Daily Volume</div>
     </div>
@@ -1803,14 +1817,14 @@ body.dark-mode .scan-banner {
       </div></div>
   </div>
 
-  <div class="section">
+  <div class="section rep-section" data-repgroup="discounts">
     <div class="section-header">
       <div class="section-title">Discounts &amp; Validations Summary</div>
     </div>
     <div id="rep-discount-summary"><div class="empty">No discounts in this range</div></div>
   </div>
 
-  <div class="section">
+  <div class="section rep-section" data-repgroup="comparison">
     <div class="section-header">
       <div class="section-title">Period Comparison</div>
       <select id="compare-period" class="form-select" onchange="renderComparison()" style="width:auto;padding:6px 10px;font-size:12px">
@@ -2677,9 +2691,11 @@ function showView(name) {
   const i = names.indexOf(name);
   if (i >= 0 && tabs[i]) tabs[i].classList.add('active');
 
-  // Settings sub-menu flyout shows only while on Settings.
-  const fly = document.getElementById('settings-flyout');
-  if (fly) fly.classList.toggle('open', name === 'settings');
+  // Sub-menu flyouts show only while on their view.
+  const sFly = document.getElementById('settings-flyout');
+  if (sFly) sFly.classList.toggle('open', name === 'settings');
+  const rFly = document.getElementById('reports-flyout');
+  if (rFly) rFly.classList.toggle('open', name === 'reports');
 
   if (name === 'dashboard') renderDashboard();
   if (name === 'new-entry') prepareNewEntry();
@@ -5759,6 +5775,8 @@ function setReportRange(range) {
 }
 
 function renderReports() {
+  // Default to the first report in the flyout when none is shown yet.
+  if (!document.querySelector('#view-reports .rep-section.show')) showReportsGroup('peak');
   const from = document.getElementById('report-from').value;
   const to = document.getElementById('report-to').value;
   if (!from || !to) {
@@ -6398,6 +6416,11 @@ function renderComparison() {
 function showSettingsGroup(g) {
   document.querySelectorAll('#view-settings .set-section').forEach(s => s.classList.toggle('show', s.dataset.setgroup === g));
   document.querySelectorAll('#settings-flyout .flyout-item').forEach(p => p.classList.toggle('active', p.dataset.group === g));
+}
+// Reports sub-menu flyout: show one report at a time.
+function showReportsGroup(g) {
+  document.querySelectorAll('#view-reports .rep-section').forEach(s => s.classList.toggle('show', s.dataset.repgroup === g));
+  document.querySelectorAll('#reports-flyout .flyout-item').forEach(p => p.classList.toggle('active', p.dataset.group === g));
 }
 
 function renderSettings() {
