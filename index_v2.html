@@ -128,7 +128,7 @@ body{
   line-height:1;
 }
 
-/* ─── SIDEBAR NAV ─── */
+/* ─── SIDEBAR NAV (icon rail) ─── */
 .layout{display:flex;align-items:stretch}
 .tabs{
   background:var(--maroon);
@@ -136,29 +136,37 @@ body{
   flex-direction:column;
   gap:2px;
   padding:14px 0;
-  flex:0 0 190px;
-  width:190px;
+  flex:0 0 66px;
+  width:66px;
   align-self:stretch;
-  overflow-y:auto;
+  overflow:visible;
 }
 .tab{
-  padding:13px 24px;
-  font-size:13px;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  font-weight:600;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px 0;
   cursor:pointer;
-  color:rgba(255,255,255,.85);
+  color:rgba(255,255,255,.82);
   background:none;
   border:none;
   border-left:3px solid transparent;
-  transition:all .15s;
+  transition:background .15s,color .15s;
   font-family:inherit;
-  white-space:nowrap;
-  text-align:left;
 }
+.tab svg{width:23px;height:23px;display:block;flex:0 0 auto}
 .tab:hover{color:#fff;background:var(--maroon-light)}
 .tab.active{color:#fff;border-left-color:var(--champagne);background:var(--maroon-light)}
+/* label shown as a tooltip to the right on hover */
+.tab-label{
+  position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
+  background:#36101a;color:#fff;padding:6px 11px;border-radius:6px;
+  font-size:12px;letter-spacing:.6px;text-transform:uppercase;font-weight:600;white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .12s;z-index:120;box-shadow:0 3px 12px rgba(0,0,0,.35);
+}
+.tab:hover .tab-label{opacity:1}
+.tab-badge{position:absolute;top:8px;right:12px;background:#a83838;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:bold;line-height:1.5}
 /* Mobile (simple) mode — hide desktop-only tabs for an easier staff view */
 body.mobile-mode .tab.desktop-only{display:none}
 
@@ -450,8 +458,12 @@ tr:hover td{background:var(--bg)}
 
   .layout{flex-direction:column}
   .tabs{flex-direction:row;width:auto;flex:none;align-self:auto;padding:0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .tab{padding:12px 14px;font-size:11px;flex-shrink:0;border-left:none;border-bottom:3px solid transparent}
+  .tab{flex-direction:row;gap:7px;padding:12px 14px;flex-shrink:0;border-left:none;border-bottom:3px solid transparent}
   .tab.active{border-left-color:transparent;border-bottom-color:var(--champagne)}
+  .tab svg{width:17px;height:17px}
+  /* phones have no hover — show the word inline next to the icon */
+  .tab-label{position:static;opacity:1;transform:none;background:none;box-shadow:none;color:inherit;padding:0;font-size:11px;letter-spacing:.5px;pointer-events:auto}
+  .tab-badge{position:static;margin-left:4px}
   .main{padding:14px}
 
   .stats-row{grid-template-columns:1fr 1fr;gap:10px}
@@ -909,16 +921,16 @@ body.dark-mode .scan-banner {
 <div class="layout">
 <!-- SIDEBAR NAV -->
 <div class="tabs">
-  <button class="tab active desktop-only" onclick="showView(&#39;dashboard&#39;)">Dashboard</button>
-  <button class="tab" onclick="showView(&#39;new-entry&#39;)">New Entry</button>
-  <button class="tab" onclick="showView(&#39;quick-pickup&#39;)">Quick Pickup</button>
-  <button class="tab" onclick="showView(&#39;pickup-queue&#39;)">Queue<span id="pq-tab-badge" style="display:none;margin-left:6px;background:#a83838;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:bold;vertical-align:middle">0</span></button>
-  <button class="tab" onclick="showView(&#39;bags&#39;)">Bags<span id="bag-tab-badge" style="display:none;margin-left:6px;background:#a83838;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:bold;vertical-align:middle">0</span></button>
-  <button class="tab" onclick="showView(&#39;active&#39;)">Active Cars</button>
-  <button class="tab desktop-only" onclick="showView(&#39;log&#39;)">Full Log</button>
-  <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)">Customers</button>
-  <button class="tab desktop-only" onclick="showView(&#39;reports&#39;)">Reports</button>
-  <button class="tab desktop-only" onclick="showView(&#39;settings&#39;)">Settings</button>
+  <button class="tab active desktop-only" onclick="showView(&#39;dashboard&#39;)" aria-label="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="tab-label">Dashboard</span></button>
+  <button class="tab" onclick="showView(&#39;new-entry&#39;)" aria-label="New Entry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="tab-label">New Entry</span></button>
+  <button class="tab" onclick="showView(&#39;quick-pickup&#39;)" aria-label="Quick Pickup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="tab-label">Quick Pickup</span></button>
+  <button class="tab" onclick="showView(&#39;pickup-queue&#39;)" aria-label="Queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="tab-label">Queue</span><span class="tab-badge" id="pq-tab-badge" style="display:none">0</span></button>
+  <button class="tab" onclick="showView(&#39;bags&#39;)" aria-label="Bags"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="tab-label">Bags</span><span class="tab-badge" id="bag-tab-badge" style="display:none">0</span></button>
+  <button class="tab" onclick="showView(&#39;active&#39;)" aria-label="Active Cars"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.3L21 13v5a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1H6.5v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><circle cx="7" cy="16" r="1"/><circle cx="17" cy="16" r="1"/></svg><span class="tab-label">Active Cars</span></button>
+  <button class="tab desktop-only" onclick="showView(&#39;log&#39;)" aria-label="Full Log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><span class="tab-label">Full Log</span></button>
+  <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)" aria-label="Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="tab-label">Customers</span></button>
+  <button class="tab desktop-only" onclick="showView(&#39;reports&#39;)" aria-label="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="tab-label">Reports</span></button>
+  <button class="tab desktop-only" onclick="showView(&#39;settings&#39;)" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="tab-label">Settings</span></button>
 </div>
 
 <div class="main">
