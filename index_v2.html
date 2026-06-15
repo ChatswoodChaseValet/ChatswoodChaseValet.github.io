@@ -281,7 +281,7 @@ body.mobile-mode .tab.desktop-only{display:none}
   color:var(--maroon);
   letter-spacing:1.5px;
   text-transform:uppercase;
-  font-weight:normal;
+  font-weight:bold;
 }
 
 /* ─── FORM ─── */
@@ -1269,10 +1269,6 @@ body.dark-mode .scan-banner {
       <div class="section-title">Quick Pickup</div>
       <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="qp-count">2 cars</div>
     </div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
-      Tap card to checkout · Swipe right to mark out · Swipe left to request pickup<br>
-      Long-stay cars highlighted · Sorted by pickup-requested first, then longest stay.
-    </div>
     <div style="margin-bottom:14px">
       <input type="text" id="qp-search" class="form-input" placeholder="Filter: ticket, rego, bay, name…" oninput="renderQuickPickup()" autocomplete="off">
     </div>
@@ -1296,7 +1292,7 @@ body.dark-mode .scan-banner {
       </div>
       
       <div style="display:flex;gap:8px;align-items:center">
-        $1Call</a>
+        <button class="btn btn-secondary btn-sm" type="button">Call</button>
         <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" style="flex:1;padding:14px 10px;font-size:13px">Request</button>
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout(&#39;1780440912814-jpdl0f&#39;)" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · $25.00</button>
       </div>
@@ -1323,7 +1319,7 @@ body.dark-mode .scan-banner {
           
         </div>
       <div style="display:flex;gap:8px;align-items:center">
-        $1Call</a>
+        <button class="btn btn-secondary btn-sm" type="button">Call</button>
         <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" style="flex:1;padding:14px 10px;font-size:13px">Request</button>
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout(&#39;1780444884018-mefkxu&#39;)" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · $20.00</button>
       </div>
@@ -1338,11 +1334,7 @@ body.dark-mode .scan-banner {
       <div class="section-title">Pickup Queue</div>
       <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="pq-count">—</div>
     </div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
-      Every car a customer (or staff) has requested, soonest first. Countdowns are live.<br>
-      Tap <b>On the way</b> / <b>Ready</b> to update the customer's ticket page, then <b>✓ Mark Out</b> when collected.
-    </div>
-    <div id="pq-queue" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div id="pq-queue" style="display:flex;flex-direction:column;gap:12px;margin-top:14px"></div>
   </div>
 </div>
 
@@ -1350,7 +1342,7 @@ body.dark-mode .scan-banner {
 <div class="view" id="view-bags">
   <div class="section">
     <div class="section-header">
-      <div class="section-title" style="font-weight:bold">Hands-Free Shopping</div>
+      <div class="section-title">Hands-Free Shopping</div>
       <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="bag-count">—</div>
     </div>
     <div id="bag-queue" style="display:flex;flex-direction:column;gap:12px;margin-top:14px"></div>
@@ -1390,7 +1382,7 @@ body.dark-mode .scan-banner {
       <td><b>12</b></td>
       <td style="font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$25.00</td>
       <td>
-        $1Call</a>
+        <button class="btn btn-secondary btn-sm" type="button">Call</button>
         <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" title="Customer asked for car">Request</button>
         <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)" style="margin-left:4px">✓ Mark Out</button>
       </td>
@@ -1404,7 +1396,7 @@ body.dark-mode .scan-banner {
       <td><b>B4</b></td>
       <td style="font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$20.00</td>
       <td>
-        $1Call</a>
+        <button class="btn btn-secondary btn-sm" type="button">Call</button>
         <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" title="Customer asked for car">Request</button>
         <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780444884018-mefkxu&#39;)" style="margin-left:4px">✓ Mark Out</button>
       </td>
@@ -4459,7 +4451,7 @@ function renderActive() {
       <td><span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span></td>
       <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(fees.total)}</td>
       <td>
-        ${e.phone ? `$1Call</a>` : ''}
+        ${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none" onclick="event.stopPropagation()" title="Call ${e.phone}">Call</a>` : ''}
         <button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">QR</button>
         <button class="btn btn-secondary btn-sm" $1Print</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">Edit</button>
@@ -4780,7 +4772,7 @@ function renderQuickPickup() {
       : '';
 
     const callBtn = e.phone
-      ? `$1Call</a>`
+      ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none" onclick="event.stopPropagation()" title="Call ${e.phone}">Call</a>`
       : '';
     const qrBtn = `<button class="btn btn-secondary" style="flex:0 0 auto;padding:14px 14px;font-size:14px" onclick="event.stopPropagation();sendQRSms('${e.id}')" title="Send QR ticket link to customer">QR</button>`;
 
@@ -5008,7 +5000,7 @@ function renderBagQueue() {
       + `</div>`;
 
     const callBtn = e.phone
-      ? `$1Call</a>`
+      ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none" onclick="event.stopPropagation()" title="Call ${e.phone}">Call</a>`
       : '';
     const sbase = 'flex:1;padding:13px 8px;font-size:14px;font-weight:600';
     let actions = '';
@@ -5279,7 +5271,7 @@ function renderPickupQueue() {
         : '';
 
     const callBtn = e.phone
-      ? `$1Call</a>`
+      ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none" onclick="event.stopPropagation()" title="Call ${e.phone}">Call</a>`
       : '';
     const sbase = 'flex:1;padding:12px 8px;font-size:13px;font-weight:600';
 
