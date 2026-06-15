@@ -857,7 +857,7 @@ body.dark-mode .scan-banner {
     <div style="font-size:11px;letter-spacing:2px;color:#a48d53;text-transform:uppercase;margin-bottom:24px">Valet Dashboard</div>
 
     <div id="login-stage-connecting" class="login-stage" style="display:block">
-      <div style="font-size:13px;color:#6f6b66;line-height:1.6">⏳ Connecting to cloud database…</div>
+      <div style="font-size:13px;color:#6f6b66;line-height:1.6">Connecting to cloud database…</div>
     </div>
 
     <div id="login-stage-pin" class="login-stage" style="display:none">
@@ -900,11 +900,11 @@ body.dark-mode .scan-banner {
 <div class="scan-banner" id="eod-banner" style="background:#e0a640;color:#5a3a00;border-bottom-color:#a06400;display:none"></div>
 
 <div class="scan-banner" id="offline-banner" style="background:#ffbb77;color:#5a3a00;border-bottom-color:#a06400;display:none">
-  ⚠ OFFLINE — Data saved locally on this device, will sync when reconnected (if multi-device sync is set up)
+  OFFLINE — Data saved locally on this device, will sync when reconnected (if multi-device sync is set up)
 </div>
 
 <div class="scan-banner" id="scan-banner">
-  🔫 SCANNER ALWAYS ON — just scan a key tag anywhere; no need to click first
+  SCANNER ALWAYS ON — just scan a key tag anywhere; no need to click first
 </div>
 
 <div class="header">
@@ -916,14 +916,14 @@ body.dark-mode .scan-banner {
   </div>
 
   <div class="quick-search">
-    <input type="text" id="quick-search" placeholder="🔍 Quick lookup: ticket #, rego, bay…" autocomplete="off">
+    <input type="text" id="quick-search" placeholder="Quick lookup: ticket #, rego, bay…" autocomplete="off">
     <div class="quick-results" id="quick-results"></div>
   </div>
 
   <div class="scan-controls">
-    <button class="scan-btn" id="btn-ui-mode" onclick="toggleUiMode()" title="Switch between simple Mobile view and full Desktop view">📱 Mobile</button>
-    <button class="scan-btn" id="btn-scan-mode" onclick="toggleScanMode()" title="USB scanner: enable scan-anywhere mode">🔫 Scan Mode</button>
-    <button class="scan-btn" id="btn-camera-scan" onclick="openCameraScan()" title="Use phone/PC camera to scan QR">📷 Camera</button>
+    <button class="scan-btn" id="btn-ui-mode" onclick="toggleUiMode()" title="Switch between simple Mobile view and full Desktop view">Mobile</button>
+    <button class="scan-btn" id="btn-scan-mode" onclick="toggleScanMode()" title="USB scanner: enable scan-anywhere mode">Scan Mode</button>
+    <button class="scan-btn" id="btn-camera-scan" onclick="openCameraScan()" title="Use phone/PC camera to scan QR">Camera</button>
   </div>
 
   <div class="header-date">
@@ -969,7 +969,7 @@ body.dark-mode .scan-banner {
       <div class="stat-sub">Awaiting pickup</div>
     </div>
     <div class="stat-card" id="stat-pickup-card" style="display:none;cursor:pointer" onclick="showView('pickup-queue')" title="Open the pickup queue">
-      <div class="stat-label">⏱ Pickups Pending</div>
+      <div class="stat-label">Pickups Pending</div>
       <div class="stat-value" id="stat-pickups" style="color:#a83838">0</div>
       <div class="stat-sub" id="stat-pickups-sub">Customer arriving</div>
     </div>
@@ -987,7 +987,7 @@ body.dark-mode .scan-banner {
 
   <!-- Infographic widgets — built by renderDashboard from live data -->
   <div class="dash-toolbar">
-    <button class="btn btn-secondary btn-sm" onclick="openDashCustomize()">⚙ Customize dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="openDashCustomize()">Customize dashboard</button>
   </div>
   <div class="dash-grid" id="dash-infographics"></div>
 
@@ -999,7 +999,7 @@ body.dark-mode .scan-banner {
     <textarea id="handover-notes" class="form-input" placeholder="Notes for the team — VIP arriving 6pm, Bay 1 reserved, customer X to call back, etc. Auto-saves as you type. Cleared automatically at end of day." style="width:100%;min-height:80px;resize:vertical;font-family:inherit;line-height:1.5"></textarea>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px">
       <div style="font-size:11px;color:var(--text-muted);font-style:italic">Persists across shifts · Auto-clears tomorrow morning</div>
-      <button class="btn btn-secondary btn-sm" onclick="clearHandoverNotes()">🗑 Clear Now</button>
+      <button class="btn btn-secondary btn-sm" onclick="clearHandoverNotes()">Clear Now</button>
     </div>
   </div>
 
@@ -1036,7 +1036,7 @@ body.dark-mode .scan-banner {
     <div class="section-header">
       <div class="section-title">Recent Activity</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary btn-sm" onclick="printDailySummary()">🖨 Print Today's Summary</button>
+        <button class="btn btn-secondary btn-sm" onclick="printDailySummary()">Print Today's Summary</button>
         <button class="btn btn-secondary btn-sm" onclick="showView(&#39;log&#39;)">View All →</button>
       </div>
     </div>
@@ -1100,10 +1100,10 @@ body.dark-mode .scan-banner {
   <!-- Quick Add toggle bar -->
   <div style="background:var(--maroon);color:var(--bone);padding:12px 16px;border-radius:6px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
     <div>
-      <div style="font-size:14px;font-weight:600;letter-spacing:1px">⚡ Quick Add Mode</div>
+      <div style="font-size:14px;font-weight:600;letter-spacing:1px">Quick Add Mode</div>
       <div style="font-size:11px;color:var(--champagne);font-style:italic" id="quick-add-desc">OFF · Showing full form with all details</div>
     </div>
-    <button class="btn btn-secondary btn-sm" id="btn-quick-add" onclick="toggleQuickAdd()" style="background:var(--bone);color:var(--maroon)">⚡ Turn ON</button>
+    <button class="btn btn-secondary btn-sm" id="btn-quick-add" onclick="toggleQuickAdd()" style="background:var(--bone);color:var(--maroon)">Turn ON</button>
   </div>
   <div class="section">
     <div class="section-header">
@@ -1114,12 +1114,12 @@ body.dark-mode .scan-banner {
     <div id="customer-banner" style="display:none;background:linear-gradient(90deg,#faf9f7,#fafafa);border-left:4px solid var(--bronze);padding:12px 14px;border-radius:4px;margin-bottom:16px;cursor:pointer" onclick="showCustomerDetail()">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
         <div style="flex:1">
-          <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:3px" id="cb-title">🌟 Returning Customer</div>
+          <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:3px" id="cb-title">Returning Customer</div>
           <div style="font-size:14px;color:var(--text);font-weight:600" id="cb-name">—</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="cb-info">—</div>
         </div>
         <div style="text-align:right">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showCustomerDetail()">📋 Detail</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showCustomerDetail()">Detail</button>
           <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();dismissCustomerBanner()" style="margin-left:4px">✕</button>
         </div>
       </div>
@@ -1145,12 +1145,12 @@ body.dark-mode .scan-banner {
       <div class="form-field">
         <label class="form-label">
           Rego / Plate<span class="required">*</span>
-          <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">📷 Snap · 🎤 Voice · ⌨️ Type</span>
+          <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">Snap · Voice · Type</span>
         </label>
         <div style="display:flex;gap:6px">
           <input type="text" id="f-rego" class="form-input" placeholder="e.g. ABC 123" autocomplete="off" style="text-transform:uppercase;flex:1">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="startVoicePlate()" title="Voice-to-text plate entry" style="white-space:nowrap" id="voice-btn">🎤</button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="openPlateScan()" title="Use camera to scan number plate" style="white-space:nowrap">📷 Snap</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="startVoicePlate()" title="Voice-to-text plate entry" style="white-space:nowrap" $1Voice</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openPlateScan()" title="Use camera to scan number plate" style="white-space:nowrap">Snap</button>
         </div>
       </div>
       <div class="form-field">
@@ -1314,8 +1314,8 @@ body.dark-mode .scan-banner {
     <!-- Photo + GPS section -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px;background:var(--sandstone);border-radius:6px;margin-top:14px;margin-bottom:6px">
       <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;flex:1 1 100%">Optional extras for legal protection</div>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="takeCarPhoto()" id="photo-btn">📸 Photo of Car</button>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="captureGPS()" id="gps-btn">📍 Save Bay Location</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="takeCarPhoto()" id="photo-btn">Photo of Car</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="captureGPS()" id="gps-btn">Save Bay Location</button>
       <input type="file" id="f-photo-input" accept="image/*" capture="environment" style="display:none" onchange="onCarPhotoSelected(event)">
       <span id="photo-status" style="font-size:12px;color:var(--text-muted);font-style:italic"></span>
       <span id="gps-status" style="font-size:12px;color:var(--text-muted);font-style:italic"></span>
@@ -1378,11 +1378,11 @@ body.dark-mode .scan-banner {
       <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="qp-count">2 cars</div>
     </div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
-      Tap card to checkout · 👉 Swipe right to mark out · 👈 Swipe left to request pickup<br>
+      Tap card to checkout · Swipe right to mark out · Swipe left to request pickup<br>
       Long-stay cars highlighted · Sorted by pickup-requested first, then longest stay.
     </div>
     <div style="margin-bottom:14px">
-      <input type="text" id="qp-search" class="form-input" placeholder="🔍 Filter: ticket, rego, bay, name…" oninput="renderQuickPickup()" autocomplete="off">
+      <input type="text" id="qp-search" class="form-input" placeholder="Filter: ticket, rego, bay, name…" oninput="renderQuickPickup()" autocomplete="off">
     </div>
     <div id="qp-cards" style="display:flex;flex-direction:column;gap:10px"><div class="qp-card" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)" style="background:#fff;border:1px solid var(--border);border-left:6px solid #e0a640;border-radius:8px;padding:14px;cursor:pointer;transition:transform .1s,box-shadow .1s;box-shadow:0 1px 3px rgba(0,0,0,.05)" onmousedown="this.style.transform=&#39;scale(.98)&#39;" onmouseup="this.style.transform=&#39;&#39;" ontouchstart="this.style.transform=&#39;scale(.98)&#39;" ontouchend="this.style.transform=&#39;&#39;">
       
@@ -1404,8 +1404,8 @@ body.dark-mode .scan-banner {
       </div>
       
       <div style="display:flex;gap:8px;align-items:center">
-        <a href="tel:0433273377" class="btn btn-secondary" style="flex:0 0 auto;padding:14px 16px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" onclick="event.stopPropagation()" title="Call 0433273377">📞</a>
-        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" style="flex:1;padding:14px 10px;font-size:13px">⏱ Request</button>
+        $1Call</a>
+        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" style="flex:1;padding:14px 10px;font-size:13px">Request</button>
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout(&#39;1780440912814-jpdl0f&#39;)" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · $25.00</button>
       </div>
     </div><div class="qp-card" onclick="checkout(&#39;1780444884018-mefkxu&#39;)" style="background:#fff;border:1px solid var(--border);border-left:6px solid var(--green);border-radius:8px;padding:14px;cursor:pointer;transition:transform .1s,box-shadow .1s;box-shadow:0 1px 3px rgba(0,0,0,.05)" onmousedown="this.style.transform=&#39;scale(.98)&#39;" onmouseup="this.style.transform=&#39;&#39;" ontouchstart="this.style.transform=&#39;scale(.98)&#39;" ontouchend="this.style.transform=&#39;&#39;">
@@ -1427,12 +1427,12 @@ body.dark-mode .scan-banner {
         <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:var(--green)">1h 35m</b></div>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:8px">
-          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewPhoto(&#39;1780444884018-mefkxu&#39;)" title="View photo">📸 Photo</button>
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewPhoto(&#39;1780444884018-mefkxu&#39;)" title="View photo">Photo</button>
           
         </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <a href="tel:0422790986" class="btn btn-secondary" style="flex:0 0 auto;padding:14px 16px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" onclick="event.stopPropagation()" title="Call 0422790986">📞</a>
-        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" style="flex:1;padding:14px 10px;font-size:13px">⏱ Request</button>
+        $1Call</a>
+        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" style="flex:1;padding:14px 10px;font-size:13px">Request</button>
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout(&#39;1780444884018-mefkxu&#39;)" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · $20.00</button>
       </div>
     </div></div>
@@ -1448,7 +1448,7 @@ body.dark-mode .scan-banner {
     </div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
       Every car a customer (or staff) has requested, soonest first. Countdowns are live.<br>
-      Tap <b>🚗 On the way</b> / <b>✅ Ready</b> to update the customer's ticket page, then <b>✓ Mark Out</b> when collected.
+      Tap <b>On the way</b> / <b>Ready</b> to update the customer's ticket page, then <b>✓ Mark Out</b> when collected.
     </div>
     <div id="pq-queue" style="display:flex;flex-direction:column;gap:12px"></div>
   </div>
@@ -1463,7 +1463,7 @@ body.dark-mode .scan-banner {
     </div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
       Open bag-collection jobs, oldest first. Customer requests (from their ticket page) and phone-ins appear here live.<br>
-      Tap <b>🙋 I'll get it</b> → collect the bags → <b>🚗 In car</b> (texts the customer) → <b>✅ Done</b>.
+      Tap <b>I'll get it</b> → collect the bags → <b>In car</b> (texts the customer) → <b>Done</b>.
     </div>
     <div id="bag-queue" style="display:flex;flex-direction:column;gap:12px"></div>
   </div>
@@ -1502,8 +1502,8 @@ body.dark-mode .scan-banner {
       <td><b>12</b></td>
       <td style="font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$25.00</td>
       <td>
-        <a href="tel:0433273377" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call 0433273377">📞</a>
-        <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" title="Customer asked for car">⏱ Request</button>
+        $1Call</a>
+        <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" title="Customer asked for car">Request</button>
         <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)" style="margin-left:4px">✓ Mark Out</button>
       </td>
     </tr><tr class="active" style="">
@@ -1516,8 +1516,8 @@ body.dark-mode .scan-banner {
       <td><b>B4</b></td>
       <td style="font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$20.00</td>
       <td>
-        <a href="tel:0422790986" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call 0422790986">📞</a>
-        <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" title="Customer asked for car">⏱ Request</button>
+        $1Call</a>
+        <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" title="Customer asked for car">Request</button>
         <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780444884018-mefkxu&#39;)" style="margin-left:4px">✓ Mark Out</button>
       </td>
     </tr></tbody>
@@ -1577,9 +1577,9 @@ body.dark-mode .scan-banner {
       <td>B4</td>
       <td><span class="status-pill status-active">On Site</span></td>
       <td>
-        <button class="btn btn-secondary btn-sm" onclick="viewPhoto(&#39;1780444884018-mefkxu&#39;)" style="margin-right:4px" title="View car photo">📸</button>
+        <button class="btn btn-secondary btn-sm" $1Photo</button>
         
-        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780444884018-mefkxu&#39;)" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780444884018-mefkxu&#39;)" style="margin-right:4px">Edit Time</button>
         <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780444884018-mefkxu&#39;)">✓ Out</button>
         <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780444884018-mefkxu&#39;)" style="margin-left:4px">✕</button>
       </td>
@@ -1598,7 +1598,7 @@ body.dark-mode .scan-banner {
       <td>
         
         
-        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780442364755-mrli6x&#39;)" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780442364755-mrli6x&#39;)" style="margin-right:4px">Edit Time</button>
         <button class="btn btn-secondary btn-sm" onclick="undoCheckout(&#39;1780442364755-mrli6x&#39;)">↶ Undo</button>
         <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780442364755-mrli6x&#39;)" style="margin-left:4px">✕</button>
       </td>
@@ -1617,7 +1617,7 @@ body.dark-mode .scan-banner {
       <td>
         
         
-        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780440912814-jpdl0f&#39;)" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780440912814-jpdl0f&#39;)" style="margin-right:4px">Edit Time</button>
         <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780440912814-jpdl0f&#39;)">✓ Out</button>
         <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780440912814-jpdl0f&#39;)" style="margin-left:4px">✕</button>
       </td>
@@ -1636,7 +1636,7 @@ body.dark-mode .scan-banner {
       <td>
         
         
-        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780440821974-zxjpct&#39;)" style="margin-right:4px">✎ Edit Time</button>
+        <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780440821974-zxjpct&#39;)" style="margin-right:4px">Edit Time</button>
         <button class="btn btn-secondary btn-sm" onclick="undoCheckout(&#39;1780440821974-zxjpct&#39;)">↶ Undo</button>
         <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780440821974-zxjpct&#39;)" style="margin-left:4px">✕</button>
       </td>
@@ -1724,7 +1724,7 @@ body.dark-mode .scan-banner {
       <div class="stat-sub">Different makes</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">📦 Bag Pickups</div>
+      <div class="stat-label">Bag Pickups</div>
       <div class="stat-value" id="rep-bags">0</div>
       <div class="stat-sub" id="rep-bags-sub">Hands-free shopping</div>
     </div>
@@ -1900,21 +1900,21 @@ body.dark-mode .scan-banner {
           <div style="font-weight:600;font-size:13px">Signed in as</div>
           <div style="font-size:12px;color:var(--text-muted)" id="settings-current-user">—</div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="logout()">🚪 Sign Out</button>
+        <button class="btn btn-secondary btn-sm" onclick="logout()">Sign Out</button>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
         <div>
           <div style="font-weight:600;font-size:13px">Access PIN</div>
           <div style="font-size:12px;color:var(--text-muted)">Required when opening dashboard (4-6 digits)</div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="changePIN()">🔢 Change PIN</button>
+        <button class="btn btn-secondary btn-sm" onclick="changePIN()">Change PIN</button>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
         <div>
           <div style="font-weight:600;font-size:13px">Force Reload from Cloud</div>
           <div style="font-size:12px;color:var(--text-muted)">Fetches the latest data from cloud database (use if dashboard looks out-of-date)</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="forceReloadFromCloud()">🔄 Reload</button>
+        <button class="btn btn-primary btn-sm" onclick="forceReloadFromCloud()">Reload</button>
       </div>
     </div>
   </div>
@@ -1931,7 +1931,7 @@ body.dark-mode .scan-banner {
       <div id="push-status" style="font-size:14px;font-weight:600;color:var(--text-muted)">○ Checking…</div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="enablePushAlerts()" id="btn-enable-push">🔔 Enable alerts on this device</button>
+      <button class="btn btn-primary" onclick="enablePushAlerts()" id="btn-enable-push">Enable alerts on this device</button>
       <button class="btn btn-secondary" onclick="disablePushAlerts()" id="btn-disable-push" style="display:none">✕ Turn off on this device</button>
     </div>
     <div id="push-ios-hint" style="display:none;margin-top:14px;font-size:12px;color:var(--maroon);background:#f7ecec;border-radius:6px;padding:12px;line-height:1.6">
@@ -1968,7 +1968,7 @@ body.dark-mode .scan-banner {
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="setupAutoSave()" id="btn-setup-autosave">⚙ Enable Auto-Save</button>
+      <button class="btn btn-primary" onclick="setupAutoSave()" id="btn-setup-autosave">Enable Auto-Save</button>
       <button class="btn btn-secondary" onclick="reenableAutoSave()" id="btn-reenable">↻ Re-enable (after browser restart)</button>
       <button class="btn btn-secondary" onclick="turnOffAutoSave()" id="btn-turn-off">✕ Turn Off Auto-Save</button>
     </div>
@@ -2012,13 +2012,13 @@ body.dark-mode .scan-banner {
       <input type="text" id="s-pr-key" class="form-input" placeholder="Paste your Plate Recognizer token here" style="font-family:&#39;Courier New&#39;,monospace;font-size:12px">
     </div>
     <div style="background:var(--sandstone);padding:12px;border-radius:4px;margin-bottom:14px;font-size:12px;line-height:1.6">
-      <strong>📊 Usage this month:</strong> <span id="pr-usage-display">0 scans</span> · Resets monthly<br>
-      <strong>⚠ Security:</strong> Token is visible in the dashboard's source code. Set spending cap to $0 in your Plate Recognizer account to prevent surprise charges.
+      <strong>Usage this month:</strong> <span id="pr-usage-display">0 scans</span> · Resets monthly<br>
+      <strong>Security:</strong> Token is visible in the dashboard's source code. Set spending cap to $0 in your Plate Recognizer account to prevent surprise charges.
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="savePlateRecognizerKey()">Save Token</button>
       <button class="btn btn-secondary" onclick="resetUsageCounter()">Reset Counter</button>
-      <button class="btn btn-secondary" onclick="testPlateRecognizer()">🧪 Test Connection</button>
+      <button class="btn btn-secondary" onclick="testPlateRecognizer()">Test Connection</button>
     </div>
     <div id="pr-test-result" style="margin-top:10px;font-size:12px"></div>
   </div>
@@ -2033,21 +2033,21 @@ body.dark-mode .scan-banner {
           <div style="font-weight:600;font-size:13px">Keep Screen On</div>
           <div style="font-size:11px;color:var(--text-muted)">Prevent phone from auto-locking during shift</div>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-wakelock" onclick="toggleWakeLock()">🔆 Keep Screen On</button>
+        <button class="btn btn-secondary btn-sm" id="btn-wakelock" onclick="toggleWakeLock()">Keep Screen On</button>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
         <div>
           <div style="font-weight:600;font-size:13px">Dark Mode</div>
           <div style="font-size:11px;color:var(--text-muted)">Easier on eyes for evening shifts</div>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-darkmode" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+        <button class="btn btn-secondary btn-sm" id="btn-darkmode" onclick="toggleDarkMode()">Dark Mode</button>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
         <div>
           <div style="font-weight:600;font-size:13px">Vibration Feedback</div>
           <div style="font-size:11px;color:var(--text-muted)">Subtle vibrate on save/scan/error</div>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-haptics" onclick="toggleHaptics()" style="background: var(--green); color: rgb(255, 255, 255);">📳 Vibration: ON</button>
+        <button class="btn btn-secondary btn-sm" id="btn-haptics" onclick="toggleHaptics()" style="background: var(--green); color: rgb(255, 255, 255);">Vibration: ON</button>
       </div>
     </div>
   </div>
@@ -2157,7 +2157,7 @@ body.dark-mode .scan-banner {
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="savePrinterSettings()">Save Printer</button>
-      <button class="btn btn-secondary" onclick="printTestTag()">🖨 Test Print</button>
+      <button class="btn btn-secondary" onclick="printTestTag()">Test Print</button>
     </div>
   </div>
 
@@ -2198,7 +2198,7 @@ body.dark-mode .scan-banner {
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.6">
         <strong style="color:var(--red)">Danger zone:</strong> Clearing data is permanent and can't be undone.
       </p>
-      <button class="btn btn-danger" onclick="confirmClearAll()">🗑 Clear All Data</button>
+      <button class="btn btn-danger" onclick="confirmClearAll()">Clear All Data</button>
     </div>
   </div>
   </div><!-- /settings-content -->
@@ -2368,7 +2368,7 @@ async function restoreAutoSave() {
         setAutoSaveStatus('● Auto-save ON: ' + handle.name, 'var(--green)');
       } else {
         autoSaveFileHandle = handle;
-        setAutoSaveStatus('⚠ Click "Re-enable Auto-save" to grant permission', 'var(--bronze)');
+        setAutoSaveStatus('Click "Re-enable Auto-save" to grant permission', 'var(--bronze)');
       }
     }
   }
@@ -2386,7 +2386,7 @@ async function reenableAutoSave() {
       setAutoSaveStatus('● Auto-save ON: ' + autoSaveFileHandle.name, 'var(--green)');
       doAutoSave();
     } else {
-      setAutoSaveStatus('⚠ Permission denied', 'var(--red)');
+      setAutoSaveStatus('Permission denied', 'var(--red)');
     }
   } catch (err) {
     alert('Could not re-enable: ' + err.message);
@@ -2422,7 +2422,7 @@ function doAutoSave() {
           setTimeout(() => { el.textContent = orig }, 1500);
         }
       } catch (err) {
-        setAutoSaveStatus('⚠ Auto-save failed — click Re-enable', 'var(--red)');
+        setAutoSaveStatus('Auto-save failed — click Re-enable', 'var(--red)');
       }
     } else if (autoSaveMode === 'download') {
       const blob = new Blob([json], { type: 'application/json' });
@@ -2713,7 +2713,7 @@ function applyUiMode() {
   const btn = document.getElementById('btn-ui-mode');
   if (btn) {
     btn.style.display = isAdmin ? '' : 'none'; // hide the toggle from staff
-    btn.textContent = mode === 'mobile' ? '📱 Mobile' : '🖥 Desktop';
+    btn.textContent = mode === 'mobile' ? 'Mobile' : 'Desktop';
     btn.title = mode === 'mobile'
       ? 'Simple Mobile view — tap for the full Desktop view'
       : 'Full Desktop view — tap for the simple Mobile view';
@@ -3016,7 +3016,7 @@ function saveEntry() {
   hapticFeedback('success');
 
   // Auto-print the key tag on check-in when a printer is set up. The toast
-  // still shows a 🖨 button as a reprint option; stays silent with no printer.
+  // still shows a button as a reprint option; stays silent with no printer.
   if (printerConfigured()) {
     autoPrintedIds.add(entry.id);   // so the realtime echo doesn't reprint it
     printKeyTag(entry);
@@ -3049,7 +3049,7 @@ function showSaveToast(entry) {
 
   const timeStr = fmtTime(new Date(entry.timeIn));
   const vehicle = [entry.brand, entry.model].filter(Boolean).join(' ');
-  const cloudIcon = (supa && navigator.onLine) ? '☁️' : '💾';
+  const cloudIcon = (supa && navigator.onLine) ? '' : '';
   const cloudText = (supa && navigator.onLine) ? 'Synced to cloud' : 'Saved locally (will sync when online)';
 
   toast.innerHTML = `
@@ -3059,8 +3059,8 @@ function showSaveToast(entry) {
       <div class="save-toast-details">
         <div><strong style="font-family:'Courier New',monospace;color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
         <div style="margin-top:2px">${vehicle || 'Vehicle logged'} in Bay <strong>${entry.bay}</strong> at <strong>${timeStr}</strong></div>
-        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">🔑 Write on key tag: <strong style="font-family:'Courier New',monospace;font-size:16px;color:#e0a640">${entry.ticket} · ${entry.bay}</strong></div>
-        <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="printKeyTag('${entry.id}')">🖨 Print Key Tag</button>
+        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">Write on key tag: <strong style="font-family:'Courier New',monospace;font-size:16px;color:#e0a640">${entry.ticket} · ${entry.bay}</strong></div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="printKeyTag('${entry.id}')">Print Key Tag</button>
       </div>
       <div class="save-toast-meta">${cloudIcon} ${cloudText}</div>
     </div>
@@ -3172,13 +3172,13 @@ function dismissSaveToast() {
       if (!res) return; // requestPrint fires once with "" before the real result
       var r = String(res);
       if (/Cannot connect to server/i.test(r)) {
-        flashScanStatus('🖨 Printer bridge not found — open mPrintServer and turn its Web Server ON', 'error');
+        flashScanStatus('Printer bridge not found — open mPrintServer and turn its Web Server ON', 'error');
       } else if (/No printers/i.test(r)) {
-        flashScanStatus('🖨 No printer named "' + printerName + '" in WebPrint — check Settings', 'error');
+        flashScanStatus('No printer named "' + printerName + '" in WebPrint — check Settings', 'error');
       } else if (/duplicated/i.test(r)) {
         /* same job already queued — ignore */
       } else if (/error|fail|not ?ready|cover|paper|empty/i.test(r)) {
-        flashScanStatus('🖨 ' + r.replace(/^[^:]*:/, ''), 'error');
+        flashScanStatus('' + r.replace(/^[^:]*:/, ''), 'error');
       } else {
         flashScanStatus(friendlyAction, 'success');
       }
@@ -3210,7 +3210,7 @@ function dismissSaveToast() {
     print1DBarcode(e.ticket, 8, 2, 70, 2, 1);                       // Code128 = ticket, HRI below (scans back into Scan Mode)
     printText("\n\n\n", 0, 0, false, false, false, 0, 1);            // feed clear of the tear bar
     cutPaper(1);                                                     // ignored on cutter-less mobile printers
-    sendJob(name, '🖨 Key tag printed');
+    sendJob(name, 'Key tag printed');
   };
 
   // Test print from Settings
@@ -3232,7 +3232,7 @@ function dismissSaveToast() {
     print1DBarcode("TEST-001", 8, 2, 70, 2, 1);
     printText("\n\n\n", 0, 0, false, false, false, 0, 1);
     cutPaper(1);
-    sendJob(name, '🖨 Test tag sent — check the printer');
+    sendJob(name, 'Test tag sent — check the printer');
   };
 })();
 
@@ -3292,13 +3292,13 @@ function dismissSaveToast() {
     var name = (settings.printerZebraName || '').trim();
     function onErr(e) {
       if (e === 'connect' || e === 'timeout') {
-        flashScanStatus('🖨 Zebra Browser Print not reachable — open it on the desktop, and visit https://localhost:9101 once to accept its security prompt', 'error');
+        flashScanStatus('Zebra Browser Print not reachable — open it on the desktop, and visit https://localhost:9101 once to accept its security prompt', 'error');
       } else if (e === 'noname') {
-        flashScanStatus('🖨 No Zebra printer named "' + name + '" — leave the name blank to use the default', 'error');
+        flashScanStatus('No Zebra printer named "' + name + '" — leave the name blank to use the default', 'error');
       } else if (e === 'nodefault') {
-        flashScanStatus('🖨 No default printer set in Zebra Browser Print', 'error');
+        flashScanStatus('No default printer set in Zebra Browser Print', 'error');
       } else {
-        flashScanStatus('🖨 Zebra error: ' + e, 'error');
+        flashScanStatus('Zebra error: ' + e, 'error');
       }
     }
     getDevice(function (device) {
@@ -3340,12 +3340,12 @@ function dismissSaveToast() {
     var e = (typeof entryOrId === 'string') ? entries.find(function (x) { return x.id === entryOrId; }) : entryOrId;
     if (!e) { flashScanStatus('Entry not found', 'error'); return; }
     var zpl = buildZebraZpl({ ticket: e.ticket, bay: e.bay, plate: e.rego, brand: e.brand, name: e.name, timeStr: fmtTime(new Date(e.timeIn)), barcode: e.ticket });
-    zebraPrint(zpl, '🖨 Key tag printed');
+    zebraPrint(zpl, 'Key tag printed');
   };
 
   window._printTestTagZebra = function () {
     var zpl = buildZebraZpl({ ticket: 'TEST-001', bay: '1', plate: 'ABC123', brand: 'Toyota', name: 'Test Customer', timeStr: fmtTime(new Date()), barcode: 'TEST-001' });
-    zebraPrint(zpl, '🖨 Test tag sent — check the printer');
+    zebraPrint(zpl, 'Test tag sent — check the printer');
   };
 })();
 
@@ -3490,7 +3490,7 @@ function checkout(id) {
   if (e.damage && e.damage.length) {
     dmgBox.style.display = '';
     dmgBox.innerHTML =
-      `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">⚠ Pre-existing damage (${e.damage.length}) — marked at intake</div>`
+      `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Pre-existing damage (${e.damage.length}) — marked at intake</div>`
       + `<div style="display:flex;gap:12px;align-items:flex-start">${damageDiagramHTML(e.damage)}`
       + `<div style="font-size:12px;color:var(--text-muted)">${e.notes ? 'Notes: ' + e.notes : 'Check the car against these marks before handover.'}</div></div>`;
   } else {
@@ -3796,7 +3796,7 @@ function showCheckoutToast(entry, total) {
 
   const timeStr = fmtTime(new Date(entry.timeOut));
   const vehicle = [entry.brand, entry.model].filter(Boolean).join(' ');
-  const cloudIcon = (supa && navigator.onLine) ? '☁️' : '💾';
+  const cloudIcon = (supa && navigator.onLine) ? '' : '';
 
   toast.innerHTML = `
     <div class="save-toast-icon" style="background:#b08f59;color:#5a3a00">✓</div>
@@ -4235,7 +4235,7 @@ function renderDashInfographics(active, todayIn, todayOut) {
     return `<div class="dash-card" data-wid="${inst.id}" style="${span}">
       <div class="dash-card-head"><h3><span class="dash-drag" title="Drag to reorder">⠿</span> ${escAttr(t)}</h3>
       <button class="dash-x" title="Remove from dashboard" onclick="dashRemove('${inst.id}')">✕</button></div>${body(inst)}</div>`;
-  }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “⚙ Customize dashboard”.</div>';
+  }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “Customize dashboard”.</div>';
 }
 
 // ── Dashboard customise: drag-reorder, rename, resize, options, add/remove ──
@@ -4491,7 +4491,7 @@ function renderDashboard() {
 function renderBrandList(list, containerId) {
   const container = document.getElementById(containerId);
   if (list.length === 0) {
-    container.innerHTML = '<div class="empty"><div class="empty-icon">🚗</div><div>No cars logged yet</div></div>';
+    container.innerHTML = '<div class="empty"><div class="empty-icon"></div><div>No cars logged yet</div></div>';
     return;
   }
   // Count brands
@@ -4546,7 +4546,7 @@ function renderActive() {
     let durBadge = '';
     if (hrs >= 6) {
       durStyle = 'color:#fff;background:#a83838;font-weight:bold;padding:3px 8px;border-radius:3px;animation:pulse 1.5s ease-in-out infinite';
-      durBadge = ' ⚠';
+      durBadge = ' ';
     } else if (hrs >= 4) {
       durStyle = 'color:#fff;background:#c45a5a;font-weight:bold;padding:3px 8px;border-radius:3px';
     } else if (hrs >= 2) {
@@ -4560,17 +4560,17 @@ function renderActive() {
 
     const pickupBtn = (() => {
       if (!e.pickupRequested) {
-        return '<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(\'' + e.id + '\')" title="Customer asked for car">⏱ Request</button>';
+        return '<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(\'' + e.id + '\')" title="Customer asked for car">Request</button>';
       }
       if (!e.pickupETA) {
-        return '<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(\'' + e.id + '\')" title="Cancel pickup request" style="background:var(--bronze);color:#fff">⏱ Requested</button>';
+        return '<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(\'' + e.id + '\')" title="Cancel pickup request" style="background:var(--bronze);color:#fff">Requested</button>';
       }
       const minsLeft = Math.round((new Date(e.pickupETA) - now) / 60000);
       let label, bg;
-      if (minsLeft <= 0) { label = `🔴 ${Math.abs(minsLeft)}m ago`; bg = '#a83838'; }
-      else if (minsLeft <= 3) { label = `🟠 ${minsLeft}m`; bg = '#c45a5a'; }
-      else if (minsLeft <= 10) { label = `🟡 ${minsLeft}m`; bg = '#e0a640'; }
-      else { label = `⏱ ${minsLeft}m`; bg = 'var(--bronze)'; }
+      if (minsLeft <= 0) { label = `${Math.abs(minsLeft)}m ago`; bg = '#a83838'; }
+      else if (minsLeft <= 3) { label = `${minsLeft}m`; bg = '#c45a5a'; }
+      else if (minsLeft <= 10) { label = `${minsLeft}m`; bg = '#e0a640'; }
+      else { label = `${minsLeft}m`; bg = 'var(--bronze)'; }
       return `<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest('${e.id}')" title="Cancel pickup request" style="background:${bg};color:#fff">${label}</button>`;
     })();
 
@@ -4585,12 +4585,12 @@ function renderActive() {
       <td><span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span></td>
       <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(fees.total)}</td>
       <td>
-        ${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-block" title="Call ${e.phone}">📞</a>` : ''}
-        <button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">📱 QR</button>
-        <button class="btn btn-secondary btn-sm" onclick="printKeyTag('${e.id}')" title="Print key tag to BIXOLON printer">🖨</button>
-        <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">✎ Edit</button>
+        ${e.phone ? `$1Call</a>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">QR</button>
+        <button class="btn btn-secondary btn-sm" $1Print</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">Edit</button>
         ${pickupBtn}
-        <button class="btn btn-secondary btn-sm" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup" style="${e.bagStatus && e.bagStatus!=='done' ? 'background:#531620;color:#fff' : ''}">📦${e.bagStatus && e.bagStatus!=='done' ? '•' : ''}</button>
+        <button class="btn btn-secondary btn-sm" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup" style="${e.bagStatus && e.bagStatus!=='done' ? 'background:#531620;color:#fff' : ''}">${e.bagStatus && e.bagStatus!=='done' ? '•' : ''}</button>
         <button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')" style="margin-left:4px">✓ Mark Out</button>
       </td>
     </tr>`;
@@ -4632,7 +4632,7 @@ async function sendQRSms(id) {
         body: { to: e.phone, message: msg, shortenUrl: url }
       });
       if (!error && data && data.ok) {
-        quickToast('📱 Ticket texted to ' + e.phone);
+        quickToast('Ticket texted to ' + e.phone);
         hapticFeedback('success');
         return;
       }
@@ -4714,7 +4714,7 @@ async function maybeWarnLowSmsBalance() {
   const b = await checkSmsBalance();
   if (!b) return;
   if (b.balance <= SMS_LOW_BALANCE) {
-    showLowSmsBanner('⚠️ Low SMS credit: ' + b.prefix + b.balance.toFixed(2) +
+    showLowSmsBanner('Low SMS credit: ' + b.prefix + b.balance.toFixed(2) +
       ' left. Top up ClickSend so customer auto-texts keep sending.');
   }
 }
@@ -4726,12 +4726,12 @@ async function checkSmsBalanceUI() {
   const b = await checkSmsBalance();
   if (!out) return;
   if (!b) {
-    out.textContent = '⚠️ Could not read balance (check connection / ClickSend setup).';
+    out.textContent = 'Could not read balance (check connection / ClickSend setup).';
     out.style.color = '#b04a4a';
     return;
   }
   const low = b.balance <= SMS_LOW_BALANCE;
-  out.textContent = (low ? '⚠️ ' : '✓ ') + 'Balance: ' + b.prefix + b.balance.toFixed(2) +
+  out.textContent = (low ? '' : '✓ ') + 'Balance: ' + b.prefix + b.balance.toFixed(2) +
     (low ? ' — running low, top up ClickSend soon.' : ' — plenty of credit.');
   out.style.color = low ? '#b04a4a' : '#2a7a2a';
 }
@@ -4773,8 +4773,8 @@ function setPickupStatus(id, status) {
   saveData(id, { immediate: true });
   hapticFeedback('success');
   cloudAudit('pickup_status', 'entry', id, { ticket: e.ticket, status: e.pickupStatus });
-  const label = e.pickupStatus === 'fetching' ? '🚗 Customer told: on the way'
-    : e.pickupStatus === 'ready' ? '✅ Customer told: car is ready'
+  const label = e.pickupStatus === 'fetching' ? 'Customer told: on the way'
+    : e.pickupStatus === 'ready' ? 'Customer told: car is ready'
     : 'Status cleared';
   quickToast(label);
   renderActive();
@@ -4848,7 +4848,7 @@ function renderQuickPickup() {
 
   const container = document.getElementById('qp-cards');
   if (active.length === 0) {
-    container.innerHTML = '<div class="empty"><div class="empty-icon">🅿️</div><div>' + (search ? 'No matches' : 'No active vehicles') + '</div></div>';
+    container.innerHTML = '<div class="empty"><div class="empty-icon"></div><div>' + (search ? 'No matches' : 'No active vehicles') + '</div></div>';
     return;
   }
 
@@ -4877,28 +4877,28 @@ function renderQuickPickup() {
     // Card border colour based on stay duration
     let borderColor = 'var(--green)';
     let stayLabel = 'Normal stay';
-    if (hrs >= 6) { borderColor = '#a83838'; stayLabel = '⚠ Very long stay'; }
+    if (hrs >= 6) { borderColor = '#a83838'; stayLabel = 'Very long stay'; }
     else if (hrs >= 4) { borderColor = '#c45a5a'; stayLabel = 'Long stay'; }
     else if (hrs >= 2) { borderColor = '#e0a640'; stayLabel = 'Standard'; }
 
     const requestedBadge = e.pickupRequested
       ? (() => {
           if (!e.pickupETA) {
-            return '<div style="background:var(--bronze);color:#fff;padding:4px 10px;border-radius:3px;font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:6px">⏱ Pickup Requested</div>';
+            return '<div style="background:var(--bronze);color:#fff;padding:4px 10px;border-radius:3px;font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:6px">Pickup Requested</div>';
           }
           const minsLeft = Math.round((new Date(e.pickupETA) - now) / 60000);
           let label, bg;
           if (minsLeft <= 0) {
-            label = `🔴 Customer Arrived ${Math.abs(minsLeft)}m ago`;
+            label = `Customer Arrived ${Math.abs(minsLeft)}m ago`;
             bg = '#a83838';
           } else if (minsLeft <= 3) {
-            label = `🟠 Arriving in ${minsLeft}m — GET CAR NOW`;
+            label = `Arriving in ${minsLeft}m — GET CAR NOW`;
             bg = '#c45a5a';
           } else if (minsLeft <= 10) {
-            label = `🟡 Arriving in ${minsLeft}m`;
+            label = `Arriving in ${minsLeft}m`;
             bg = '#e0a640';
           } else {
-            label = `⏱ Arriving in ${minsLeft}m`;
+            label = `Arriving in ${minsLeft}m`;
             bg = 'var(--bronze)';
           }
           return `<div style="background:${bg};color:#fff;padding:4px 10px;border-radius:3px;font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:6px">${label}</div>`;
@@ -4906,14 +4906,14 @@ function renderQuickPickup() {
       : '';
 
     const callBtn = e.phone
-      ? `<a href="tel:${e.phone}" class="btn btn-secondary" style="flex:0 0 auto;padding:14px 16px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" onclick="event.stopPropagation()" title="Call ${e.phone}">📞</a>`
+      ? `$1Call</a>`
       : '';
-    const qrBtn = `<button class="btn btn-secondary" style="flex:0 0 auto;padding:14px 14px;font-size:14px" onclick="event.stopPropagation();sendQRSms('${e.id}')" title="Send QR ticket link to customer">📱 QR</button>`;
+    const qrBtn = `<button class="btn btn-secondary" style="flex:0 0 auto;padding:14px 14px;font-size:14px" onclick="event.stopPropagation();sendQRSms('${e.id}')" title="Send QR ticket link to customer">QR</button>`;
 
     const extrasRow = (e.photo || e.gps)
       ? `<div style="display:flex;gap:6px;margin-bottom:8px">
-          ${e.photo ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewPhoto('${e.id}')" title="View photo">📸 Photo</button>` : ''}
-          ${e.gps ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewBayLocation(${e.gps.lat},${e.gps.lng})" title="Show on map">📍 Find Bay</button>` : ''}
+          ${e.photo ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewPhoto('${e.id}')" title="View photo">Photo</button>` : ''}
+          ${e.gps ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewBayLocation(${e.gps.lat},${e.gps.lng})" title="Show on map">Find Bay</button>` : ''}
         </div>`
       : '';
 
@@ -4926,8 +4926,8 @@ function renderQuickPickup() {
           const ready = e.pickupStatus === 'ready';
           const base = 'flex:1;padding:11px 8px;font-size:12px;font-weight:600';
           return `<div style="display:flex;gap:6px;margin-bottom:8px" title="Updates the customer's ticket page live">
-            <button class="btn ${onWay ? 'btn-primary' : 'btn-secondary'}" style="${base}" onclick="event.stopPropagation();setPickupStatus('${e.id}','fetching')">${onWay ? '🚗 On the way ✓' : '🚗 On the way'}</button>
-            <button class="btn ${ready ? 'btn-primary' : 'btn-secondary'}" style="${base}" onclick="event.stopPropagation();setPickupStatus('${e.id}','ready')">${ready ? '✅ Ready ✓' : '✅ Ready'}</button>
+            <button class="btn ${onWay ? 'btn-primary' : 'btn-secondary'}" style="${base}" onclick="event.stopPropagation();setPickupStatus('${e.id}','fetching')">${onWay ? 'On the way ✓' : 'On the way'}</button>
+            <button class="btn ${ready ? 'btn-primary' : 'btn-secondary'}" style="${base}" onclick="event.stopPropagation();setPickupStatus('${e.id}','ready')">${ready ? 'Ready ✓' : 'Ready'}</button>
           </div>`;
         })()
       : '';
@@ -4955,7 +4955,7 @@ function renderQuickPickup() {
       <div style="display:flex;gap:8px;align-items:center">
         ${callBtn}
         ${qrBtn}
-        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest('${e.id}')" style="flex:1;padding:14px 10px;font-size:13px">${e.pickupRequested ? '✓ Requested' : '⏱ Request'}</button>
+        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest('${e.id}')" style="flex:1;padding:14px 10px;font-size:13px">${e.pickupRequested ? '✓ Requested' : 'Request'}</button>
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout('${e.id}')" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · ${fmtMoney(fees.total)}</button>
       </div>
     </div>`;
@@ -4974,13 +4974,13 @@ function renderQuickPickup() {
 function pickupUrgency(e, now) {
   if (e.pickupETA) {
     const mins = Math.round((new Date(e.pickupETA) - now) / 60000);
-    if (mins <= 0) return { label: mins === 0 ? '🔴 HERE NOW' : `🔴 HERE NOW · ${Math.abs(mins)}m overdue`, bg: '#a83838', sort: mins };
-    if (mins <= 3)  return { label: `🟠 ${mins}m away — get the car NOW`, bg: '#c45a5a', sort: mins };
-    if (mins <= 10) return { label: `🟡 Arriving in ${mins}m`, bg: '#e0a640', sort: mins };
-    return { label: `⏱ Arriving in ${mins}m`, bg: 'var(--bronze)', sort: mins };
+    if (mins <= 0) return { label: mins === 0 ? 'HERE NOW' : `HERE NOW · ${Math.abs(mins)}m overdue`, bg: '#a83838', sort: mins };
+    if (mins <= 3)  return { label: `${mins}m away — get the car NOW`, bg: '#c45a5a', sort: mins };
+    if (mins <= 10) return { label: `Arriving in ${mins}m`, bg: '#e0a640', sort: mins };
+    return { label: `Arriving in ${mins}m`, bg: 'var(--bronze)', sort: mins };
   }
   const ago = Math.max(0, Math.round((now - new Date(e.pickupRequested)) / 60000));
-  return { label: `⏱ Requested ${ago === 0 ? 'just now' : ago + 'm ago'}`, bg: 'var(--bronze)', sort: 100000 + ago };
+  return { label: `Requested ${ago === 0 ? 'just now' : ago + 'm ago'}`, bg: 'var(--bronze)', sort: 100000 + ago };
 }
 
 function updateQueueBadge(count) {
@@ -5031,7 +5031,7 @@ function updateBagBadge(count) {
     const newReqs = entries.filter(e => !e.timeOut && e.bagStatus === 'requested');
     if (allowed && newReqs.length && !bagBannerDismissed) {
       const latest = newReqs.sort((a,b)=>new Date(b.bagRequested)-new Date(a.bagRequested))[0];
-      banner.innerHTML = `📦 <strong>${newReqs.length} bag pickup${newReqs.length!==1?'s':''} waiting</strong> · newest: ${latest.bagLocation || 'Valet Desk'} `
+      banner.innerHTML = `<strong>${newReqs.length} bag pickup${newReqs.length!==1?'s':''} waiting</strong> · newest: ${latest.bagLocation || 'Valet Desk'} `
         + `<button onclick="showView('bags')" style="background:#fff;color:#531620;border:none;padding:2px 10px;border-radius:3px;margin-left:8px;cursor:pointer;font-weight:bold">Open</button>`
         + `<button onclick="dismissBagBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:6px;cursor:pointer">Dismiss</button>`;
       banner.style.display = 'block';
@@ -5095,7 +5095,7 @@ function renderBagQueue() {
   const container = document.getElementById('bag-queue');
   if (!container) return;
   if (!list.length) {
-    container.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div>No bag pickups right now</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Customer requests and phone-ins appear here.</div></div>';
+    container.innerHTML = '<div class="empty"><div class="empty-icon"></div><div>No bag pickups right now</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Customer requests and phone-ins appear here.</div></div>';
     return;
   }
   const now = new Date();
@@ -5112,10 +5112,10 @@ function renderBagQueue() {
     const overdue = !isDone && waited > 10;
     const rowColor = isDone ? '#3a7d44' : overdue ? '#e07a7a' : '#e0a640';
     const timeColor = isDone ? '#3a7d44' : overdue ? '#cf6363' : '#a87f00';
-    const label = st === 'requested' ? '🆕 Requested'
-      : st === 'collecting' ? '🛍️ Collecting' + (e.bagAssigned ? ' · ' + e.bagAssigned : '')
-      : st === 'in_car' ? '🚗 In car'
-      : '✅ Done' + (e.bagInCarBy ? ' · ' + e.bagInCarBy : '');
+    const label = st === 'requested' ? 'Requested'
+      : st === 'collecting' ? 'Collecting' + (e.bagAssigned ? ' · ' + e.bagAssigned : '')
+      : st === 'in_car' ? 'In car'
+      : 'Done' + (e.bagInCarBy ? ' · ' + e.bagInCarBy : '');
     const hdr = { bg: rowColor, label };
 
     // Status progress bar: Requested → Collecting → In car → Done.
@@ -5133,24 +5133,24 @@ function renderBagQueue() {
       + `</div>`;
 
     const callBtn = e.phone
-      ? `<a href="tel:${e.phone}" class="btn btn-secondary" style="flex:0 0 auto;padding:13px 15px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" title="Call ${e.phone}">📞</a>`
+      ? `$1Call</a>`
       : '';
     const sbase = 'flex:1;padding:13px 8px;font-size:14px;font-weight:600';
     let actions = '';
     if (st === 'requested') {
-      actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">🙋 I'll get it</button>`;
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">I'll get it</button>`;
     } else if (st === 'collecting') {
-      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">📸 In car (take photo)</button>`;
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">In car (take photo)</button>`;
     } else if (st === 'in_car') {
-      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}')">✅ Done</button>`
-        + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add / retake proof photo">📸${e.bagPhoto ? '✓' : ''}</button>`;
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}')">Done</button>`
+        + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add / retake proof photo">Photo${e.bagPhoto ? ' ✓' : ''}</button>`;
     } // 'done' → no primary action; the ✕ below clears it from the list
 
     // Thumbnail of the proof photo once staff have loaded the car and snapped it.
     const thumb = e.bagPhoto
       ? `<div style="flex-shrink:0;text-align:center">
            <img src="${e.bagPhoto}" onclick="viewPhoto('${e.id}','bag')" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" title="Proof photo — tap to enlarge">
-           <div style="font-size:10px;color:#3a7d44;font-weight:600;margin-top:3px">📸 In-car proof</div>
+           <div style="font-size:10px;color:#3a7d44;font-weight:600;margin-top:3px">In-car proof</div>
          </div>`
       : '';
 
@@ -5163,12 +5163,12 @@ function renderBagQueue() {
     const dot = `<span class="bag-dot${isDone ? '' : ' bag-dot-flash'}"${isDone ? '' : ` data-req="${e.bagRequested}"`} title="${isDone ? 'Done' : overdue ? 'Waiting over 10 min' : 'Pending'}" style="flex:0 0 auto;width:16px;height:16px;border-radius:50%;background:${rowColor};border:2px solid #fff;box-shadow:0 0 0 1px ${rowColor}"></span>`;
     const summary = `<div onclick="toggleBagDetail('${e.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-left:5px solid ${hdr.bg}">
         <div style="flex:1;min-width:0;font-size:14px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-          <b>${e.name || 'No name'}</b><span style="color:var(--text-muted)"> · 📍 ${e.bagLocation || 'Valet Desk'} · 🛍️ ${cnt} bag${cnt !== 1 ? 's' : ''}</span>
+          <b>${e.name || 'No name'}</b><span style="color:var(--text-muted)"> · ${e.bagLocation || 'Valet Desk'} · ${cnt} bag${cnt !== 1 ? 's' : ''}</span>
         </div>
         ${e.bagPhoto ? `<img src="${e.bagPhoto}" onclick="event.stopPropagation();viewPhoto('${e.id}','bag')" style="flex:0 0 auto;width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="In-car proof — tap to enlarge">` : ''}
         <div style="text-align:right;flex:0 0 auto">
           ${isDone
-            ? `<div style="font-size:13px;font-weight:bold;color:#3a7d44">✅ Done</div><div style="font-size:11px;color:var(--text-muted)">${e.bagDoneAt ? fmtTime(new Date(e.bagDoneAt)) : ''}</div>`
+            ? `<div style="font-size:13px;font-weight:bold;color:#3a7d44">Done</div><div style="font-size:11px;color:var(--text-muted)">${e.bagDoneAt ? fmtTime(new Date(e.bagDoneAt)) : ''}</div>`
             : `<div class="bag-wait" data-req="${e.bagRequested}" style="font-size:14px;font-weight:bold;color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(e.bagRequested))}</div><div style="font-size:11px;color:var(--text-muted)">${loggedTime}</div>`}
         </div>
         ${dot}
@@ -5178,14 +5178,14 @@ function renderBagQueue() {
     // Full detail — only rendered for the open row (the stepper above is always shown).
     const detail = !expanded ? '' : `
       <div style="padding:14px;border-top:1px solid var(--border)">
-        <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">📞 Logged <b style="color:#333">${loggedTime}</b> · ${isDone ? `<b style="color:#3a7d44">✅ Done${e.bagDoneAt ? ' ' + fmtTime(new Date(e.bagDoneAt)) : ''}</b>` : `<b class="bag-wait" data-req="${e.bagRequested}" style="color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(e.bagRequested))}</b> waiting`}</div>
+        <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">Logged <b style="color:#333">${loggedTime}</b> · ${isDone ? `<b style="color:#3a7d44">Done${e.bagDoneAt ? ' ' + fmtTime(new Date(e.bagDoneAt)) : ''}</b>` : `<b class="bag-wait" data-req="${e.bagRequested}" style="color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(e.bagRequested))}</b> waiting`}</div>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;color:var(--text-muted)">📍 Pickup at</div>
+            <div style="font-size:13px;color:var(--text-muted)">Pickup at</div>
             <div style="font-size:18px;font-weight:bold;color:#333333">${e.bagLocation || 'Valet Desk'}</div>
-            <div style="font-size:13px;color:var(--text-muted);margin-top:4px">🛍️ ${cnt} bag${cnt !== 1 ? 's' : ''} · ${e.name || 'No name'}${e.bagNotes ? ' · ' + e.bagNotes : ''}</div>
-            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">🚗 ${car} · Bay <b style="color:var(--maroon)">${e.bay || '—'}</b></div>
-            ${(e.bagAssigned || e.bagInCarBy) ? `<div style="font-size:12px;color:var(--bronze);font-weight:600;margin-top:4px">${e.bagAssigned ? '🙋 Collected: ' + e.bagAssigned : ''}${e.bagInCarBy ? (e.bagAssigned ? ' · ' : '') + '🚗 In car: ' + e.bagInCarBy : ''}</div>` : ''}
+            <div style="font-size:13px;color:var(--text-muted);margin-top:4px">${cnt} bag${cnt !== 1 ? 's' : ''} · ${e.name || 'No name'}${e.bagNotes ? ' · ' + e.bagNotes : ''}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${car} · Bay <b style="color:var(--maroon)">${e.bay || '—'}</b></div>
+            ${(e.bagAssigned || e.bagInCarBy) ? `<div style="font-size:12px;color:var(--bronze);font-weight:600;margin-top:4px">${e.bagAssigned ? 'Collected: ' + e.bagAssigned : ''}${e.bagInCarBy ? (e.bagAssigned ? ' · ' : '') + 'In car: ' + e.bagInCarBy : ''}</div>` : ''}
           </div>
           ${thumb}
         </div>
@@ -5271,7 +5271,7 @@ function requestBag(id, { location, count, notes }) {
   cloudAudit('bag_request', 'entry', id, { ticket: e.ticket, location: e.bagLocation, count: e.bagCount });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
-  quickToast('📦 Bag pickup added to the queue');
+  quickToast('Bag pickup added to the queue');
   // Raise the attention alarm here too, so a phone-in request is just as
   // loud as a customer self-service one. Deduped by key, so the realtime
   // echo won't pop it a second time.
@@ -5295,7 +5295,7 @@ function bagInCar(id) {
     e.bagStatus = 'in_car';
     e.bagInCarBy = (currentUser && currentUser.displayName) || 'Staff';
     cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket, by: e.bagInCarBy });
-    quickToast('🚗 Bags in car' + (e.phone ? ' · sending photo to customer' : ''));
+    quickToast('Bags in car' + (e.phone ? ' · sending photo to customer' : ''));
     sendBagSms(e);
     if (typeof hapticFeedback === 'function') hapticFeedback('success');
   });
@@ -5343,7 +5343,7 @@ function bagCapturePhoto(id, after) {
         if (typeof after === 'function') after(e);
         saveData(id, { immediate: true });
         renderBagQueue();
-        if (typeof after !== 'function') quickToast('📸 Proof photo saved');
+        if (typeof after !== 'function') quickToast('Proof photo saved');
       };
       img.src = reader.result;
     };
@@ -5383,7 +5383,7 @@ function renderPickupQueue() {
   const container = document.getElementById('pq-queue');
   if (!container) return;
   if (queue.length === 0) {
-    container.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div>No pickup requests right now</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Requests from customers (or the Quick Pickup ⏱ button) appear here.</div></div>';
+    container.innerHTML = '<div class="empty"><div class="empty-icon"></div><div>No pickup requests right now</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Requests from customers (or the Quick Pickup button) appear here.</div></div>';
     return;
   }
 
@@ -5392,19 +5392,19 @@ function renderPickupQueue() {
     const car = [e.brand, e.model].filter(Boolean).join(' ') + (e.rego ? ' · ' + e.rego : '');
     const fees = calculateTotalFee(now - new Date(e.timeIn));
     const source = e.pickupSource === 'customer'
-      ? '<span style="font-size:11px;color:var(--green);font-weight:600">👤 Customer requested</span>'
-      : '<span style="font-size:11px;color:var(--text-muted)">🧑‍✈️ Staff requested</span>';
+      ? '<span style="font-size:11px;color:var(--green);font-weight:600">Customer requested</span>'
+      : '<span style="font-size:11px;color:var(--text-muted)">‍Staff requested</span>';
 
     const onWay = e.pickupStatus === 'fetching';
     const ready = e.pickupStatus === 'ready';
     const toldLine = onWay
-      ? '<div style="font-size:12px;color:var(--maroon);font-weight:600;margin-top:6px">🚗 Customer told: on the way</div>'
+      ? '<div style="font-size:12px;color:var(--maroon);font-weight:600;margin-top:6px">Customer told: on the way</div>'
       : ready
-        ? '<div style="font-size:12px;color:var(--green);font-weight:600;margin-top:6px">✅ Customer told: ready at desk</div>'
+        ? '<div style="font-size:12px;color:var(--green);font-weight:600;margin-top:6px">Customer told: ready at desk</div>'
         : '';
 
     const callBtn = e.phone
-      ? `<a href="tel:${e.phone}" class="btn btn-secondary" style="flex:0 0 auto;padding:13px 15px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center" title="Call ${e.phone}">📞</a>`
+      ? `$1Call</a>`
       : '';
     const sbase = 'flex:1;padding:12px 8px;font-size:13px;font-weight:600';
 
@@ -5427,8 +5427,8 @@ function renderPickupQueue() {
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
-          <button class="btn ${onWay ? 'btn-primary' : 'btn-secondary'}" style="${sbase}" onclick="setPickupStatus('${e.id}','fetching')">${onWay ? '🚗 On the way ✓' : '🚗 On the way'}</button>
-          <button class="btn ${ready ? 'btn-primary' : 'btn-secondary'}" style="${sbase}" onclick="setPickupStatus('${e.id}','ready')">${ready ? '✅ Ready ✓' : '✅ Ready'}</button>
+          <button class="btn ${onWay ? 'btn-primary' : 'btn-secondary'}" style="${sbase}" onclick="setPickupStatus('${e.id}','fetching')">${onWay ? 'On the way ✓' : 'On the way'}</button>
+          <button class="btn ${ready ? 'btn-primary' : 'btn-secondary'}" style="${sbase}" onclick="setPickupStatus('${e.id}','ready')">${ready ? 'Ready ✓' : 'Ready'}</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           ${callBtn}
@@ -5529,7 +5529,7 @@ function printDailySummary() {
 </head><body>
 
 <div class="toolbar">
-  <button class="btn" onclick="window.print()">🖨 Print</button>
+  <button class="btn" onclick="window.print()">Print</button>
   <button class="btn" onclick="window.close()" style="background:#a48d53">Close</button>
 </div>
 
@@ -5584,7 +5584,7 @@ function printDailySummary() {
   ).join('')}
   <tr style="border-top:2px solid #a48d53"><td><b>TOTAL REVENUE</b></td><td style="text-align:right" class="money"><b>${fmtMoney(totalRev)}</b></td></tr>
   <tr><td>Tips collected</td><td style="text-align:right" class="money green">${fmtMoney(totalTips)}</td></tr>
-  ${unpaid.length > 0 ? `<tr><td>⚠ Unpaid (${unpaid.length} ticket${unpaid.length !== 1 ? 's' : ''})</td><td style="text-align:right" class="money red">${fmtMoney(unpaid.reduce((s,e)=>s+(e.totalFee||0),0))}</td></tr>` : ''}
+  ${unpaid.length > 0 ? `<tr><td>Unpaid (${unpaid.length} ticket${unpaid.length !== 1 ? 's' : ''})</td><td style="text-align:right" class="money red">${fmtMoney(unpaid.reduce((s,e)=>s+(e.totalFee||0),0))}</td></tr>` : ''}
 </table>
 
 ${Object.keys(attMap).length > 0 ? `
@@ -5609,7 +5609,7 @@ ${topBrands.length > 0 ? `
 ` : ''}
 
 ${stillOnSite.length > 0 ? `
-<h2>⚠ Vehicles Still On Site (${stillOnSite.length})</h2>
+<h2>Vehicles Still On Site (${stillOnSite.length})</h2>
 <table>
   <tr><th>Ticket</th><th>Time In</th><th>Duration</th><th>Brand</th><th>Rego</th><th>Bay</th></tr>
   ${stillOnSite.map(e => {
@@ -5620,7 +5620,7 @@ ${stillOnSite.length > 0 ? `
 ` : ''}
 
 ${unpaid.length > 0 ? `
-<h2 style="color:#a83838">⚠ Unpaid Tickets</h2>
+<h2 style="color:#a83838">Unpaid Tickets</h2>
 <table>
   <tr><th>Ticket</th><th>Customer</th><th>Brand / Rego</th><th style="text-align:right">Amount</th></tr>
   ${unpaid.map(e => `<tr><td><b>${e.ticket}</b></td><td>${e.name || '—'} ${e.phone ? '· '+e.phone : ''}</td><td>${e.brand} · ${e.rego}</td><td style="text-align:right" class="money red">${fmtMoney(e.totalFee || 0)}</td></tr>`).join('')}
@@ -5697,9 +5697,9 @@ function renderLog() {
         ? '<span class="status-pill status-completed">Completed</span>'
         : '<span class="status-pill status-active">On Site</span>'}</td>
       <td>
-        ${e.photo ? `<button class="btn btn-secondary btn-sm" onclick="viewPhoto('${e.id}')" style="margin-right:4px" title="View car photo">📸</button>` : ''}
-        ${e.gps ? `<button class="btn btn-secondary btn-sm" onclick="viewBayLocation(${e.gps.lat},${e.gps.lng})" style="margin-right:4px" title="Show on map">📍</button>` : ''}
-        <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" style="margin-right:4px" title="Edit bay, time in/out & customer details">✎ Edit</button>
+        ${e.photo ? `<button class="btn btn-secondary btn-sm" $1Photo</button>` : ''}
+        ${e.gps ? `<button class="btn btn-secondary btn-sm" $1Map</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" style="margin-right:4px" title="Edit bay, time in/out & customer details">Edit</button>
         ${e.timeOut
           ? `<button class="btn btn-secondary btn-sm" onclick="undoCheckout('${e.id}')">↶ Undo</button>`
           : `<button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')">✓ Out</button>`}
@@ -6129,10 +6129,10 @@ function showEODBanner(type, closing) {
   const stillOnSite = entries.filter(e => !e.timeOut).length;
   const closeStr = closing.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', hour12:true });
   if (type === '15min') {
-    banner.innerHTML = `⏰ <strong>15 MINUTES TO CLOSE</strong> (${closeStr}) · ${stillOnSite} car${stillOnSite !== 1 ? 's' : ''} still on site · Print summary from Dashboard <button onclick="dismissEODBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:10px;cursor:pointer">Dismiss</button>`;
+    banner.innerHTML = `<strong>15 MINUTES TO CLOSE</strong> (${closeStr}) · ${stillOnSite} car${stillOnSite !== 1 ? 's' : ''} still on site · Print summary from Dashboard <button onclick="dismissEODBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:10px;cursor:pointer">Dismiss</button>`;
     banner.style.background = '#e0a640';
   } else {
-    banner.innerHTML = `🔔 <strong>END OF SHIFT</strong> · ${stillOnSite} car${stillOnSite !== 1 ? 's' : ''} STILL ON SITE · Don't forget to print today's summary and follow up! <button onclick="dismissEODBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:10px;cursor:pointer">Dismiss</button>`;
+    banner.innerHTML = `<strong>END OF SHIFT</strong> · ${stillOnSite} car${stillOnSite !== 1 ? 's' : ''} STILL ON SITE · Don't forget to print today's summary and follow up! <button onclick="dismissEODBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:10px;cursor:pointer">Dismiss</button>`;
     banner.style.background = '#a83838';
     banner.style.color = '#fff';
   }
@@ -6248,31 +6248,31 @@ async function testPlateRecognizer() {
   const key = (document.getElementById('s-pr-key').value || '').trim();
   const resEl = document.getElementById('pr-test-result');
   if (!key) {
-    resEl.innerHTML = '<span style="color:var(--red)">⚠ Enter an API token first.</span>';
+    resEl.innerHTML = '<span style="color:var(--red)">Enter an API token first.</span>';
     return;
   }
-  resEl.innerHTML = '⏳ Testing connection…';
+  resEl.innerHTML = 'Testing connection…';
   try {
     const res = await fetch('https://api.platerecognizer.com/v1/statistics/', {
       headers: { 'Authorization': 'Token ' + key },
     });
     if (res.status === 401 || res.status === 403) {
-      resEl.innerHTML = '<span style="color:var(--red)">❌ Token rejected — check it\'s correct</span>';
+      resEl.innerHTML = '<span style="color:var(--red)">Token rejected — check it\'s correct</span>';
       return;
     }
     if (!res.ok) {
-      resEl.innerHTML = '<span style="color:var(--red)">❌ Error: HTTP ' + res.status + '</span>';
+      resEl.innerHTML = '<span style="color:var(--red)">Error: HTTP ' + res.status + '</span>';
       return;
     }
     const data = await res.json();
-    let info = '✅ <strong>Connection successful!</strong>';
+    let info = '<strong>Connection successful!</strong>';
     if (data.usage) {
       info += '<br>Calls this month: ' + (data.usage.calls || 0);
       if (data.usage.max_calls) info += ' / ' + data.usage.max_calls;
     }
     resEl.innerHTML = '<span style="color:var(--green)">' + info + '</span>';
   } catch (err) {
-    resEl.innerHTML = '<span style="color:var(--red)">❌ Network error: ' + err.message + '</span>';
+    resEl.innerHTML = '<span style="color:var(--red)">Network error: ' + err.message + '</span>';
   }
 }
 
@@ -6426,7 +6426,7 @@ function renderSettings() {
   // Show current user
   const userEl = document.getElementById('settings-current-user');
   if (userEl && currentUser) {
-    userEl.textContent = currentUser.displayName + ' (@' + currentUser.username + ') · ' + (currentUser.role === 'admin' ? '👑 Admin' : '👤 Staff');
+    userEl.textContent = currentUser.displayName + ' (@' + currentUser.username + ') · ' + (currentUser.role === 'admin' ? 'Admin' : 'Staff');
   }
   // Render staff list (admins only)
   renderStaffList();
@@ -6595,7 +6595,7 @@ function importJSONMerge(event) {
       }
       alert(`Imported ${fresh.length} record(s).\nSkipped ${skipped} duplicate(s).\n` +
         `Cloud: ${pushed} synced${failed ? `, ${failed} failed — ${lastErr}` : ''}.` +
-        (failed ? '\n\n⚠ Some records did not reach the cloud. They are saved locally and queued for retry.' : ''));
+        (failed ? '\n\nSome records did not reach the cloud. They are saved locally and queued for retry.' : ''));
     } catch (err) {
       alert('Merge import failed: ' + err.message);
     }
@@ -6645,7 +6645,7 @@ function processScannedCode(code) {
   // Find entry by ticket number
   const entry = entries.find(e => e.ticket === code);
   if (!entry) {
-    flashScanStatus('⚠ Ticket "' + code + '" not found', 'error');
+    flashScanStatus('Ticket "' + code + '" not found', 'error');
     return;
   }
   // Surface the bay number front-and-centre. The modal handles both active
@@ -6773,7 +6773,7 @@ function initScannerButton() {
   const btn = document.getElementById('btn-scan-mode');
   if (btn) {
     btn.classList.add('active');
-    btn.textContent = '🔫 Scanner ON';
+    btn.textContent = 'Scanner ON';
     btn.title = 'Scanner is always on — just scan a key tag anywhere, no need to click first';
   }
 }
@@ -6808,7 +6808,7 @@ async function startCamera() {
     const video = document.getElementById('camera-video');
     video.srcObject = cameraStream;
     await video.play();
-    document.getElementById('camera-status').textContent = '🔍 Looking for QR code…';
+    document.getElementById('camera-status').textContent = 'Looking for QR code…';
     startScanLoop();
   } catch (err) {
     document.getElementById('camera-status').textContent =
@@ -6897,7 +6897,7 @@ async function startPlateCamera() {
     const video = document.getElementById('plate-video');
     video.srcObject = plateStream;
     await video.play();
-    document.getElementById('plate-status').textContent = 'Frame the plate, then tap 📸 Capture';
+    document.getElementById('plate-status').textContent = 'Frame the plate, then tap Capture';
   } catch (err) {
     document.getElementById('plate-status').textContent =
       'Could not access camera: ' + err.message;
@@ -6927,12 +6927,12 @@ async function capturePlate() {
   // Show working status
   const captureBtn = document.getElementById('plate-capture-btn');
   captureBtn.disabled = true;
-  captureBtn.textContent = '⏳ Reading…';
+  captureBtn.textContent = 'Reading…';
 
   // Try Plate Recognizer first (cloud OCR, 95%+ accuracy)
   const apiKey = (settings.plateRecognizerKey || '').trim();
   if (apiKey && navigator.onLine) {
-    document.getElementById('plate-status').textContent = '🔍 Reading plate (cloud OCR)…';
+    document.getElementById('plate-status').textContent = 'Reading plate (cloud OCR)…';
     try {
       const result = await readPlateWithCloud(canvas, apiKey);
       if (result && result.plate) {
@@ -6961,22 +6961,22 @@ async function capturePlate() {
         saveSettingsToStorage();
         hapticFeedback('success');
         captureBtn.disabled = false;
-        captureBtn.textContent = '📸 Capture Again';
+        captureBtn.textContent = 'Capture Again';
         return;
       } else {
         // Cloud OCR succeeded but found no plate — fall through to Tesseract
-        document.getElementById('plate-status').textContent = '⚠ Cloud OCR found no plate — trying offline OCR…';
+        document.getElementById('plate-status').textContent = 'Cloud OCR found no plate — trying offline OCR…';
       }
     } catch (err) {
       // Cloud failed — fall back to Tesseract
-      document.getElementById('plate-status').textContent = '⚠ Cloud OCR failed (' + err.message + ') — using offline OCR…';
+      document.getElementById('plate-status').textContent = 'Cloud OCR failed (' + err.message + ') — using offline OCR…';
     }
   }
 
   // Fall back to Tesseract (offline, 70-85% accurate)
   await capturePlateFallback(canvas);
   captureBtn.disabled = false;
-  captureBtn.textContent = '📸 Capture Again';
+  captureBtn.textContent = 'Capture Again';
 }
 
 // ───── Plate Recognizer cloud OCR ─────
@@ -7040,7 +7040,7 @@ async function capturePlateFallback(canvas) {
   }
   ctx.putImageData(imageData, 0, 0);
 
-  document.getElementById('plate-status').textContent = '🔍 Reading plate (offline OCR, 2-4s)…';
+  document.getElementById('plate-status').textContent = 'Reading plate (offline OCR, 2-4s)…';
 
   try {
     if (typeof Tesseract === 'undefined') {
@@ -7061,7 +7061,7 @@ async function capturePlateFallback(canvas) {
       document.getElementById('plate-status').textContent = '✓ Plate detected (offline OCR) — verify and edit if needed';
       document.getElementById('plate-status').className = 'camera-status success';
     } else {
-      document.getElementById('plate-status').textContent = '⚠ Could not read plate — try better angle/lighting';
+      document.getElementById('plate-status').textContent = 'Could not read plate — try better angle/lighting';
       document.getElementById('plate-status').className = 'camera-status error';
     }
   } catch (err) {
@@ -7172,7 +7172,7 @@ function startVoicePlate() {
   voiceRecognition.interimResults = false;
   voiceRecognition.maxAlternatives = 3;
 
-  btn.textContent = '🔴';
+  btn.textContent = '';
   btn.style.background = '#a83838';
   btn.style.color = '#fff';
 
@@ -7200,7 +7200,7 @@ function startVoicePlate() {
     }
   };
   voiceRecognition.onend = () => {
-    btn.textContent = '🎤';
+    btn.textContent = '';
     btn.style.background = '';
     btn.style.color = '';
     voiceRecognition = null;
@@ -7209,7 +7209,7 @@ function startVoicePlate() {
   try {
     voiceRecognition.start();
   } catch (err) {
-    btn.textContent = '🎤';
+    btn.textContent = '';
     btn.style.background = '';
     btn.style.color = '';
   }
@@ -7265,10 +7265,10 @@ function lookupCustomerByRego(rego) {
   fillIfEmpty('f-colour', last.colour);
 
   // Update banner (subtle persistent reminder at top of form)
-  let badge = visitCount === 1 ? '🌟 Returning customer · 2nd visit' :
-              visitCount < 5 ? `🌟 Returning customer · ${ordinal(visitCount + 1)} visit` :
-              visitCount < 10 ? `🌟 Loyal customer · ${visitCount} previous visits` :
-              `⭐ VIP customer · ${visitCount} previous visits`;
+  let badge = visitCount === 1 ? 'Returning customer · 2nd visit' :
+              visitCount < 5 ? `Returning customer · ${ordinal(visitCount + 1)} visit` :
+              visitCount < 10 ? `Loyal customer · ${visitCount} previous visits` :
+              `VIP customer · ${visitCount} previous visits`;
   document.getElementById('cb-title').textContent = badge;
   document.getElementById('cb-name').textContent =
     (last.name || 'Unknown name') + ' · ' + last.brand + (last.model ? ' ' + last.model : '');
@@ -7278,7 +7278,7 @@ function lookupCustomerByRego(rego) {
   banner.style.display = 'block';
   banner.dataset.rego = rego;
 
-  // ★ SHOW PROMINENT WELCOME POPUP ★
+  // SHOW PROMINENT WELCOME POPUP 
   showWelcomePopup(last, visitCount, daysSince, totalSpent, matches);
 }
 
@@ -7295,15 +7295,15 @@ function showWelcomePopup(last, visitCount, daysSince, totalSpent, allVisits) {
   let tierLabel, tierEmoji, tierColor;
   if (visitCount >= 10) {
     tierLabel = 'VIP CUSTOMER';
-    tierEmoji = '⭐';
+    tierEmoji = '';
     tierColor = '#e0a640';
   } else if (visitCount >= 5) {
     tierLabel = 'LOYAL CUSTOMER';
-    tierEmoji = '🌟';
+    tierEmoji = '';
     tierColor = '#a48d53';
   } else {
     tierLabel = 'RETURNING CUSTOMER';
-    tierEmoji = '🚗';
+    tierEmoji = '';
     tierColor = 'var(--maroon)';
   }
 
@@ -7338,32 +7338,32 @@ function showWelcomePopup(last, visitCount, daysSince, totalSpent, allVisits) {
   // Build conversation prompts based on what we know
   const prompts = [];
   if (visitCount >= 10) {
-    prompts.push(`💬 "Always lovely to see you again, ${nameRaw || 'sir/madam'}!"`);
+    prompts.push(`"Always lovely to see you again, ${nameRaw || 'sir/madam'}!"`);
   } else if (visitCount >= 5) {
-    prompts.push(`💬 "Welcome back! Great to see you again."`);
+    prompts.push(`"Welcome back! Great to see you again."`);
   } else {
-    prompts.push(`💬 "Welcome back! Hope your last visit went well."`);
+    prompts.push(`"Welcome back! Hope your last visit went well."`);
   }
 
   if (last.brand) {
-    prompts.push(`🚗 "Same lovely ${last.brand}${last.model ? ' ' + last.model : ''} today?"`);
+    prompts.push(`"Same lovely ${last.brand}${last.model ? ' ' + last.model : ''} today?"`);
   }
 
   if (daysSince > 60) {
-    prompts.push(`💬 "It's been a while — we've missed you!"`);
+    prompts.push(`"It's been a while — we've missed you!"`);
   } else if (daysSince === 0) {
-    prompts.push(`💬 "Back so soon? Hope you had a great time at the Chase."`);
+    prompts.push(`"Back so soon? Hope you had a great time at the Chase."`);
   }
 
   // Most recent bay (sometimes customers like the same bay)
   if (last.bay) {
-    prompts.push(`🅿️ Previous bay: ${last.bay}`);
+    prompts.push(`Previous bay: ${last.bay}`);
   }
 
   // Last notes if any
   const recentNote = allVisits.find(v => v.notes && v.notes.trim())?.notes;
   if (recentNote) {
-    prompts.push(`📝 Previous note: "${recentNote}"`);
+    prompts.push(`Previous note: "${recentNote}"`);
   }
 
   // Populate the popup
@@ -7490,11 +7490,11 @@ function updateWakeLockUI() {
   const btn = document.getElementById('btn-wakelock');
   if (!btn) return;
   if (wakeLockObj) {
-    btn.textContent = '🔆 Screen-On Active';
+    btn.textContent = 'Screen-On Active';
     btn.style.background = 'var(--green)';
     btn.style.color = '#fff';
   } else {
-    btn.textContent = '🔆 Keep Screen On';
+    btn.textContent = 'Keep Screen On';
     btn.style.background = '';
     btn.style.color = '';
   }
@@ -7523,7 +7523,7 @@ function updateOnlineStatus() {
   } else {
     if (banner) banner.style.display = 'block';
     if (indicator) {
-      indicator.textContent = '⚠ Offline';
+      indicator.textContent = 'Offline';
       indicator.style.color = '#b5651d';
     }
     hapticFeedback('long');
@@ -7578,7 +7578,7 @@ function captureGPS() {
     return;
   }
   const status = document.getElementById('gps-status');
-  status.textContent = '⏳ Getting location…';
+  status.textContent = 'Getting location…';
   status.style.color = 'var(--text-muted)';
   navigator.geolocation.getCurrentPosition(
     pos => {
@@ -7592,7 +7592,7 @@ function captureGPS() {
       hapticFeedback('success');
     },
     err => {
-      status.textContent = '⚠ ' + (err.code === 1 ? 'Permission denied' : 'Could not get location');
+      status.textContent = '' + (err.code === 1 ? 'Permission denied' : 'Could not get location');
       status.style.color = 'var(--red)';
     },
     { enableHighAccuracy: true, timeout: 10000 }
@@ -7707,7 +7707,7 @@ function showCustomerDetail(regoArg) {
     if (others.length) {
       otherCarsHtml = `
         <div style="margin-bottom:14px">
-          <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">🚗 Other Vehicles · Same Phone (${others.length})</div>
+          <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Other Vehicles · Same Phone (${others.length})</div>
           ${others.map(o => {
             const veh = (o.brand + (o.model ? ' ' + o.model : '') + (o.colour ? ' · ' + o.colour : '')).trim() || '—';
             return `<div onclick="showCustomerDetail('${o.rego.replace(/'/g, "\\'")}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:var(--sandstone);border-radius:4px;margin-bottom:6px;cursor:pointer">
@@ -7745,7 +7745,7 @@ function showCustomerDetail(regoArg) {
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Customer Info</div>
-        <button class="btn btn-secondary btn-sm" onclick="editCustomerByRego('${rego.replace(/'/g, "\\'")}')" title="Fix the name, phone or vehicle if it was entered wrong">✎ Edit details</button>
+        <button class="btn btn-secondary btn-sm" onclick="editCustomerByRego('${rego.replace(/'/g, "\\'")}')" title="Fix the name, phone or vehicle if it was entered wrong">Edit details</button>
       </div>
       <div style="line-height:1.7">
         ${last.name ? '<strong>Name:</strong> ' + last.name + '<br>' : ''}
@@ -8057,13 +8057,13 @@ function applyQuickAddUI() {
   ];
 
   if (quickAddMode) {
-    btn.textContent = '⚡ Turn OFF';
+    btn.textContent = 'Turn OFF';
     btn.style.background = 'var(--bone)';
     btn.style.color = 'var(--maroon)';
     desc.textContent = 'ON · Only Bay + Brand + Rego shown. Edit details later from the Log.';
     newEntryView.classList.add('quick-add-on');
   } else {
-    btn.textContent = '⚡ Turn ON';
+    btn.textContent = 'Turn ON';
     desc.textContent = 'OFF · Showing full form with all details';
     newEntryView.classList.remove('quick-add-on');
   }
@@ -8079,7 +8079,7 @@ function applyDarkMode() {
     document.body.classList.add('dark-mode');
     const btn = document.getElementById('btn-darkmode');
     if (btn) {
-      btn.textContent = '☀️ Light Mode';
+      btn.textContent = 'Light Mode';
       btn.style.background = 'var(--bronze)';
       btn.style.color = '#fff';
     }
@@ -8087,7 +8087,7 @@ function applyDarkMode() {
     document.body.classList.remove('dark-mode');
     const btn = document.getElementById('btn-darkmode');
     if (btn) {
-      btn.textContent = '🌙 Dark Mode';
+      btn.textContent = 'Dark Mode';
       btn.style.background = '';
       btn.style.color = '';
     }
@@ -8108,17 +8108,17 @@ function updateHapticsUI() {
   const btn = document.getElementById('btn-haptics');
   if (!btn) return;
   if (settings.hapticsEnabled === false) {
-    btn.textContent = '📳 Vibration: OFF';
+    btn.textContent = 'Vibration: OFF';
     btn.style.background = '';
   } else {
-    btn.textContent = '📳 Vibration: ON';
+    btn.textContent = 'Vibration: ON';
     btn.style.background = 'var(--green)';
     btn.style.color = '#fff';
   }
 }
 
 // ═══════════════════════════════════════════════════
-// ☁️ CLOUD SYNC LAYER (Supabase)
+// CLOUD SYNC LAYER (Supabase)
 // ═══════════════════════════════════════════════════
 const SUPABASE_URL = 'https://ebqiitxiyzzbkgyfypss.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVicWlpdHhpeXp6YmtneWZ5cHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODI3MjQsImV4cCI6MjA5NTk1ODcyNH0.ZkR9PetFUtsrsxXens0SxpOAOJQA8mXoS7d8qXRUhYs';
@@ -8236,7 +8236,7 @@ let _lastSyncError = null;
 function reportSyncFailure(op, error) {
   _lastSyncError = error;
   // Use the same banner element as the cloud-load status.
-  const msg = `⚠ Cloud ${op} failed: ${error.message || 'unknown error'}${error.code ? ' (' + error.code + ')' : ''}. Check DevTools console.`;
+  const msg = `Cloud ${op} failed: ${error.message || 'unknown error'}${error.code ? ' (' + error.code + ')' : ''}. Check DevTools console.`;
   showCloudLoadStatus(msg, 'error');
 }
 function clearSyncFailure() {
@@ -8457,7 +8457,7 @@ function showNextPickupAlarm() {
   let etaLine = 'Customer wants their car';
   if (e.pickupETA) {
     const minsLeft = Math.round((new Date(e.pickupETA) - new Date()) / 60000);
-    etaLine = minsLeft <= 0 ? '🔴 Customer is here NOW' : `⏱ Arriving in about ${minsLeft} min`;
+    etaLine = minsLeft <= 0 ? 'Customer is here NOW' : `Arriving in about ${minsLeft} min`;
   }
   document.getElementById('pickup-alarm-eta').textContent = etaLine;
 
@@ -8669,7 +8669,7 @@ async function updatePushUI() {
   if (iosHint) iosHint.style.display = 'none';
 
   if (!pushSupported()) {
-    statusEl.innerHTML = '⚠ This browser doesn’t support alerts. Use Chrome (Android) or an installed app on iPhone.';
+    statusEl.innerHTML = 'This browser doesn’t support alerts. Use Chrome (Android) or an installed app on iPhone.';
     setBtns(false, false);
     return;
   }
@@ -8681,7 +8681,7 @@ async function updatePushUI() {
     return;
   }
   if (Notification.permission === 'denied') {
-    statusEl.innerHTML = '⚠ Alerts are blocked in your browser/phone settings. Allow notifications for this site, then try again.';
+    statusEl.innerHTML = 'Alerts are blocked in your browser/phone settings. Allow notifications for this site, then try again.';
     setBtns(true, false);
     return;
   }
@@ -8689,7 +8689,7 @@ async function updatePushUI() {
     const reg = swRegistration || await navigator.serviceWorker.getRegistration();
     const sub = reg ? await reg.pushManager.getSubscription() : null;
     if (sub) {
-      statusEl.innerHTML = '✅ Alerts are ON for this device';
+      statusEl.innerHTML = 'Alerts are ON for this device';
       setBtns(false, true);
     } else {
       statusEl.innerHTML = '○ Alerts are off on this device';
@@ -8724,7 +8724,7 @@ async function enablePushAlerts() {
       });
     }
     await storePushSubscription(sub);
-    quickToast('🔔 Alerts enabled on this device');
+    quickToast('Alerts enabled on this device');
     hapticFeedback('success');
   } catch (e) {
     console.error('[push] enable failed', e);
@@ -8839,7 +8839,7 @@ window.addEventListener('online', flushPendingWrites);
 setInterval(flushPendingWrites, 30000);
 
 // ═══════════════════════════════════════════════════
-// 🔐 LOGIN FLOW
+// LOGIN FLOW
 // ═══════════════════════════════════════════════════
 let selectedUserForLogin = null;
 
@@ -8915,7 +8915,7 @@ async function doLogin() {
   const password = document.getElementById('login-password').value;
   const err = document.getElementById('login-password-error');
   if (!password) { err.textContent = 'Enter password'; return; }
-  err.textContent = '⏳ Signing in…';
+  err.textContent = 'Signing in…';
   err.style.color = '#6f6b66';
   try {
     const user = await cloudLogin(selectedUserForLogin.username, password);
@@ -8971,7 +8971,7 @@ async function completeLogin() {
 
 async function loadFromCloud() {
   // Show pending banner so the user knows a sync is in progress.
-  showCloudLoadStatus('⏳ Syncing from cloud…', 'pending');
+  showCloudLoadStatus('Syncing from cloud…', 'pending');
   try {
     // Defensive: ensure supa is initialized (handles edge cases where it wasn't)
     if (!supa) {
@@ -8996,7 +8996,7 @@ async function loadFromCloud() {
     // entries may already be populated from local cache via completeLogin's
     // loadData() call — don't reload it here, just report and let the cached
     // data stand.
-    showCloudLoadStatus('⚠ Could not load from cloud: ' + (e.message || 'Unknown error') + ' — showing local cache (' + entries.length + ' entries)', 'error');
+    showCloudLoadStatus('Could not load from cloud: ' + (e.message || 'Unknown error') + ' — showing local cache (' + entries.length + ' entries)', 'error');
   }
 }
 
@@ -9034,7 +9034,7 @@ function showCloudLoadStatus(msg, type) {
 }
 
 async function forceReloadFromCloud() {
-  showCloudLoadStatus('⏳ Reloading from cloud…', 'success');
+  showCloudLoadStatus('Reloading from cloud…', 'success');
   await loadFromCloud();
   // Re-render every view so whatever tab the user is on shows fresh data
   refreshActiveViews();
@@ -9052,7 +9052,7 @@ function logout() {
 }
 
 // ═══════════════════════════════════════════════════
-// 👥 STAFF MANAGEMENT (admin only)
+// STAFF MANAGEMENT (admin only)
 // ═══════════════════════════════════════════════════
 let editingStaffUsername = null;
 
@@ -9084,12 +9084,12 @@ async function renderStaffList() {
       return `<div style="padding:12px;background:var(--sandstone);border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;${s.is_active ? '' : 'opacity:0.5'}">
         <div style="flex:1;min-width:200px">
           <div style="font-weight:600;font-size:14px">${s.display_name}${isMe ? ' <span style="font-size:10px;color:var(--bronze)">(YOU)</span>' : ''}</div>
-          <div style="font-size:11px;color:var(--text-muted)">@${s.username} · ${s.role === 'admin' ? '👑 Admin' : '👤 Staff'} · Last login: ${lastLogin}</div>
+          <div style="font-size:11px;color:var(--text-muted)">@${s.username} · ${s.role === 'admin' ? 'Admin' : 'Staff'} · Last login: ${lastLogin}</div>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="toggleBagStaff('${s.username.replace(/'/g, "\\'")}')" title="Hands-free shopping: whether this person receives bag-collection alerts" style="${bagStaffList().includes(s.username) ? 'background:#531620;color:#fff;border:1px solid #531620' : 'background:var(--bone);color:var(--text);border:1px solid var(--border)'}">🛍️ Bags ${bagStaffList().includes(s.username) ? 'On' : 'Off'}</button>
-          <button class="btn btn-secondary btn-sm" onclick="openEditStaffModal('${s.username.replace(/'/g, "\\'")}', '${(s.display_name||'').replace(/'/g, "\\'")}', '${s.role}')">✎ Edit</button>
-          ${!isMe ? `<button class="btn btn-danger btn-sm" onclick="toggleStaffActive('${s.username.replace(/'/g, "\\'")}', ${!s.is_active})">${s.is_active ? '🚫 Disable' : '✓ Enable'}</button>` : ''}
+          <button class="btn btn-sm" onclick="toggleBagStaff('${s.username.replace(/'/g, "\\'")}')" title="Hands-free shopping: whether this person receives bag-collection alerts" style="${bagStaffList().includes(s.username) ? 'background:#531620;color:#fff;border:1px solid #531620' : 'background:var(--bone);color:var(--text);border:1px solid var(--border)'}">Bags ${bagStaffList().includes(s.username) ? 'On' : 'Off'}</button>
+          <button class="btn btn-secondary btn-sm" onclick="openEditStaffModal('${s.username.replace(/'/g, "\\'")}', '${(s.display_name||'').replace(/'/g, "\\'")}', '${s.role}')">Edit</button>
+          ${!isMe ? `<button class="btn btn-danger btn-sm" onclick="toggleStaffActive('${s.username.replace(/'/g, "\\'")}', ${!s.is_active})">${s.is_active ? 'Disable' : '✓ Enable'}</button>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -9150,7 +9150,7 @@ async function saveStaffMember() {
     return;
   }
 
-  err.textContent = '⏳ Saving…';
+  err.textContent = 'Saving…';
   err.style.color = 'var(--text-muted)';
   try {
     if (editingStaffUsername) {
@@ -9208,7 +9208,7 @@ async function changePIN() {
 }
 
 // ═══════════════════════════════════════════════════
-// 🚀 INIT — Replace original direct init with auth gate
+// INIT — Replace original direct init with auth gate
 // ═══════════════════════════════════════════════════
 function initializeUI() {
   // Set default Plate Recognizer key if not already configured
@@ -9273,7 +9273,7 @@ function updateUserBadge() {
   badge.onclick = logout;
   badge.style.cursor = 'pointer';
   if (currentUser) {
-    badge.innerHTML = '👤 ' + currentUser.displayName + ' <span style="opacity:.6">(tap to logout)</span>';
+    badge.innerHTML = '' + currentUser.displayName + ' <span style="opacity:.6">(tap to logout)</span>';
   }
 }
 
@@ -9492,7 +9492,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <!-- DISCOUNTS SECTION -->
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <label class="form-label" style="margin:0">💳 Discounts &amp; Validations</label>
+        <label class="form-label" style="margin:0">Discounts &amp; Validations</label>
         <button type="button" class="btn btn-secondary btn-sm" onclick="addDiscount()">+ Add Discount</button>
       </div>
       <div id="discount-list" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -9515,9 +9515,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <label class="form-label">Payment Status</label>
         <select id="checkout-pay-status" class="form-select" onchange="updateCheckoutTotalDisplay()">
           <option value="paid">✓ Paid</option>
-          <option value="unpaid">⚠ Unpaid</option>
+          <option value="unpaid">Unpaid</option>
           <option value="comp">⊘ Complimentary (no charge)</option>
-          <option value="charged">📋 Charged to account/room</option>
+          <option value="charged">Charged to account/room</option>
         </select>
       </div>
       <div class="form-field">
@@ -9545,7 +9545,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- CAMERA SCANNER MODAL -->
 <div class="camera-modal" id="camera-modal">
   <div class="camera-box">
-    <div style="font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:10px;letter-spacing:1.5px;text-transform:uppercase">📷 Camera Scanner</div>
+    <div style="font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:10px;letter-spacing:1.5px;text-transform:uppercase">Camera Scanner</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;text-align:center">Point your camera at a ticket QR code</div>
     <video id="camera-video" class="camera-video" playsinline=""></video>
     <canvas id="camera-canvas" style="display:none"></canvas>
@@ -9560,7 +9560,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- PLATE SCANNER MODAL -->
 <div class="camera-modal" id="plate-modal">
   <div class="camera-box">
-    <div style="font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:6px;letter-spacing:1.5px;text-transform:uppercase">📷 Snap Number Plate</div>
+    <div style="font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:6px;letter-spacing:1.5px;text-transform:uppercase">Snap Number Plate</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;text-align:center">Frame the plate clearly, then tap Capture</div>
     <video id="plate-video" class="camera-video" playsinline=""></video>
     <canvas id="plate-canvas" style="display:none"></canvas>
@@ -9568,10 +9568,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="plate-result" style="display:none;background:var(--sandstone);padding:12px;border-radius:4px;text-align:center;margin-bottom:12px;width:100%">
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Detected plate — edit if wrong</div>
       <input type="text" id="plate-detected" style="font-size:24px;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon);letter-spacing:3px;text-align:center;text-transform:uppercase;background:#fff;border:2px solid var(--bronze);border-radius:4px;padding:6px 10px;width:90%;max-width:280px" oninput="this.value=this.value.toUpperCase()">
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-style:italic">💡 Common OCR mix-ups: E↔F · O↔0 · 1↔I · 8↔B · 5↔S</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-style:italic">Common OCR mix-ups: E↔F · O↔0 · 1↔I · 8↔B · 5↔S</div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" id="plate-capture-btn" onclick="capturePlate()">📸 Capture</button>
+      <button class="btn btn-primary" id="plate-capture-btn" onclick="capturePlate()">Capture</button>
       <button class="btn btn-secondary" onclick="switchPlateCamera()">↺ Flip Camera</button>
       <button class="btn btn-secondary" onclick="closePlateScan()">Cancel</button>
     </div>
@@ -9623,10 +9623,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <label class="form-label">Discount Type</label>
       <select id="discount-type" class="form-select" onchange="onDiscountTypeChange()">
         <option value="">— Choose type —</option>
-        <option value="validation">🏬 Retailer Validation ($X off)</option>
-        <option value="member">⭐ Member Discount (% off)</option>
-        <option value="custom_amount">💵 Custom $ Amount</option>
-        <option value="custom_percent">📊 Custom %</option>
+        <option value="validation">Retailer Validation ($X off)</option>
+        <option value="member">Member Discount (% off)</option>
+        <option value="custom_amount">Custom $ Amount</option>
+        <option value="custom_percent">Custom %</option>
         <option value="comp">⊘ Fully Complimentary (100% off)</option>
       </select>
     </div>
@@ -9654,10 +9654,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="form-field" style="margin-bottom:14px">
         <label class="form-label">Member Tier</label>
         <select id="discount-tier" class="form-select">
-          <option value="VIP|50">⭐ VIP — 50% off</option>
-          <option value="Gold|25">🟡 Gold — 25% off</option>
-          <option value="Silver|10">⚪ Silver — 10% off</option>
-          <option value="Staff|100">👷 Staff / Family — 100% off</option>
+          <option value="VIP|50">VIP — 50% off</option>
+          <option value="Gold|25">Gold — 25% off</option>
+          <option value="Silver|10">Silver — 10% off</option>
+          <option value="Staff|100">Staff / Family — 100% off</option>
         </select>
       </div>
     </div>
@@ -9737,7 +9737,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- EDIT CAR MODAL — fix bay / time in / customer details if staff made a mistake -->
 <div class="modal" id="edit-car-modal">
   <div class="modal-box" style="max-width:460px">
-    <div class="modal-title">✎ Edit — <span id="edit-car-ticket" style="font-family:&#39;Courier New&#39;,monospace"></span></div>
+    <div class="modal-title">Edit — <span id="edit-car-ticket" style="font-family:&#39;Courier New&#39;,monospace"></span></div>
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Ticket Number</label>
       <input type="text" id="edit-car-ticketno" class="form-input" maxlength="20" autocomplete="off" style="font-family:&#39;Courier New&#39;,monospace">
@@ -9797,7 +9797,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="welcome-popup" id="welcome-popup">
   <div class="welcome-box">
     <div class="welcome-tier-badge">
-      <span id="welcome-tier-emoji" style="font-size:24px">🌟</span>
+      <span id="welcome-tier-emoji" style="font-size:24px"></span>
       <span id="welcome-tier-label" style="font-weight:bold;letter-spacing:2px;font-size:11px;padding:4px 10px;border:2px solid;border-radius:20px;text-transform:uppercase">RETURNING CUSTOMER</span>
     </div>
 
@@ -9807,11 +9807,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <div id="welcome-stats"></div>
 
-    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px;margin-top:6px">💡 Conversation Starters</div>
+    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px;margin-top:6px">Conversation Starters</div>
     <div id="welcome-prompts"></div>
 
     <div class="btn-row" style="justify-content:flex-end;margin-top:18px">
-      <button class="btn btn-secondary" onclick="welcomePopupShowDetail()">📋 Full History</button>
+      <button class="btn btn-secondary" onclick="welcomePopupShowDetail()">Full History</button>
       <button class="btn btn-primary" onclick="dismissWelcomePopup()">✓ Got It</button>
     </div>
   </div>
@@ -9820,7 +9820,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- PICKUP ETA MODAL -->
 <div class="modal" id="eta-modal">
   <div class="modal-box" style="max-width:420px">
-    <div class="modal-title">⏱ Pickup Requested</div>
+    <div class="modal-title">Pickup Requested</div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
       Ticket <strong id="eta-ticket" style="font-family:&#39;Courier New&#39;,monospace;color:var(--maroon)">—</strong><br>
       <span id="eta-info">—</span>
@@ -9850,7 +9850,7 @@ document.addEventListener('DOMContentLoaded', () => {
      with a chime + vibration, until a staff member acknowledges. -->
 <div class="modal" id="pickup-alarm-modal">
   <div class="modal-box" style="max-width:460px;text-align:center;border:3px solid #a83838">
-    <div style="font-size:13px;letter-spacing:3px;color:#a83838;text-transform:uppercase;font-weight:bold;margin-bottom:6px">🔔 Car Requested</div>
+    <div style="font-size:13px;letter-spacing:3px;color:#a83838;text-transform:uppercase;font-weight:bold;margin-bottom:6px">Car Requested</div>
     <div id="pickup-alarm-eta" style="font-size:20px;font-weight:bold;color:#a83838;margin-bottom:16px">Customer wants their car</div>
 
     <div style="background:var(--sandstone);border-radius:10px;padding:18px 16px;margin-bottom:16px">
@@ -9863,7 +9863,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="pickup-alarm-more" style="font-size:12px;color:#a83838;font-weight:bold;min-height:16px;margin-bottom:12px"></div>
 
     <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" onclick="alarmOnTheWay()" style="flex:1;font-size:16px;padding:16px" title="Tells the customer their car is on its way">🚗 On the way</button>
+      <button class="btn btn-primary" onclick="alarmOnTheWay()" style="flex:1;font-size:16px;padding:16px" title="Tells the customer their car is on its way">On the way</button>
       <button class="btn btn-secondary" onclick="acknowledgePickupAlarm()" style="flex:1;font-size:16px;padding:16px">✓ Got it</button>
     </div>
   </div>
@@ -9873,7 +9873,7 @@ document.addEventListener('DOMContentLoaded', () => {
      customer requests hands-free shopping. Mirrors the car-pickup alarm. -->
 <div class="modal" id="bag-alarm-modal">
   <div class="modal-box" style="max-width:460px;text-align:center;border:3px solid #a48d53">
-    <div style="font-size:13px;letter-spacing:3px;color:#a48d53;text-transform:uppercase;font-weight:bold;margin-bottom:6px">🛍 Bag Pickup Requested</div>
+    <div style="font-size:13px;letter-spacing:3px;color:#a48d53;text-transform:uppercase;font-weight:bold;margin-bottom:6px">Bag Pickup Requested</div>
     <div style="font-size:20px;font-weight:bold;color:#a48d53;margin-bottom:16px">A customer wants their shopping collected</div>
 
     <div style="background:var(--sandstone);border-radius:10px;padding:18px 16px;margin-bottom:16px">
@@ -9887,7 +9887,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="bag-alarm-more" style="font-size:12px;color:#a48d53;font-weight:bold;min-height:16px;margin-bottom:12px"></div>
 
     <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" onclick="bagAlarmCollect()" style="flex:1;font-size:16px;padding:16px" title="Marks this as being collected and opens the bag queue">🛍 On my way</button>
+      <button class="btn btn-primary" onclick="bagAlarmCollect()" style="flex:1;font-size:16px;padding:16px" title="Marks this as being collected and opens the bag queue">On my way</button>
       <button class="btn btn-secondary" onclick="acknowledgeBagAlarm()" style="flex:1;font-size:16px;padding:16px">✓ Got it</button>
     </div>
   </div>
@@ -9897,7 +9897,7 @@ document.addEventListener('DOMContentLoaded', () => {
      hands-free requests, mirroring the customer ticket page. -->
 <div class="modal" id="bag-request-modal">
   <div class="modal-box" style="max-width:420px">
-    <div class="modal-title">📦 Log bag pickup</div>
+    <div class="modal-title">Log bag pickup</div>
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Which shop?</label>
       <select id="bag-req-shop" class="form-input" onchange="bagReqShopChanged()"></select>
@@ -9911,7 +9911,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="btn-row" style="justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeBagRequestModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmBagRequest()">📦 Add to queue</button>
+      <button class="btn btn-primary" onclick="confirmBagRequest()">Add to queue</button>
     </div>
   </div>
 </div>

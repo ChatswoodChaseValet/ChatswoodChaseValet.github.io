@@ -140,12 +140,12 @@
     <div class="instructions">
       Show this QR code to our valet staff when you return for your car.
     </div>
-    <div class="tip">💡 Tip: take a screenshot or bookmark this page so you can find it later.</div>
+    <div class="tip">Tip: take a screenshot or bookmark this page so you can find it later.</div>
 
     <!-- Customer "bring my car" section — populated by the script below
          only when a valid entry id is present in the link. -->
     <div class="req" id="req-section" style="display:none">
-      <div class="req-title">🚗 Ready to leave?</div>
+      <div class="req-title">Ready to leave?</div>
       <div class="req-sub">Let our valet know and we'll have your car waiting. Tap when you'd like it brought round:</div>
       <div class="req-grid" id="req-buttons">
         <button class="req-btn now" data-min="0">I'm here now</button>
@@ -160,10 +160,10 @@
 
     <!-- Customer "hands-free shopping" section — collect bags & put in car -->
     <div class="req" id="bag-section" style="display:none">
-      <div class="req-title">📦 Hands-free shopping</div>
+      <div class="req-title">Hands-free shopping</div>
       <div class="req-sub">Out shopping? We'll collect your bags and pop them in your car. Tap below and tell us where you are.</div>
       <div id="bag-buttons" class="req-grid">
-        <button class="req-btn now" id="bag-start" style="grid-column:1 / -1">📦 Bring my shopping to the car</button>
+        <button class="req-btn now" id="bag-start" style="grid-column:1 / -1">Bring my shopping to the car</button>
       </div>
       <div id="bag-form" style="display:none;margin-top:12px;text-align:left">
         <label style="font-size:12px;color:#a48d53;font-weight:bold;display:block;margin-bottom:4px">Which shop are you at?</label>
@@ -212,7 +212,7 @@
 
   // Basic validation — accept letters/digits/dashes only, max 16 chars
   if (!ticket || !/^[A-Z0-9-]{1,16}$/.test(ticket)) {
-    content.innerHTML = '<div class="error">⚠ This link is missing or has an invalid ticket number. Please ask the valet staff for a fresh link.</div>';
+    content.innerHTML = '<div class="error">This link is missing or has an invalid ticket number. Please ask the valet staff for a fresh link.</div>';
     return;
   }
 
@@ -294,7 +294,7 @@
       : "We'll have your car ready " + fmtMins(mins) + '.';
     resultBox.innerHTML =
       '<div class="req-status">' +
-        '<span class="big">✅ Request sent!</span>' + when +
+        '<span class="big">Request sent!</span>' + when +
         '<br>Please make your way to the valet desk.' +
         '<button class="req-change" id="req-change">Change time</button>' +
       '</div>';
@@ -323,12 +323,12 @@
           var bagImg = row.bag_photo
             ? '<br><img src="' + row.bag_photo + '" alt="Your shopping in your car" style="max-width:100%;border-radius:10px;margin-top:10px;border:1px solid #ebebe9">'
             : '';
-          bagRes.innerHTML = '<div class="req-status"><span class="big">📦 Your shopping is in your car!</span>Here\'s a photo from our valet. Enjoy the rest of your day.' + bagImg + '</div>'
-            + '<button class="req-btn now" type="button" id="bag-again" style="width:100%;margin-top:12px" onclick="startBagAgain()">📦 Shopping at another shop? Send my bags again</button>';
+          bagRes.innerHTML = '<div class="req-status"><span class="big">Your shopping is in your car!</span>Here\'s a photo from our valet. Enjoy the rest of your day.' + bagImg + '</div>'
+            + '<button class="req-btn now" type="button" id="bag-again" style="width:100%;margin-top:12px" onclick="startBagAgain()">Shopping at another shop? Send my bags again</button>';
         } else if (row.bag_status === 'requested' || row.bag_status === 'collecting') {
           if (bagForm) bagForm.style.display = 'none';
           if (bagBtns) bagBtns.style.display = 'none';
-          bagRes.innerHTML = '<div class="req-status"><span class="big">✅ On our way!</span>A valet is collecting your shopping' + (row.bag_location ? ' at <b>' + String(row.bag_location).replace(/</g,'&lt;') + '</b>' : '') + '. We\'ll text you when it\'s in your car.</div>';
+          bagRes.innerHTML = '<div class="req-status"><span class="big">On our way!</span>A valet is collecting your shopping' + (row.bag_location ? ' at <b>' + String(row.bag_location).replace(/</g,'&lt;') + '</b>' : '') + '. We\'ll text you when it\'s in your car.</div>';
         }
       }
     }
@@ -336,19 +336,19 @@
     if (row.time_out) {
       buttons.style.display = 'none';
       resultBox.innerHTML = '<div class="req-status" style="color:#a48d53;background:#f8f7f5;border-color:#ebebe9">' +
-        '<span class="big">👋 Thanks for visiting!</span>Your car has been collected. We hope to see you again at Chatswood Chase.</div>';
+        '<span class="big">Thanks for visiting!</span>Your car has been collected. We hope to see you again at Chatswood Chase.</div>';
       return;
     }
     if (row.pickup_status === 'ready') {
       buttons.style.display = 'none';
       resultBox.innerHTML = '<div class="req-status">' +
-        '<span class="big">✅ Your car is ready!</span>It\'s waiting for you at the valet desk — see you there.</div>';
+        '<span class="big">Your car is ready!</span>It\'s waiting for you at the valet desk — see you there.</div>';
       return;
     }
     if (row.pickup_status === 'fetching') {
       buttons.style.display = 'none';
       resultBox.innerHTML = '<div class="req-status" style="color:#531620;background:#f7ecec;border-color:#e0b8b8">' +
-        '<span class="big">🚗 Your car is on its way!</span>Our valet is bringing it round now — please head to the valet desk.</div>';
+        '<span class="big">Your car is on its way!</span>Our valet is bringing it round now — please head to the valet desk.</div>';
       return;
     }
     if (initial && row.pickup_requested && row.pickup_source === 'customer') {
@@ -372,7 +372,7 @@
 
   function showError(msg){
     resultBox.insertAdjacentHTML('beforeend',
-      '<div class="req-error">⚠ ' + msg + ' Please try again, or just head to the valet desk.</div>');
+      '<div class="req-error">' + msg + ' Please try again, or just head to the valet desk.</div>');
   }
 
   function setBusy(busy){
@@ -488,10 +488,10 @@
     if (cntSel) cntSel.selectedIndex = 0;
   };
   if (bagSendBtn) bagSendBtn.addEventListener('click', async function(){
-    if (!entryId) { bagResult.innerHTML = '<div class="req-error">⚠ We couldn\'t match your ticket. Please see the valet desk.</div>'; return; }
+    if (!entryId) { bagResult.innerHTML = '<div class="req-error">We couldn\'t match your ticket. Please see the valet desk.</div>'; return; }
     // Location comes from the shop dropdown; "Other" reveals the text box.
     var sel = bagShopSel ? bagShopSel.value : '';
-    if (!sel) { bagResult.innerHTML = '<div class="req-error">⚠ Please choose your shop from the list.</div>'; return; }
+    if (!sel) { bagResult.innerHTML = '<div class="req-error">Please choose your shop from the list.</div>'; return; }
     var loc = (sel === '__other__') ? ((bagLocInput.value || '').trim() || 'Valet Desk') : sel;
     var cnt = parseInt(document.getElementById('bag-count').value, 10) || 1;
     bagSendBtn.disabled = true;
@@ -505,13 +505,13 @@
         bag_photo: null, bag_in_car_by: null, bag_done_at: null, bag_assigned: null
       }).eq('id', entryId).is('time_out', null).select('id');
       if (res.error || !res.data || !res.data.length) {
-        bagResult.innerHTML = '<div class="req-error">⚠ Couldn\'t send your request. Please call the valet on 0427 000 822.</div>';
+        bagResult.innerHTML = '<div class="req-error">Couldn\'t send your request. Please call the valet on 0427 000 822.</div>';
         bagSendBtn.disabled = false; return;
       }
       bagForm.style.display = 'none';
-      bagResult.innerHTML = '<div class="req-status"><span class="big">✅ On our way!</span>A valet is coming to collect your shopping at <b>' + loc.replace(/</g,'&lt;') + '</b>. We\'ll text you when it\'s in your car.</div>';
+      bagResult.innerHTML = '<div class="req-status"><span class="big">On our way!</span>A valet is coming to collect your shopping at <b>' + loc.replace(/</g,'&lt;') + '</b>. We\'ll text you when it\'s in your car.</div>';
     } catch (e) {
-      bagResult.innerHTML = '<div class="req-error">⚠ We couldn\'t reach the valet right now. Please call 0427 000 822.</div>';
+      bagResult.innerHTML = '<div class="req-error">We couldn\'t reach the valet right now. Please call 0427 000 822.</div>';
       bagSendBtn.disabled = false;
     }
   });
