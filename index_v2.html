@@ -483,7 +483,10 @@ tr:hover td{background:var(--bg)}
   /* phones have no hover — show the word inline next to the icon */
   .tab-label{position:static;opacity:1;transform:none;background:none;box-shadow:none;color:inherit;padding:0;font-size:11px;letter-spacing:.5px;pointer-events:auto}
   .tab-badge{position:static;margin-left:4px}
-  .main{padding:14px}
+  /* On phones the layout stacks; drop the auto centring margins so .main fills
+     the screen width instead of sizing to its content (which caused the whole
+     page to be ~2x wide and scroll sideways). */
+  .main{padding:14px;margin:0;max-width:100%;min-width:0}
 
   .stats-row{grid-template-columns:1fr 1fr;gap:10px}
   .stat-value{font-size:24px}
@@ -494,8 +497,14 @@ tr:hover td{background:var(--bg)}
 
   /* Tables — make them horizontally scrollable */
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{min-width:600px;font-size:12px}
+  /* Only the big data tables need the 600px floor (they scroll inside their
+     wrapper). Scoping it here stops small inline tables — e.g. the parking
+     rates reference — from forcing the whole page wider than the screen. */
+  .table-wrap table{min-width:600px}
+  table{font-size:12px}
   th, td{padding:8px 6px;font-size:11px}
+  /* Stack the two parking-rate tables on phones so they fit. */
+  #view-new-entry .section [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;gap:18px !important}
 
   .filters{flex-direction:column;align-items:stretch}
   .filter-field{min-width:0}
@@ -503,7 +512,9 @@ tr:hover td{background:var(--bg)}
 
 @media (max-width: 500px) {
   .stats-row{grid-template-columns:1fr}
-  .form-grid{grid-template-columns:1fr}
+  /* minmax(0,1fr) lets the column shrink below its content's min-content,
+     so wide flex rows (rego input + Snap/Voice buttons) can't force h-scroll. */
+  .form-grid{grid-template-columns:minmax(0,1fr)}
   .scan-btn{padding:6px 10px;font-size:11px}
   .btn{padding:9px 14px;font-size:12px}
   .btn-row{flex-direction:column;align-items:stretch}
@@ -514,7 +525,11 @@ tr:hover td{background:var(--bg)}
      breathing room between questions. 16px inputs also stop iOS zooming
      in when a field is tapped. */
   #view-new-entry .form-grid{gap:20px;margin-bottom:18px}
-  #view-new-entry .form-field{gap:8px}
+  #view-new-entry .form-field{gap:8px;min-width:0}
+  /* let the rego/ticket input shrink inside its flex row so the
+     fixed-width Snap/Voice buttons stay on screen, no sideways scroll */
+  #view-new-entry .form-field > div{min-width:0}
+  #view-new-entry .form-input{min-width:0}
   #view-new-entry .form-label{font-size:13px;letter-spacing:1px}
   #view-new-entry .form-input,
   #view-new-entry .form-select{font-size:16px;padding:13px 13px}
@@ -1041,7 +1056,7 @@ body.dark-mode .scan-banner {
         </label>
         <div style="display:flex;gap:6px">
           <input type="text" id="f-rego" class="form-input" placeholder="e.g. ABC 123" autocomplete="off" style="text-transform:uppercase;flex:1">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="startVoicePlate()" title="Voice-to-text plate entry" style="white-space:nowrap" $1Voice</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="startVoicePlate()" title="Voice-to-text plate entry" style="white-space:nowrap">Voice</button>
           <button type="button" class="btn btn-secondary btn-sm" onclick="openPlateScan()" title="Use camera to scan number plate" style="white-space:nowrap">Snap</button>
         </div>
       </div>
@@ -1457,8 +1472,8 @@ body.dark-mode .scan-banner {
       <td>B4</td>
       <td><span class="status-pill status-active">On Site</span></td>
       <td>
-        <button class="btn btn-secondary btn-sm" $1Photo</button>
-        
+        <button class="btn btn-secondary btn-sm" onclick="viewPhoto(&#39;1780444884018-mefkxu&#39;)" title="View photo">Photo</button>
+
         <button class="btn btn-secondary btn-sm" onclick="editEntryTime(&#39;1780444884018-mefkxu&#39;)" style="margin-right:4px">Edit Time</button>
         <button class="btn btn-primary btn-sm" onclick="checkout(&#39;1780444884018-mefkxu&#39;)">✓ Out</button>
         <button class="btn btn-danger btn-sm" onclick="deleteEntry(&#39;1780444884018-mefkxu&#39;)" style="margin-left:4px">✕</button>
@@ -4453,7 +4468,7 @@ function renderActive() {
       <td>
         ${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none" onclick="event.stopPropagation()" title="Call ${e.phone}">Call</a>` : ''}
         <button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">QR</button>
-        <button class="btn btn-secondary btn-sm" $1Print</button>
+        <button class="btn btn-secondary btn-sm" onclick="printKeyTag('${e.id}')" title="Print key tag">Print</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">Edit</button>
         ${pickupBtn}
         <button class="btn btn-secondary btn-sm" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup" style="${e.bagStatus && e.bagStatus!=='done' ? 'background:#531620;color:#fff' : ''}">${e.bagStatus && e.bagStatus!=='done' ? '•' : ''}</button>
@@ -5564,8 +5579,8 @@ function renderLog() {
         ? '<span class="status-pill status-completed">Completed</span>'
         : '<span class="status-pill status-active">On Site</span>'}</td>
       <td>
-        ${e.photo ? `<button class="btn btn-secondary btn-sm" $1Photo</button>` : ''}
-        ${e.gps ? `<button class="btn btn-secondary btn-sm" $1Map</button>` : ''}
+        ${e.photo ? `<button class="btn btn-secondary btn-sm" onclick="viewPhoto('${e.id}')" title="View photo">Photo</button>` : ''}
+        ${e.gps ? `<button class="btn btn-secondary btn-sm" onclick="viewBayLocation(${e.gps.lat},${e.gps.lng})" title="Show on map">Find Bay</button>` : ''}
         <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" style="margin-right:4px" title="Edit bay, time in/out & customer details">Edit</button>
         ${e.timeOut
           ? `<button class="btn btn-secondary btn-sm" onclick="undoCheckout('${e.id}')">↶ Undo</button>`
