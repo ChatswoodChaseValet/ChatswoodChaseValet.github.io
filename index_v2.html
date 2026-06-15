@@ -4021,21 +4021,26 @@ function donutSVG(pct, centre, sub) {
 
 // Build the dashboard infographic widgets from the live entries data.
 // Widgets available for the customisable dashboard infographic grid.
+const TOTAL_SPOTS = 150; // car park capacity — numbered spots 1–150
 const DASH_WIDGETS = [
-  { id:'turnover', title:'Turnover Today' },
-  { id:'dwell',    title:'Dwell Time' },
-  { id:'zones',    title:'On Site by Zone' },
-  { id:'busiest',  title:'Busiest Hours Today' },
-  { id:'brands',   title:'Top Brands Today' },
-  { id:'money',    title:'Revenue & Tips Today' },
+  { id:'turnover',  title:'Turnover Today' },
+  { id:'occupancy', title:'Occupancy' },
+  { id:'dwell',     title:'Dwell Time' },
+  { id:'busiest',   title:'Busiest Hours Today' },
+  { id:'brands',    title:'Top Brands Today' },
+  { id:'money',     title:'Revenue & Tips Today' },
 ];
-const DASH_DEFAULT = ['turnover','dwell','zones','busiest'];
+const DASH_DEFAULT = ['turnover','occupancy','dwell','busiest'];
 
 // Layout (which widgets show, in what order) is synced across all devices via
 // the cloud app_settings, so a manager sets it once for everyone.
 function getDashLayout() {
   const s = cloudSettings && cloudSettings.dash_layout;
-  if (Array.isArray(s)) { const f = s.filter(id => DASH_WIDGETS.some(w => w.id === id)); if (f.length) return f; }
+  if (Array.isArray(s)) {
+    const mapped = s.map(id => id === 'zones' ? 'occupancy' : id); // migrate old layouts
+    const f = [...new Set(mapped)].filter(id => DASH_WIDGETS.some(w => w.id === id));
+    if (f.length) return f;
+  }
   return DASH_DEFAULT.slice();
 }
 function setDashLayout(arr) {
@@ -4061,11 +4066,9 @@ function renderDashInfographics(active, todayIn, todayOut) {
   const dwellMax = Math.max(1, ...buckets.map(b => b.n));
   const dwellTot = completedAll.length;
 
-  // Cars currently on site grouped by bay zone (first character of the bay).
-  const zoneMap = {};
-  active.forEach(e => { const z = ((e.bay || '').toString().trim().charAt(0) || '—').toUpperCase(); zoneMap[z] = (zoneMap[z]||0)+1; });
-  const zones = Object.entries(zoneMap).sort((a,b) => a[0] < b[0] ? -1 : 1);
-  const zoneMax = Math.max(1, ...zones.map(z => z[1]));
+  // Occupancy: cars on site against the car park's total numbered spots.
+  const occPct = Math.round(onSite / TOTAL_SPOTS * 100);
+  const freeSpots = Math.max(0, TOTAL_SPOTS - onSite);
 
   // Busiest hours today (cars checked in, by hour of day).
   const hourMap = {};
@@ -4092,7 +4095,7 @@ function renderDashInfographics(active, todayIn, todayOut) {
   const cards = {
     turnover: `<div class="dash-card"><h3>Turnover Today</h3><div class="dash-donut">${donutSVG(pctOut, onSite, 'ON SITE')}<div class="cap">${inToday} in · ${outToday} out today</div></div></div>`,
     dwell: `<div class="dash-card"><h3>Dwell Time · all visits</h3>${rows(buckets.map(b => ({ lbl:b.lbl, pct: b.n/dwellMax*100, val: dwellTot ? Math.round(b.n/dwellTot*100)+'%' : '0%' })))}</div>`,
-    zones: `<div class="dash-card"><h3>On Site by Zone</h3>${rows(zones.map(([z,n]) => ({ lbl:'Zone '+z, pct: n/zoneMax*100, val:n })))}</div>`,
+    occupancy: `<div class="dash-card"><h3>Occupancy</h3><div class="dash-donut">${donutSVG(occPct, occPct+'%', 'OCCUPIED')}<div class="cap">${onSite} of ${TOTAL_SPOTS} spots · ${freeSpots} free</div></div></div>`,
     busiest: `<div class="dash-card"><h3>Busiest Hours Today</h3>${rows(hours.map(x => ({ lbl: hr(x.h), pct: x.n/hourMax*100, val:x.n })))}</div>`,
     brands: `<div class="dash-card"><h3>Top Brands Today</h3>${rows(brands.map(([b,n]) => ({ lbl:b, pct: n/brandMax*100, val:n })))}</div>`,
     money: `<div class="dash-card"><h3>Revenue &amp; Tips Today</h3><div class="dash-figs"><div><div class="fig">${fmtMoney(revToday)}</div><div class="figlbl">Revenue</div></div><div><div class="fig">${fmtMoney(tipsToday)}</div><div class="figlbl">Tips</div></div><div><div class="fig">${fmtMoney(avgFee)}</div><div class="figlbl">Avg fee</div></div></div></div>`,
