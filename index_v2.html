@@ -184,13 +184,20 @@ body.mobile-mode .tab.desktop-only{display:none}
 .view{display:none}
 .view.active{display:block}
 
-/* ─── SETTINGS SUB-MENU ─── */
-.settings-sub{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:14px}
-.set-pill{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .12s}
-.set-pill:hover{border-color:var(--bronze)}
+/* ─── SETTINGS SUB-MENU (side list) ─── */
+.settings-layout{display:flex;align-items:flex-start;gap:22px}
+.settings-sub{display:flex;flex-direction:column;gap:4px;flex:0 0 196px;position:sticky;top:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px}
+.set-pill{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:6px;border:1px solid transparent;background:none;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s}
+.set-pill:hover{background:var(--bg);border-color:var(--border)}
 .set-pill.active{background:var(--maroon);color:#fff;border-color:var(--maroon)}
+.settings-content{flex:1;min-width:0}
 .set-section{display:none}
 .set-section.show{display:block}
+@media (max-width:820px){
+  .settings-layout{flex-direction:column;gap:14px}
+  .settings-sub{flex-direction:row;flex-wrap:wrap;flex:none;position:static}
+  .set-pill{width:auto;border-radius:20px;border-color:var(--border)}
+}
 
 /* ─── DASHBOARD INFOGRAPHICS ─── */
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(264px,1fr));gap:14px;margin-bottom:22px}
@@ -1868,6 +1875,7 @@ body.dark-mode .scan-banner {
 <!-- ───────── SETTINGS VIEW ───────── -->
 <div class="view" id="view-settings">
 
+  <div class="settings-layout">
   <div class="settings-sub" id="settings-sub">
     <button class="set-pill" data-group="access" onclick="showSettingsGroup('access')">Staff &amp; Access</button>
     <button class="set-pill" data-group="carpark" onclick="showSettingsGroup('carpark')">Car Park</button>
@@ -1877,6 +1885,7 @@ body.dark-mode .scan-banner {
     <button class="set-pill" data-group="data" onclick="showSettingsGroup('data')">Data &amp; Backup</button>
   </div>
 
+  <div class="settings-content">
   <div class="section set-section" data-setgroup="access">
     <div class="section-header">
       <div class="section-title">Cloud Sync &amp; Security</div>
@@ -2192,6 +2201,8 @@ body.dark-mode .scan-banner {
       <button class="btn btn-danger" onclick="confirmClearAll()">🗑 Clear All Data</button>
     </div>
   </div>
+  </div><!-- /settings-content -->
+  </div><!-- /settings-layout -->
 </div>
 
 </div><!-- /main -->
