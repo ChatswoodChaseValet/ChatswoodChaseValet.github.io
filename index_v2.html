@@ -9298,7 +9298,9 @@ function updateUserBadge() {
   badge.onclick = logout;
   badge.style.cursor = 'pointer';
   if (currentUser) {
-    badge.innerHTML = '' + currentUser.displayName + ' <span style="opacity:.6">(tap to logout)</span>';
+    // Show just the name (drop any trailing "(Admin)"/role) — no logout hint text.
+    badge.textContent = (currentUser.displayName || '').replace(/\s*\([^)]*\)\s*$/, '').trim() || currentUser.displayName;
+    badge.title = 'Tap to log out';
   }
 }
 
