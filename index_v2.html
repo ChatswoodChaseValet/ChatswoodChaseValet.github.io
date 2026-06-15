@@ -4730,6 +4730,7 @@ function renderBagQueue() {
         <div style="flex:1;min-width:0;font-size:14px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
           <b>${e.name || 'No name'}</b><span style="color:var(--text-muted)"> · 📍 ${e.bagLocation || 'Valet Desk'} · 🛍️ ${cnt} bag${cnt !== 1 ? 's' : ''}</span>
         </div>
+        ${e.bagPhoto ? `<img src="${e.bagPhoto}" onclick="event.stopPropagation();viewPhoto('${e.id}','bag')" style="flex:0 0 auto;width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="In-car proof — tap to enlarge">` : ''}
         <div style="text-align:right;flex:0 0 auto">
           ${isDone
             ? `<div style="font-size:13px;font-weight:bold;color:#3a7d44">✅ Done</div><div style="font-size:11px;color:var(--text-muted)">${e.bagDoneAt ? fmtTime(new Date(e.bagDoneAt)) : ''}</div>`
