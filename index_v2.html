@@ -176,6 +176,19 @@ body.mobile-mode .tab.desktop-only{display:none}
 .view{display:none}
 .view.active{display:block}
 
+/* ─── DASHBOARD INFOGRAPHICS ─── */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(264px,1fr));gap:14px;margin-bottom:22px}
+.dash-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column}
+.dash-card h3{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin:0 0 12px}
+.dash-donut{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;flex:1}
+.dash-donut .cap{font-size:12px;color:var(--text-muted)}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
+.bar-row .lbl{flex:0 0 96px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-row .track{display:block;flex:1;height:14px;background:#ece8e2;border-radius:7px;overflow:hidden}
+.bar-row .fill{display:block;height:100%;background:var(--maroon);border-radius:7px;min-width:3px}
+.bar-row .val{flex:0 0 auto;font-weight:700;color:var(--maroon);font-variant-numeric:tabular-nums;min-width:46px;text-align:right}
+.dash-empty{color:var(--text-muted);font-style:italic;font-size:12px;padding:6px 0}
+
 /* ─── STAT CARDS ─── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
 .stat-card{
@@ -926,6 +939,9 @@ body.dark-mode .scan-banner {
       <div class="stat-sub">From completed trips</div>
     </div>
   </div>
+
+  <!-- Infographic widgets — built by renderDashboard from live data -->
+  <div class="dash-grid" id="dash-infographics"></div>
 
   <div class="section" id="handover-section">
     <div class="section-header">
@@ -3983,6 +3999,74 @@ function isSameDay(isoStr, refDate) {
          d.getDate() === refDate.getDate();
 }
 
+// Simple donut/gauge as an inline SVG: a filled ring with a big centre figure.
+function donutSVG(pct, centre, sub) {
+  pct = Math.max(0, Math.min(100, pct || 0));
+  const r = 54, c = 2 * Math.PI * r, off = c * (1 - pct / 100);
+  return `<svg viewBox="0 0 140 140" width="132" height="132" aria-hidden="true">
+    <circle cx="70" cy="70" r="${r}" fill="none" stroke="#ece8e2" stroke-width="15"/>
+    <circle cx="70" cy="70" r="${r}" fill="none" stroke="#531620" stroke-width="15" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 70 70)"/>
+    <text x="70" y="68" text-anchor="middle" font-size="30" font-weight="700" fill="#531620" font-family="Inter,sans-serif">${centre}</text>
+    <text x="70" y="90" text-anchor="middle" font-size="11" letter-spacing="1" fill="#9a948c" font-family="Inter,sans-serif">${sub}</text>
+  </svg>`;
+}
+
+// Build the dashboard infographic widgets from the live entries data.
+function renderDashInfographics(active, todayIn, todayOut) {
+  const ig = document.getElementById('dash-infographics');
+  if (!ig) return;
+  const onSite = active.length, outToday = todayOut.length, inToday = todayIn.length;
+  const flow = onSite + outToday;
+  const pctOut = flow ? Math.round(outToday / flow * 100) : 0;
+
+  // Dwell-time distribution across all completed visits.
+  const completedAll = entries.filter(e => e.timeOut);
+  const buckets = [['Under 30 min',0,30],['30–60 min',30,60],['1–2 hours',60,120],['2–4 hours',120,240],['4 hours +',240,Infinity]]
+    .map(([lbl,lo,hi]) => ({ lbl, lo, hi, n:0 }));
+  completedAll.forEach(e => {
+    const mins = (new Date(e.timeOut) - new Date(e.timeIn)) / 60000;
+    const b = buckets.find(b => mins >= b.lo && mins < b.hi); if (b) b.n++;
+  });
+  const dwellMax = Math.max(1, ...buckets.map(b => b.n));
+  const dwellTot = completedAll.length;
+
+  // Cars currently on site grouped by bay zone (first character of the bay).
+  const zoneMap = {};
+  active.forEach(e => { const z = ((e.bay || '').toString().trim().charAt(0) || '—').toUpperCase(); zoneMap[z] = (zoneMap[z]||0)+1; });
+  const zones = Object.entries(zoneMap).sort((a,b) => a[0] < b[0] ? -1 : 1);
+  const zoneMax = Math.max(1, ...zones.map(z => z[1]));
+
+  // Busiest hours today (cars checked in, by hour of day).
+  const hourMap = {};
+  todayIn.forEach(e => { const h = new Date(e.timeIn).getHours(); hourMap[h] = (hourMap[h]||0)+1; });
+  const hours = Object.keys(hourMap).map(h => ({ h:+h, n:hourMap[h] })).sort((a,b) => a.h - b.h);
+  const hourMax = Math.max(1, ...hours.map(x => x.n));
+  const hr = h => (h % 12 || 12) + (h < 12 ? 'am' : 'pm');
+
+  const rows = list => list.length
+    ? list.map(r => `<div class="bar-row"><span class="lbl">${r.lbl}</span><span class="track"><span class="fill" style="width:${r.pct}%"></span></span><span class="val">${r.val}</span></div>`).join('')
+    : '<div class="dash-empty">No data yet</div>';
+
+  ig.innerHTML = `
+    <div class="dash-card">
+      <h3>Turnover Today</h3>
+      <div class="dash-donut">${donutSVG(pctOut, onSite, 'ON SITE')}<div class="cap">${inToday} in · ${outToday} out today</div></div>
+    </div>
+    <div class="dash-card">
+      <h3>Dwell Time · all visits</h3>
+      ${rows(buckets.map(b => ({ lbl:b.lbl, pct: b.n/dwellMax*100, val: dwellTot ? Math.round(b.n/dwellTot*100)+'%' : '0%' })))}
+    </div>
+    <div class="dash-card">
+      <h3>On Site by Zone</h3>
+      ${rows(zones.map(([z,n]) => ({ lbl:'Zone '+z, pct: n/zoneMax*100, val:n })))}
+    </div>
+    <div class="dash-card">
+      <h3>Busiest Hours Today</h3>
+      ${rows(hours.map(x => ({ lbl: hr(x.h), pct: x.n/hourMax*100, val:x.n })))}
+    </div>`;
+}
+
 function renderDashboard() {
   const today = new Date();
 
@@ -4058,6 +4142,9 @@ function renderDashboard() {
         <td class="ticket-num">${e.ticket}</td>
       </tr>`).join('');
   }
+
+  // Infographic widgets
+  renderDashInfographics(active, todayIn, todayOut);
 }
 
 function renderBrandList(list, containerId) {
