@@ -5038,10 +5038,11 @@ async function toggleBagStaff(username) {
 }
 
 function updateBagBadge(count) {
-  // Only admins and hands-free-enabled staff get any bag alert at all.
-  const allowed = canHandleBags();
+  // The menu-icon count shows for everyone (just info: how many bag jobs are open).
   const badge = document.getElementById('bag-tab-badge');
-  if (badge) { badge.textContent = count; badge.style.display = (allowed && count > 0) ? '' : 'none'; }
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
+  // The intrusive banner + alarm stay limited to admins/hands-free-enabled staff.
+  const allowed = canHandleBags();
   // Live banner: show when there are unassigned ('requested') jobs.
   const banner = document.getElementById('bag-banner');
   if (banner) {
