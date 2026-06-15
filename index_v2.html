@@ -197,6 +197,9 @@ body.mobile-mode .tab.desktop-only{display:none}
 .cfg-opts{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:12px;color:var(--text-muted)}
 .cfg-opt{display:inline-flex;align-items:center;gap:6px}
 .cfg-opt select{font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:#fff}
+.dash-card[draggable="true"]{cursor:move}
+.dash-card.drag-over{outline:2px dashed var(--bronze);outline-offset:2px}
+.dash-card h3 .dash-drag{color:var(--text-muted);cursor:grab;margin-right:5px;font-weight:400}
 
 /* ─── STAT CARDS ─── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
@@ -4066,9 +4069,10 @@ const DASH_WIDGETS = [
   { id:'busiest',   title:'Busiest Hours Today', opts:[] },
   { id:'brands',    title:'Top Brands',          opts:['range','limit'] },
   { id:'money',     title:'Revenue & Tips',      opts:['range'] },
+  { id:'returning', title:'Returning Customers',  opts:['range'] },
   { id:'onsite',    title:'On Site — Details',   opts:['cols','limit'] },
 ];
-const DASH_DEFAULT = ['turnover','occupancy','dwell','busiest'];
+const DASH_DEFAULT = ['turnover','occupancy','returning','dwell','busiest'];
 const DASH_COLS = { name:'Customer', rego:'Rego', bay:'Spot', brand:'Vehicle', timein:'Time In' };
 function dashWidgetDef(id) { return DASH_WIDGETS.find(w => w.id === id); }
 
@@ -4152,6 +4156,15 @@ function renderDashInfographics(active, todayIn, todayOut) {
         const avg = comp.length ? rev/comp.length : 0;
         return `<div class="dash-figs"><div><div class="fig">${fmtMoney(rev)}</div><div class="figlbl">Revenue</div></div><div><div class="fig">${fmtMoney(tips)}</div><div class="figlbl">Tips</div></div><div><div class="fig">${fmtMoney(avg)}</div><div class="figlbl">Avg fee</div></div></div>`;
       }
+      case 'returning': {
+        // A car is "returning" if its plate was seen on an earlier visit.
+        const firstSeen = {};
+        entries.forEach(e => { const k = normaliseRego(e.rego); if (!k) return; const t = new Date(e.timeIn).getTime(); if (firstSeen[k] == null || t < firstSeen[k]) firstSeen[k] = t; });
+        let ret = 0, nw = 0;
+        inByIn(inst.range).forEach(e => { const k = normaliseRego(e.rego); const t = new Date(e.timeIn).getTime(); if (k && firstSeen[k] < t) ret++; else nw++; });
+        const tot = ret + nw, pct = tot ? Math.round(ret / tot * 100) : 0;
+        return `<div class="dash-donut">${donutSVG(pct, pct+'%', 'RETURNING')}<div class="cap">${ret} returning · ${nw} new</div></div>`;
+      }
       case 'onsite': {
         const cols = inst.cols.length ? inst.cols : ['name','rego','bay'];
         const list = inst.limit ? active.slice(0, inst.limit) : active;
@@ -4172,7 +4185,11 @@ function renderDashInfographics(active, todayIn, todayOut) {
     const t = inst.title && inst.title.trim() ? inst.title.trim()
       : def.title + (def.opts.includes('range') && inst.range !== 'today' ? ' · ' + rangeLabel(inst.range) : '');
     const span = inst.span === 99 ? 'grid-column:1/-1' : inst.span === 2 ? 'grid-column:span 2' : '';
-    return `<div class="dash-card" style="${span}"><h3>${escAttr(t)}</h3>${body(inst)}</div>`;
+    return `<div class="dash-card" draggable="true"
+      ondragstart="dashDragStart(event,'${inst.id}')" ondragover="dashDragOver(event)"
+      ondragenter="this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')"
+      ondrop="this.classList.remove('drag-over');dashDrop(event,'${inst.id}')" style="${span}">
+      <h3><span class="dash-drag" title="Drag to reorder">⠿</span> ${escAttr(t)}</h3>${body(inst)}</div>`;
   }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “⚙ Customize dashboard”.</div>';
 }
 
