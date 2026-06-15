@@ -16,65 +16,59 @@
     background:linear-gradient(135deg,#531620 0%,#3a0f17 100%);
     min-height:100vh;
     display:flex;align-items:center;justify-content:center;
-    padding:20px;
+    padding:10px;
     color:#333333;
   }
   .card{
     background:#fff;
-    border-radius:16px;
-    padding:28px 24px 32px;
-    max-width:380px;
+    border-radius:14px;
+    padding:16px 16px 18px;
+    max-width:360px;
     width:100%;
     text-align:center;
     box-shadow:0 16px 50px rgba(0,0,0,.35);
   }
   .subtitle{
-    font-size:10px;letter-spacing:2px;text-transform:uppercase;
-    color:#a48d53;margin-bottom:24px;
+    font-size:9px;letter-spacing:2px;text-transform:uppercase;
+    color:#a48d53;margin-bottom:8px;
   }
   .ticket-label{
-    font-size:11px;letter-spacing:2px;text-transform:uppercase;
-    color:#a48d53;margin-bottom:4px;
+    font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    color:#a48d53;margin-bottom:2px;
   }
   .ticket-number{
     font-family:'Courier New',monospace;
-    font-size:42px;font-weight:bold;
-    color:#531620;letter-spacing:4px;
-    margin-bottom:20px;
+    font-size:30px;font-weight:bold;
+    color:#531620;letter-spacing:3px;
+    margin-bottom:8px;
   }
   .qr-wrap{
     background:#fff;
-    padding:12px;
+    padding:7px;
     display:inline-block;
     border:1px solid #ebebe9;
     border-radius:8px;
-    margin-bottom:18px;
+    margin-bottom:8px;
   }
-  .qr-wrap canvas, .qr-wrap img{display:block;margin:0 auto}
+  .qr-wrap canvas, .qr-wrap img{display:block;margin:0 auto;width:128px;height:128px}
   .details{
-    margin-bottom:16px;
+    margin-bottom:6px;
   }
   .detail-plate{
     font-family:'Courier New',monospace;
-    font-size:24px;font-weight:bold;letter-spacing:2px;
+    font-size:18px;font-weight:bold;letter-spacing:2px;
     color:#333333;
     display:inline-block;
     border:2px solid #333333;border-radius:6px;
-    padding:4px 14px;background:#f8f7f5;
+    padding:2px 12px;background:#f8f7f5;
   }
   .detail-time{
-    font-size:13px;color:#a48d53;
-    margin-top:8px;
+    font-size:11px;color:#a48d53;
+    margin-top:3px;
   }
   .instructions{
-    font-size:14px;color:#5a4f42;line-height:1.5;
-    margin-bottom:8px;
-  }
-  .tip{
-    font-size:12px;color:#a48d53;
-    background:#f8f7f5;border-radius:6px;
-    padding:10px 14px;
-    margin-top:14px;
+    font-size:11px;color:#5a4f42;line-height:1.4;
+    margin-bottom:2px;
   }
   .error{
     font-size:14px;color:#a83838;
@@ -83,24 +77,24 @@
   }
   /* ── Request-your-car section ── */
   .req{
-    margin-top:22px;padding-top:20px;
+    margin-top:12px;padding-top:12px;
     border-top:1px solid #ebebe9;
   }
   .req-title{
-    font-size:15px;font-weight:bold;color:#531620;margin-bottom:4px;
+    font-size:13px;font-weight:bold;color:#531620;margin-bottom:2px;
   }
   .req-sub{
-    font-size:12px;color:#a48d53;margin-bottom:14px;line-height:1.4;
+    font-size:11px;color:#a48d53;margin-bottom:8px;line-height:1.35;
   }
   .req-grid{
-    display:grid;grid-template-columns:repeat(2,1fr);gap:10px;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:7px;
   }
   .req-btn{
     appearance:none;-webkit-appearance:none;
-    border:1.5px solid #531620;border-radius:10px;
+    border:1.5px solid #531620;border-radius:8px;
     background:#fff;color:#531620;
-    font-size:16px;font-weight:bold;
-    padding:16px 8px;cursor:pointer;
+    font-size:13px;font-weight:bold;
+    padding:11px 4px;cursor:pointer;
     font-family:inherit;
     transition:background .12s,color .12s,transform .05s;
   }
@@ -127,7 +121,7 @@
 </head>
 <body>
 <div class="card">
-  <img src="logo-maroon.png" alt="Chatswood Chase" style="height:60px;width:auto;margin:0 auto 12px;display:block">
+  <img src="logo-maroon.png" alt="Chatswood Chase" style="height:36px;width:auto;margin:0 auto 6px;display:block">
   <div class="subtitle">Valet Ticket</div>
 
   <div id="content">
@@ -138,15 +132,14 @@
     </div>
     <div class="details" id="details"></div>
     <div class="instructions">
-      Show this QR code to our valet staff when you return for your car.
+      Show this QR to our valet staff when collecting your car.
     </div>
-    <div class="tip">Tip: take a screenshot or bookmark this page so you can find it later.</div>
 
     <!-- Customer "bring my car" section — populated by the script below
          only when a valid entry id is present in the link. -->
     <div class="req" id="req-section" style="display:none">
       <div class="req-title">Ready to leave?</div>
-      <div class="req-sub">Let our valet know and we'll have your car waiting. Tap when you'd like it brought round:</div>
+      <div class="req-sub">Tap when you'd like your car brought round:</div>
       <div class="req-grid" id="req-buttons">
         <button class="req-btn now" data-min="0">I'm here now</button>
         <button class="req-btn" data-min="5">in 5 min</button>
@@ -161,7 +154,7 @@
     <!-- Customer "hands-free shopping" section — collect bags & put in car -->
     <div class="req" id="bag-section" style="display:none">
       <div class="req-title">Hands-free shopping</div>
-      <div class="req-sub">Out shopping? We'll collect your bags and pop them in your car. Tap below and tell us where you are.</div>
+      <div class="req-sub">We'll bring your shopping to your car — tap and tell us where you are.</div>
       <div id="bag-buttons" class="req-grid">
         <button class="req-btn now" id="bag-start" style="grid-column:1 / -1">Bring my shopping to the car</button>
       </div>
