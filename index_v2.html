@@ -188,6 +188,10 @@ body.mobile-mode .tab.desktop-only{display:none}
 .bar-row .fill{display:block;height:100%;background:var(--maroon);border-radius:7px;min-width:3px}
 .bar-row .val{flex:0 0 auto;font-weight:700;color:var(--maroon);font-variant-numeric:tabular-nums;min-width:46px;text-align:right}
 .dash-empty{color:var(--text-muted);font-style:italic;font-size:12px;padding:6px 0}
+.dash-figs{display:flex;gap:20px;flex-wrap:wrap;flex:1;align-items:center}
+.dash-figs .fig{font-size:24px;font-weight:700;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1}
+.dash-figs .figlbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px}
+.dash-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
 
 /* ─── STAT CARDS ─── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
@@ -941,6 +945,9 @@ body.dark-mode .scan-banner {
   </div>
 
   <!-- Infographic widgets — built by renderDashboard from live data -->
+  <div class="dash-toolbar">
+    <button class="btn btn-secondary btn-sm" onclick="openDashCustomize()">⚙ Customize dashboard</button>
+  </div>
   <div class="dash-grid" id="dash-infographics"></div>
 
   <div class="section" id="handover-section">
@@ -4013,6 +4020,27 @@ function donutSVG(pct, centre, sub) {
 }
 
 // Build the dashboard infographic widgets from the live entries data.
+// Widgets available for the customisable dashboard infographic grid.
+const DASH_WIDGETS = [
+  { id:'turnover', title:'Turnover Today' },
+  { id:'dwell',    title:'Dwell Time' },
+  { id:'zones',    title:'On Site by Zone' },
+  { id:'busiest',  title:'Busiest Hours Today' },
+  { id:'brands',   title:'Top Brands Today' },
+  { id:'money',    title:'Revenue & Tips Today' },
+];
+const DASH_DEFAULT = ['turnover','dwell','zones','busiest'];
+
+// Layout (which widgets show, in what order) is a per-device preference.
+function getDashLayout() {
+  try {
+    const s = JSON.parse(localStorage.getItem('valet_dash_layout'));
+    if (Array.isArray(s)) { const f = s.filter(id => DASH_WIDGETS.some(w => w.id === id)); if (f.length) return f; }
+  } catch (e) {}
+  return DASH_DEFAULT.slice();
+}
+function setDashLayout(arr) { try { localStorage.setItem('valet_dash_layout', JSON.stringify(arr)); } catch (e) {} }
+
 function renderDashInfographics(active, todayIn, todayOut) {
   const ig = document.getElementById('dash-infographics');
   if (!ig) return;
@@ -4044,27 +4072,65 @@ function renderDashInfographics(active, todayIn, todayOut) {
   const hourMax = Math.max(1, ...hours.map(x => x.n));
   const hr = h => (h % 12 || 12) + (h < 12 ? 'am' : 'pm');
 
+  // Top brands today.
+  const brandMap = {};
+  todayIn.forEach(e => { if (e.brand) brandMap[e.brand] = (brandMap[e.brand]||0)+1; });
+  const brands = Object.entries(brandMap).sort((a,b) => b[1]-a[1]).slice(0,6);
+  const brandMax = Math.max(1, ...brands.map(b => b[1]));
+
+  // Revenue & tips today.
+  const revToday = todayOut.reduce((s,e) => s+(e.totalFee||0), 0);
+  const tipsToday = todayOut.reduce((s,e) => s+(e.tip||0), 0);
+  const avgFee = outToday ? revToday/outToday : 0;
+
   const rows = list => list.length
     ? list.map(r => `<div class="bar-row"><span class="lbl">${r.lbl}</span><span class="track"><span class="fill" style="width:${r.pct}%"></span></span><span class="val">${r.val}</span></div>`).join('')
     : '<div class="dash-empty">No data yet</div>';
 
-  ig.innerHTML = `
-    <div class="dash-card">
-      <h3>Turnover Today</h3>
-      <div class="dash-donut">${donutSVG(pctOut, onSite, 'ON SITE')}<div class="cap">${inToday} in · ${outToday} out today</div></div>
-    </div>
-    <div class="dash-card">
-      <h3>Dwell Time · all visits</h3>
-      ${rows(buckets.map(b => ({ lbl:b.lbl, pct: b.n/dwellMax*100, val: dwellTot ? Math.round(b.n/dwellTot*100)+'%' : '0%' })))}
-    </div>
-    <div class="dash-card">
-      <h3>On Site by Zone</h3>
-      ${rows(zones.map(([z,n]) => ({ lbl:'Zone '+z, pct: n/zoneMax*100, val:n })))}
-    </div>
-    <div class="dash-card">
-      <h3>Busiest Hours Today</h3>
-      ${rows(hours.map(x => ({ lbl: hr(x.h), pct: x.n/hourMax*100, val:x.n })))}
-    </div>`;
+  const cards = {
+    turnover: `<div class="dash-card"><h3>Turnover Today</h3><div class="dash-donut">${donutSVG(pctOut, onSite, 'ON SITE')}<div class="cap">${inToday} in · ${outToday} out today</div></div></div>`,
+    dwell: `<div class="dash-card"><h3>Dwell Time · all visits</h3>${rows(buckets.map(b => ({ lbl:b.lbl, pct: b.n/dwellMax*100, val: dwellTot ? Math.round(b.n/dwellTot*100)+'%' : '0%' })))}</div>`,
+    zones: `<div class="dash-card"><h3>On Site by Zone</h3>${rows(zones.map(([z,n]) => ({ lbl:'Zone '+z, pct: n/zoneMax*100, val:n })))}</div>`,
+    busiest: `<div class="dash-card"><h3>Busiest Hours Today</h3>${rows(hours.map(x => ({ lbl: hr(x.h), pct: x.n/hourMax*100, val:x.n })))}</div>`,
+    brands: `<div class="dash-card"><h3>Top Brands Today</h3>${rows(brands.map(([b,n]) => ({ lbl:b, pct: n/brandMax*100, val:n })))}</div>`,
+    money: `<div class="dash-card"><h3>Revenue &amp; Tips Today</h3><div class="dash-figs"><div><div class="fig">${fmtMoney(revToday)}</div><div class="figlbl">Revenue</div></div><div><div class="fig">${fmtMoney(tipsToday)}</div><div class="figlbl">Tips</div></div><div><div class="fig">${fmtMoney(avgFee)}</div><div class="figlbl">Avg fee</div></div></div></div>`,
+  };
+
+  const layout = getDashLayout();
+  ig.innerHTML = layout.map(id => cards[id] || '').join('')
+    || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “⚙ Customize dashboard”.</div>';
+}
+
+// ── Dashboard customise (show/hide + reorder widgets) ──
+function openDashCustomize() { renderDashCustomizeBody(); document.getElementById('dash-customize-modal').classList.add('show'); }
+function closeDashCustomize() { document.getElementById('dash-customize-modal').classList.remove('show'); }
+function dashApply(layout) { setDashLayout(layout); renderDashboard(); renderDashCustomizeBody(); }
+function dashAdd(id) { const l = getDashLayout(); if (!l.includes(id)) { l.push(id); dashApply(l); } }
+function dashRemove(id) { dashApply(getDashLayout().filter(x => x !== id)); }
+function dashMove(id, dir) { const l = getDashLayout(); const i = l.indexOf(id), j = i + dir; if (i < 0 || j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; dashApply(l); }
+function dashReset() { dashApply(DASH_DEFAULT.slice()); }
+function renderDashCustomizeBody() {
+  const layout = getDashLayout();
+  const title = id => (DASH_WIDGETS.find(w => w.id === id) || {}).title || id;
+  const hidden = DASH_WIDGETS.filter(w => !layout.includes(w.id));
+  const shown = layout.map((id, i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--sandstone);border-radius:6px;margin-bottom:6px">
+      <span style="flex:1;font-weight:600;font-size:13px">${title(id)}</span>
+      <button class="btn btn-secondary btn-sm" ${i === 0 ? 'disabled style="opacity:.35"' : ''} onclick="dashMove('${id}',-1)" title="Move up">↑</button>
+      <button class="btn btn-secondary btn-sm" ${i === layout.length - 1 ? 'disabled style="opacity:.35"' : ''} onclick="dashMove('${id}',1)" title="Move down">↓</button>
+      <button class="btn btn-danger btn-sm" onclick="dashRemove('${id}')" title="Hide this widget">✕</button>
+    </div>`).join('') || '<div class="dash-empty">No widgets shown.</div>';
+  const add = hidden.length ? hidden.map(w => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px dashed var(--border);border-radius:6px;margin-bottom:6px">
+      <span style="flex:1;font-size:13px;color:var(--text-muted)">${w.title}</span>
+      <button class="btn btn-primary btn-sm" onclick="dashAdd('${w.id}')">+ Add</button>
+    </div>`).join('') : '<div class="dash-empty">All widgets are shown.</div>';
+  document.getElementById('dash-customize-body').innerHTML = `
+    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px">Shown · reorder with ↑ ↓</div>
+    ${shown}
+    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin:14px 0 8px">Available to add</div>
+    ${add}
+    <div style="margin-top:16px"><button class="btn btn-secondary btn-sm" onclick="dashReset()">↺ Reset to default</button></div>`;
 }
 
 function renderDashboard() {
@@ -9218,6 +9284,18 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="btn btn-secondary" onclick="closePlateScan()">Cancel</button>
     </div>
     <button class="btn btn-primary" id="plate-use-btn" onclick="useDetectedPlate()" style="display:none;margin-top:10px;width:100%">✓ Use This Plate</button>
+  </div>
+</div>
+
+<!-- DASHBOARD CUSTOMISE MODAL -->
+<div class="modal" id="dash-customize-modal">
+  <div class="modal-box" style="max-width:460px;max-height:82vh;overflow-y:auto">
+    <div class="modal-title">Customize Dashboard</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Choose which infographic widgets show on the dashboard and their order. Saved on this device.</div>
+    <div id="dash-customize-body"></div>
+    <div class="btn-row" style="justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-primary" onclick="closeDashCustomize()">Done</button>
+    </div>
   </div>
 </div>
 
