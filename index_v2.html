@@ -192,6 +192,11 @@ body.mobile-mode .tab.desktop-only{display:none}
 .dash-figs .fig{font-size:24px;font-weight:700;color:var(--maroon);font-family:'Inter',sans-serif;line-height:1}
 .dash-figs .figlbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px}
 .dash-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.cfg-card{padding:10px;background:var(--sandstone);border:1px solid var(--border);border-radius:6px;margin-bottom:8px}
+.drag-handle{cursor:grab;color:var(--text-muted);font-size:18px;user-select:none;padding:0 2px;line-height:1}
+.cfg-opts{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:12px;color:var(--text-muted)}
+.cfg-opt{display:inline-flex;align-items:center;gap:6px}
+.cfg-opt select{font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:#fff}
 
 /* ─── STAT CARDS ─── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
@@ -4053,117 +4058,176 @@ function saveCapacity() {
   if (v && v.classList.contains('active')) { try { renderDashboard(); } catch (e) {} }
   if (typeof quickToast === 'function') quickToast('✓ Capacity set to ' + n + ' open spots');
 }
+// Each layout entry is an instance: { id, title, span, range, limit, cols }.
 const DASH_WIDGETS = [
-  { id:'turnover',  title:'Turnover Today' },
-  { id:'occupancy', title:'Occupancy' },
-  { id:'dwell',     title:'Dwell Time' },
-  { id:'busiest',   title:'Busiest Hours Today' },
-  { id:'brands',    title:'Top Brands Today' },
-  { id:'money',     title:'Revenue & Tips Today' },
+  { id:'turnover',  title:'Turnover Today',      opts:[] },
+  { id:'occupancy', title:'Occupancy',           opts:[] },
+  { id:'dwell',     title:'Dwell Time',          opts:['range'] },
+  { id:'busiest',   title:'Busiest Hours Today', opts:[] },
+  { id:'brands',    title:'Top Brands',          opts:['range','limit'] },
+  { id:'money',     title:'Revenue & Tips',      opts:['range'] },
+  { id:'onsite',    title:'On Site — Details',   opts:['cols','limit'] },
 ];
 const DASH_DEFAULT = ['turnover','occupancy','dwell','busiest'];
+const DASH_COLS = { name:'Customer', rego:'Rego', bay:'Spot', brand:'Vehicle', timein:'Time In' };
+function dashWidgetDef(id) { return DASH_WIDGETS.find(w => w.id === id); }
 
-// Layout (which widgets show, in what order) is synced across all devices via
-// the cloud app_settings, so a manager sets it once for everyone.
+// Turn a stored entry (string id, object, or legacy 'zones') into a full instance.
+function dashNormalize(x) {
+  let id = typeof x === 'string' ? x : (x && x.id);
+  if (id === 'zones') id = 'occupancy';
+  if (!dashWidgetDef(id)) return null;
+  const o = (x && typeof x === 'object') ? x : {};
+  return {
+    id,
+    title: o.title || '',
+    span: [1,2,99].includes(o.span) ? o.span : 1,
+    range: ['today','7days','all'].includes(o.range) ? o.range : 'today',
+    limit: (o.limit === 0 || o.limit) ? o.limit : 5,
+    cols: Array.isArray(o.cols) && o.cols.length ? o.cols.filter(c => DASH_COLS[c]) : ['name','rego','bay'],
+  };
+}
+// Layout (widgets, order, per-widget config) syncs to all devices via app_settings.
 function getDashLayout() {
   const s = cloudSettings && cloudSettings.dash_layout;
   if (Array.isArray(s)) {
-    const mapped = s.map(id => id === 'zones' ? 'occupancy' : id); // migrate old layouts
-    const f = [...new Set(mapped)].filter(id => DASH_WIDGETS.some(w => w.id === id));
-    if (f.length) return f;
+    const seen = new Set(), out = [];
+    s.forEach(x => { const inst = dashNormalize(x); if (inst && !seen.has(inst.id)) { seen.add(inst.id); out.push(inst); } });
+    if (out.length) return out;
   }
-  return DASH_DEFAULT.slice();
+  return DASH_DEFAULT.map(dashNormalize);
 }
 function setDashLayout(arr) {
-  cloudSettings.dash_layout = arr;          // apply immediately on this device
-  try { cloudSaveSetting('dash_layout', arr); } catch (e) {}   // sync to the rest
+  cloudSettings.dash_layout = arr;
+  try { cloudSaveSetting('dash_layout', arr); } catch (e) {}
 }
 
 function renderDashInfographics(active, todayIn, todayOut) {
   const ig = document.getElementById('dash-infographics');
   if (!ig) return;
+  const now = Date.now();
+  const midnight = new Date(); midnight.setHours(0,0,0,0);
+  const rangeStart = r => r === 'all' ? 0 : r === '7days' ? now - 7*864e5 : midnight.getTime();
+  const inByIn = r => { const s = rangeStart(r); return entries.filter(e => new Date(e.timeIn).getTime() >= s); };
+  const compInRange = r => { const s = rangeStart(r); return entries.filter(e => e.timeOut && new Date(e.timeOut).getTime() >= s); };
+  const rangeLabel = r => r === '7days' ? 'last 7 days' : r === 'all' ? 'all time' : 'today';
+
   const onSite = active.length, outToday = todayOut.length, inToday = todayIn.length;
-  const flow = onSite + outToday;
-  const pctOut = flow ? Math.round(outToday / flow * 100) : 0;
-
-  // Dwell-time distribution across all completed visits.
-  const completedAll = entries.filter(e => e.timeOut);
-  const buckets = [['Under 30 min',0,30],['30–60 min',30,60],['1–2 hours',60,120],['2–4 hours',120,240],['4 hours +',240,Infinity]]
-    .map(([lbl,lo,hi]) => ({ lbl, lo, hi, n:0 }));
-  completedAll.forEach(e => {
-    const mins = (new Date(e.timeOut) - new Date(e.timeIn)) / 60000;
-    const b = buckets.find(b => mins >= b.lo && mins < b.hi); if (b) b.n++;
-  });
-  const dwellMax = Math.max(1, ...buckets.map(b => b.n));
-  const dwellTot = completedAll.length;
-
-  // Occupancy: cars on site against the open spots (capacity).
-  const cap = getCapacity();
-  const occPct = Math.round(onSite / cap * 100);
-  const freeSpots = Math.max(0, cap - onSite);
-
-  // Busiest hours today (cars checked in, by hour of day).
-  const hourMap = {};
-  todayIn.forEach(e => { const h = new Date(e.timeIn).getHours(); hourMap[h] = (hourMap[h]||0)+1; });
-  const hours = Object.keys(hourMap).map(h => ({ h:+h, n:hourMap[h] })).sort((a,b) => a.h - b.h);
-  const hourMax = Math.max(1, ...hours.map(x => x.n));
+  const flow = onSite + outToday, pctOut = flow ? Math.round(outToday / flow * 100) : 0;
+  const cap = getCapacity(), occPct = Math.round(onSite / cap * 100), freeSpots = Math.max(0, cap - onSite);
   const hr = h => (h % 12 || 12) + (h < 12 ? 'am' : 'pm');
-
-  // Top brands today.
-  const brandMap = {};
-  todayIn.forEach(e => { if (e.brand) brandMap[e.brand] = (brandMap[e.brand]||0)+1; });
-  const brands = Object.entries(brandMap).sort((a,b) => b[1]-a[1]).slice(0,6);
-  const brandMax = Math.max(1, ...brands.map(b => b[1]));
-
-  // Revenue & tips today.
-  const revToday = todayOut.reduce((s,e) => s+(e.totalFee||0), 0);
-  const tipsToday = todayOut.reduce((s,e) => s+(e.tip||0), 0);
-  const avgFee = outToday ? revToday/outToday : 0;
-
   const rows = list => list.length
     ? list.map(r => `<div class="bar-row"><span class="lbl">${r.lbl}</span><span class="track"><span class="fill" style="width:${r.pct}%"></span></span><span class="val">${r.val}</span></div>`).join('')
     : '<div class="dash-empty">No data yet</div>';
 
-  const cards = {
-    turnover: `<div class="dash-card"><h3>Turnover Today</h3><div class="dash-donut">${donutSVG(pctOut, onSite, 'ON SITE')}<div class="cap">${inToday} in · ${outToday} out today</div></div></div>`,
-    dwell: `<div class="dash-card"><h3>Dwell Time · all visits</h3>${rows(buckets.map(b => ({ lbl:b.lbl, pct: b.n/dwellMax*100, val: dwellTot ? Math.round(b.n/dwellTot*100)+'%' : '0%' })))}</div>`,
-    occupancy: `<div class="dash-card"><h3>Occupancy</h3><div class="dash-donut">${donutSVG(occPct, occPct+'%', 'OCCUPIED')}<div class="cap">${onSite} of ${cap} spots · ${freeSpots} free</div></div></div>`,
-    busiest: `<div class="dash-card"><h3>Busiest Hours Today</h3>${rows(hours.map(x => ({ lbl: hr(x.h), pct: x.n/hourMax*100, val:x.n })))}</div>`,
-    brands: `<div class="dash-card"><h3>Top Brands Today</h3>${rows(brands.map(([b,n]) => ({ lbl:b, pct: n/brandMax*100, val:n })))}</div>`,
-    money: `<div class="dash-card"><h3>Revenue &amp; Tips Today</h3><div class="dash-figs"><div><div class="fig">${fmtMoney(revToday)}</div><div class="figlbl">Revenue</div></div><div><div class="fig">${fmtMoney(tipsToday)}</div><div class="figlbl">Tips</div></div><div><div class="fig">${fmtMoney(avgFee)}</div><div class="figlbl">Avg fee</div></div></div></div>`,
-  };
+  function body(inst) {
+    switch (inst.id) {
+      case 'turnover':
+        return `<div class="dash-donut">${donutSVG(pctOut, onSite, 'ON SITE')}<div class="cap">${inToday} in · ${outToday} out today</div></div>`;
+      case 'occupancy':
+        return `<div class="dash-donut">${donutSVG(occPct, occPct+'%', 'OCCUPIED')}<div class="cap">${onSite} of ${cap} spots · ${freeSpots} free</div></div>`;
+      case 'dwell': {
+        const comp = compInRange(inst.range);
+        const buckets = [['Under 30 min',0,30],['30–60 min',30,60],['1–2 hours',60,120],['2–4 hours',120,240],['4 hours +',240,Infinity]].map(([lbl,lo,hi]) => ({ lbl, lo, hi, n:0 }));
+        comp.forEach(e => { const m = (new Date(e.timeOut)-new Date(e.timeIn))/60000; const b = buckets.find(b => m>=b.lo && m<b.hi); if (b) b.n++; });
+        const mx = Math.max(1, ...buckets.map(b => b.n)), tot = comp.length;
+        return rows(buckets.map(b => ({ lbl:b.lbl, pct:b.n/mx*100, val: tot ? Math.round(b.n/tot*100)+'%' : '0%' })));
+      }
+      case 'busiest': {
+        const hm = {}; todayIn.forEach(e => { const h = new Date(e.timeIn).getHours(); hm[h] = (hm[h]||0)+1; });
+        const hrs = Object.keys(hm).map(h => ({ h:+h, n:hm[h] })).sort((a,b) => a.h - b.h);
+        const mx = Math.max(1, ...hrs.map(x => x.n));
+        return rows(hrs.map(x => ({ lbl:hr(x.h), pct:x.n/mx*100, val:x.n })));
+      }
+      case 'brands': {
+        const bm = {}; inByIn(inst.range).forEach(e => { if (e.brand) bm[e.brand] = (bm[e.brand]||0)+1; });
+        let arr = Object.entries(bm).sort((a,b) => b[1]-a[1]);
+        if (inst.limit) arr = arr.slice(0, inst.limit);
+        const mx = Math.max(1, ...arr.map(b => b[1]));
+        return rows(arr.map(([b,n]) => ({ lbl:b, pct:n/mx*100, val:n })));
+      }
+      case 'money': {
+        const comp = compInRange(inst.range);
+        const rev = comp.reduce((s,e) => s+(e.totalFee||0), 0), tips = comp.reduce((s,e) => s+(e.tip||0), 0);
+        const avg = comp.length ? rev/comp.length : 0;
+        return `<div class="dash-figs"><div><div class="fig">${fmtMoney(rev)}</div><div class="figlbl">Revenue</div></div><div><div class="fig">${fmtMoney(tips)}</div><div class="figlbl">Tips</div></div><div><div class="fig">${fmtMoney(avg)}</div><div class="figlbl">Avg fee</div></div></div>`;
+      }
+      case 'onsite': {
+        const cols = inst.cols.length ? inst.cols : ['name','rego','bay'];
+        const list = inst.limit ? active.slice(0, inst.limit) : active;
+        if (!list.length) return '<div class="dash-empty">No cars on site</div>';
+        const cell = (e,c) => c==='brand' ? ((e.brand||'')+(e.model?' '+e.model:'')) : c==='timein' ? fmtTime(new Date(e.timeIn)) : (e[c]||'—');
+        return `<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">
+          <tr style="text-align:left;color:var(--text-muted)">${cols.map(c => `<th style="padding:4px 8px 4px 0;font-weight:600;white-space:nowrap">${DASH_COLS[c]}</th>`).join('')}</tr>
+          ${list.map(e => `<tr style="border-top:1px solid var(--border)">${cols.map(c => `<td style="padding:5px 8px 5px 0">${escAttr(String(cell(e,c)))}</td>`).join('')}</tr>`).join('')}
+        </table></div>`;
+      }
+    }
+    return '';
+  }
 
   const layout = getDashLayout();
-  ig.innerHTML = layout.map(id => cards[id] || '').join('')
-    || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “⚙ Customize dashboard”.</div>';
+  ig.innerHTML = layout.map(inst => {
+    const def = dashWidgetDef(inst.id);
+    const t = inst.title && inst.title.trim() ? inst.title.trim()
+      : def.title + (def.opts.includes('range') && inst.range !== 'today' ? ' · ' + rangeLabel(inst.range) : '');
+    const span = inst.span === 99 ? 'grid-column:1/-1' : inst.span === 2 ? 'grid-column:span 2' : '';
+    return `<div class="dash-card" style="${span}"><h3>${escAttr(t)}</h3>${body(inst)}</div>`;
+  }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “⚙ Customize dashboard”.</div>';
 }
 
-// ── Dashboard customise (show/hide + reorder widgets) ──
+// ── Dashboard customise: drag-reorder, rename, resize, options, add/remove ──
+let dashDragId = null;
 function openDashCustomize() { renderDashCustomizeBody(); document.getElementById('dash-customize-modal').classList.add('show'); }
 function closeDashCustomize() { document.getElementById('dash-customize-modal').classList.remove('show'); }
-function dashApply(layout) { setDashLayout(layout); renderDashboard(); renderDashCustomizeBody(); }
-function dashAdd(id) { const l = getDashLayout(); if (!l.includes(id)) { l.push(id); dashApply(l); } }
-function dashRemove(id) { dashApply(getDashLayout().filter(x => x !== id)); }
-function dashMove(id, dir) { const l = getDashLayout(); const i = l.indexOf(id), j = i + dir; if (i < 0 || j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; dashApply(l); }
-function dashReset() { dashApply(DASH_DEFAULT.slice()); }
+function dashRenderOnly() { const v = document.getElementById('view-dashboard'); if (v && v.classList.contains('active')) { try { renderDashboard(); } catch (e) {} } }
+function dashApply(layout) { setDashLayout(layout); dashRenderOnly(); renderDashCustomizeBody(); }
+function dashAdd(id) { const l = getDashLayout(); if (!l.some(x => x.id === id)) { const inst = dashNormalize(id); if (inst) { l.push(inst); dashApply(l); } } }
+function dashRemove(id) { dashApply(getDashLayout().filter(x => x.id !== id)); }
+function dashMove(id, dir) { const l = getDashLayout(); const i = l.findIndex(x => x.id === id), j = i + dir; if (i < 0 || j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; dashApply(l); }
+function dashReset() { dashApply(DASH_DEFAULT.map(dashNormalize)); }
+// Title typing must NOT rebuild the modal (would drop focus) — update + re-render dashboard only.
+function dashSetTitle(id, val) { const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return; w.title = val; setDashLayout(l); dashRenderOnly(); }
+function dashSetSpan(id, val) { const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return; w.span = parseInt(val,10); dashApply(l); }
+function dashSetOpt(id, key, val) { const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return; w[key] = key==='limit' ? parseInt(val,10) : val; dashApply(l); }
+function dashToggleCol(id, col, on) { const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return; const set = new Set(w.cols); on ? set.add(col) : set.delete(col); w.cols = [...set]; if (!w.cols.length) w.cols = ['name']; setDashLayout(l); dashRenderOnly(); }
+function dashDragStart(ev, id) { dashDragId = id; ev.dataTransfer.effectAllowed = 'move'; }
+function dashDragOver(ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; }
+function dashDrop(ev, targetId) { ev.preventDefault(); if (!dashDragId || dashDragId === targetId) return; const l = getDashLayout(); const from = l.findIndex(x => x.id === dashDragId), to = l.findIndex(x => x.id === targetId); if (from < 0 || to < 0) return; const [m] = l.splice(from,1); l.splice(to,0,m); dashDragId = null; dashApply(l); }
+
 function renderDashCustomizeBody() {
   const layout = getDashLayout();
-  const title = id => (DASH_WIDGETS.find(w => w.id === id) || {}).title || id;
-  const hidden = DASH_WIDGETS.filter(w => !layout.includes(w.id));
-  const shown = layout.map((id, i) => `
-    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--sandstone);border-radius:6px;margin-bottom:6px">
-      <span style="flex:1;font-weight:600;font-size:13px">${title(id)}</span>
-      <button class="btn btn-secondary btn-sm" ${i === 0 ? 'disabled style="opacity:.35"' : ''} onclick="dashMove('${id}',-1)" title="Move up">↑</button>
-      <button class="btn btn-secondary btn-sm" ${i === layout.length - 1 ? 'disabled style="opacity:.35"' : ''} onclick="dashMove('${id}',1)" title="Move down">↓</button>
-      <button class="btn btn-danger btn-sm" onclick="dashRemove('${id}')" title="Hide this widget">✕</button>
-    </div>`).join('') || '<div class="dash-empty">No widgets shown.</div>';
+  const hidden = DASH_WIDGETS.filter(w => !layout.some(x => x.id === w.id));
+  const sel = (cur, choices) => choices.map(([v,t]) => `<option value="${v}" ${String(cur)===String(v)?'selected':''}>${t}</option>`).join('');
+  const shown = layout.map((inst, i) => {
+    const def = dashWidgetDef(inst.id);
+    let opts = '';
+    if (def.opts.includes('range'))
+      opts += `<label class="cfg-opt">Range <select onchange="dashSetOpt('${inst.id}','range',this.value)">${sel(inst.range,[['today','Today'],['7days','Last 7 days'],['all','All time']])}</select></label>`;
+    if (def.opts.includes('limit'))
+      opts += `<label class="cfg-opt">Show <select onchange="dashSetOpt('${inst.id}','limit',this.value)">${sel(inst.limit,[[5,'Top 5'],[10,'Top 10'],[0,'All']])}</select></label>`;
+    if (def.opts.includes('cols'))
+      opts += `<span class="cfg-opt">Columns ${Object.keys(DASH_COLS).map(c => `<label style="margin-right:8px;font-weight:500"><input type="checkbox" ${inst.cols.includes(c)?'checked':''} onchange="dashToggleCol('${inst.id}','${c}',this.checked)"> ${DASH_COLS[c]}</label>`).join('')}</span>`;
+    return `
+    <div class="cfg-card" ondragover="dashDragOver(event)" ondrop="dashDrop(event,'${inst.id}')">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="drag-handle" draggable="true" ondragstart="dashDragStart(event,'${inst.id}')" title="Drag to reorder">⠿</span>
+        <input class="form-input" style="flex:1;font-size:13px;padding:7px 10px" value="${escAttr(inst.title)}" placeholder="${escAttr(def.title)}" oninput="dashSetTitle('${inst.id}',this.value)">
+        <select class="form-input" style="width:auto;font-size:12px;padding:6px" onchange="dashSetSpan('${inst.id}',this.value)">${sel(inst.span,[[1,'Normal'],[2,'Wide'],[99,'Full width']])}</select>
+        <button class="btn btn-secondary btn-sm" ${i===0?'disabled style="opacity:.35"':''} onclick="dashMove('${inst.id}',-1)" title="Move up">↑</button>
+        <button class="btn btn-secondary btn-sm" ${i===layout.length-1?'disabled style="opacity:.35"':''} onclick="dashMove('${inst.id}',1)" title="Move down">↓</button>
+        <button class="btn btn-danger btn-sm" onclick="dashRemove('${inst.id}')" title="Hide">✕</button>
+      </div>
+      ${opts ? `<div class="cfg-opts">${opts}</div>` : ''}
+    </div>`;
+  }).join('') || '<div class="dash-empty">No widgets shown.</div>';
   const add = hidden.length ? hidden.map(w => `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px dashed var(--border);border-radius:6px;margin-bottom:6px">
       <span style="flex:1;font-size:13px;color:var(--text-muted)">${w.title}</span>
       <button class="btn btn-primary btn-sm" onclick="dashAdd('${w.id}')">+ Add</button>
-    </div>`).join('') : '<div class="dash-empty">All widgets are shown.</div>';
+    </div>`).join('') : '<div class="dash-empty">All widgets are added.</div>';
   document.getElementById('dash-customize-body').innerHTML = `
-    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px">Shown · reorder with ↑ ↓</div>
+    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px">Shown · drag ⠿ to reorder</div>
     ${shown}
     <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin:14px 0 8px">Available to add</div>
     ${add}
@@ -9337,7 +9401,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="modal" id="dash-customize-modal">
   <div class="modal-box" style="max-width:460px;max-height:82vh;overflow-y:auto">
     <div class="modal-title">Customize Dashboard</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Choose which infographic widgets show on the dashboard and their order. Saved on this device.</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Drag to reorder, rename, resize, set options, and add/remove widgets. Synced to all devices.</div>
     <div id="dash-customize-body"></div>
     <div class="btn-row" style="justify-content:flex-end;margin-top:16px">
       <button class="btn btn-primary" onclick="closeDashCustomize()">Done</button>
