@@ -184,6 +184,14 @@ body.mobile-mode .tab.desktop-only{display:none}
 .view{display:none}
 .view.active{display:block}
 
+/* ─── SETTINGS SUB-MENU ─── */
+.settings-sub{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:14px}
+.set-pill{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .12s}
+.set-pill:hover{border-color:var(--bronze)}
+.set-pill.active{background:var(--maroon);color:#fff;border-color:var(--maroon)}
+.set-section{display:none}
+.set-section.show{display:block}
+
 /* ─── DASHBOARD INFOGRAPHICS ─── */
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(264px,1fr));gap:14px;margin-bottom:22px}
 .dash-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column}
@@ -1860,7 +1868,16 @@ body.dark-mode .scan-banner {
 <!-- ───────── SETTINGS VIEW ───────── -->
 <div class="view" id="view-settings">
 
-  <div class="section">
+  <div class="settings-sub" id="settings-sub">
+    <button class="set-pill" data-group="access" onclick="showSettingsGroup('access')">Staff &amp; Access</button>
+    <button class="set-pill" data-group="carpark" onclick="showSettingsGroup('carpark')">Car Park</button>
+    <button class="set-pill" data-group="retailers" onclick="showSettingsGroup('retailers')">Retailers</button>
+    <button class="set-pill" data-group="alerts" onclick="showSettingsGroup('alerts')">Alerts &amp; Messaging</button>
+    <button class="set-pill" data-group="devices" onclick="showSettingsGroup('devices')">Devices</button>
+    <button class="set-pill" data-group="data" onclick="showSettingsGroup('data')">Data &amp; Backup</button>
+  </div>
+
+  <div class="section set-section" data-setgroup="access">
     <div class="section-header">
       <div class="section-title">Cloud Sync &amp; Security</div>
       <div style="font-size:11px;color:var(--green);font-weight:600">● Connected</div>
@@ -1893,7 +1910,7 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="alerts">
     <div class="section-header">
       <div class="section-title">Car-Request Alerts</div>
     </div>
@@ -1915,7 +1932,7 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section" id="staff-management-section" style="display:none">
+  <div class="section set-section" id="staff-management-section" data-setgroup="access" style="display:none">
     <div class="section-header">
       <div class="section-title">Staff Accounts</div>
       <button class="btn btn-primary btn-sm" onclick="openAddStaffModal()">+ Add Staff</button>
@@ -1928,7 +1945,7 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="data">
     <div class="section-header">
       <div class="section-title">Auto-Save to File</div>
     </div>
@@ -1958,7 +1975,7 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="retailers">
     <div class="section-header">
       <div class="section-title">Retailer Validations</div>
     </div>
@@ -1972,7 +1989,7 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="devices">
     <div class="section-header">
       <div class="section-title">Plate Recognition (Cloud OCR)</div>
       <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="pr-quota-status">—</div>
@@ -1997,7 +2014,7 @@ body.dark-mode .scan-banner {
     <div id="pr-test-result" style="margin-top:10px;font-size:12px"></div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="devices">
     <div class="section-header">
       <div class="section-title">Phone &amp; Display</div>
     </div>
@@ -2026,7 +2043,7 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="carpark">
     <div class="section-header">
       <div class="section-title">Ticket Numbering</div>
     </div>
@@ -2040,7 +2057,7 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="carpark">
     <div class="section-header">
       <div class="section-title">Car Park Capacity</div>
     </div>
@@ -2056,7 +2073,7 @@ body.dark-mode .scan-banner {
     <button class="btn btn-primary" onclick="saveCapacity()">Save Capacity</button>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="devices">
     <div class="section-header">
       <div class="section-title">Key-Tag Printer</div>
     </div>
@@ -2135,7 +2152,7 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="alerts">
     <div class="section-header">
       <div class="section-title">Customer SMS Credit</div>
     </div>
@@ -2152,7 +2169,7 @@ body.dark-mode .scan-banner {
     <div id="sms-balance-result" style="margin-top:10px;font-size:13px;font-weight:600"></div>
   </div>
 
-  <div class="section">
+  <div class="section set-section" data-setgroup="data">
     <div class="section-header">
       <div class="section-title">Data Management</div>
     </div>
@@ -6365,7 +6382,15 @@ function renderComparison() {
     </div>
   `;
 }
+// Settings sub-menu: show one group of sections at a time.
+function showSettingsGroup(g) {
+  document.querySelectorAll('#view-settings .set-section').forEach(s => s.classList.toggle('show', s.dataset.setgroup === g));
+  document.querySelectorAll('#settings-sub .set-pill').forEach(p => p.classList.toggle('active', p.dataset.group === g));
+}
+
 function renderSettings() {
+  // Default to the first sub-menu group when nothing is shown yet.
+  if (!document.querySelector('#view-settings .set-section.show')) showSettingsGroup('access');
   updatePushUI();
   const capEl = document.getElementById('s-capacity');
   if (capEl) capEl.value = getCapacity();
