@@ -197,11 +197,11 @@ body.mobile-mode .tab.desktop-only{display:none}
 .cfg-opts{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:12px;color:var(--text-muted)}
 .cfg-opt{display:inline-flex;align-items:center;gap:6px}
 .cfg-opt select{font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:#fff}
+.dash-card{cursor:grab;touch-action:none}
+.dash-card:active{cursor:grabbing}
 .dash-card.drag-over{outline:2px dashed var(--bronze);outline-offset:2px}
-.dash-card.dragging{opacity:.4}
-.dash-card h3 .dash-drag{color:var(--text-muted);cursor:grab;margin-right:6px;font-weight:400;padding:2px 5px;font-size:17px;touch-action:none;border-radius:4px}
-.dash-card h3 .dash-drag:hover{background:#f0e9e2;color:var(--maroon)}
-.dash-card h3 .dash-drag:active{cursor:grabbing}
+.dash-card.dragging{opacity:.4;cursor:grabbing}
+.dash-card h3 .dash-drag{color:var(--text-muted);margin-right:6px;font-weight:400;font-size:16px}
 .dash-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
 .dash-card-head h3{margin:0}
 .dash-x{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:3px 6px;border-radius:4px;flex:0 0 auto}
@@ -4224,12 +4224,11 @@ let dashPtr = null;
 function dashPointerDnDInit() {
   if (dashPointerDnDInit._done) return; dashPointerDnDInit._done = true;
   document.addEventListener('pointerdown', ev => {
-    const handle = ev.target.closest && ev.target.closest('.dash-drag');
-    if (!handle) return;
-    const card = handle.closest('.dash-card'), grid = handle.closest('#dash-infographics');
-    if (!card || !grid || !card.getAttribute('data-wid')) return;
-    ev.preventDefault();
-    dashPtr = { id: card.getAttribute('data-wid'), card, grid, x: ev.clientX, y: ev.clientY, dragging: false, target: null };
+    if (ev.button === 2) return;                                      // ignore right-click
+    if (ev.target.closest && ev.target.closest('.dash-x,button,a,select,input,textarea')) return; // keep controls clickable
+    const card = ev.target.closest && ev.target.closest('#dash-infographics .dash-card');
+    if (!card || !card.getAttribute('data-wid')) return;
+    dashPtr = { id: card.getAttribute('data-wid'), card, grid: card.closest('#dash-infographics'), x: ev.clientX, y: ev.clientY, dragging: false, target: null };
   });
   document.addEventListener('pointermove', ev => {
     if (!dashPtr) return;
