@@ -4031,15 +4031,17 @@ const DASH_WIDGETS = [
 ];
 const DASH_DEFAULT = ['turnover','dwell','zones','busiest'];
 
-// Layout (which widgets show, in what order) is a per-device preference.
+// Layout (which widgets show, in what order) is synced across all devices via
+// the cloud app_settings, so a manager sets it once for everyone.
 function getDashLayout() {
-  try {
-    const s = JSON.parse(localStorage.getItem('valet_dash_layout'));
-    if (Array.isArray(s)) { const f = s.filter(id => DASH_WIDGETS.some(w => w.id === id)); if (f.length) return f; }
-  } catch (e) {}
+  const s = cloudSettings && cloudSettings.dash_layout;
+  if (Array.isArray(s)) { const f = s.filter(id => DASH_WIDGETS.some(w => w.id === id)); if (f.length) return f; }
   return DASH_DEFAULT.slice();
 }
-function setDashLayout(arr) { try { localStorage.setItem('valet_dash_layout', JSON.stringify(arr)); } catch (e) {} }
+function setDashLayout(arr) {
+  cloudSettings.dash_layout = arr;          // apply immediately on this device
+  try { cloudSaveSetting('dash_layout', arr); } catch (e) {}   // sync to the rest
+}
 
 function renderDashInfographics(active, todayIn, todayOut) {
   const ig = document.getElementById('dash-infographics');
@@ -8493,6 +8495,11 @@ function handleRealtimeSettingsChange(payload) {
       const open = entries.filter(e => !e.timeOut && e.bagStatus && e.bagStatus !== 'done');
       updateBagBadge(open.length);
       try { renderStaffList(); } catch (e) {}
+    }
+    if (payload.new.key === 'dash_layout') {
+      // Dashboard layout changed on another device — re-render if it's open.
+      const v = document.getElementById('view-dashboard');
+      if (v && v.classList.contains('active')) { try { renderDashboard(); } catch (e) {} }
     }
   }
 }
