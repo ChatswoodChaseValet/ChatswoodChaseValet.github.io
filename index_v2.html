@@ -200,6 +200,10 @@ body.mobile-mode .tab.desktop-only{display:none}
 .dash-card[draggable="true"]{cursor:move}
 .dash-card.drag-over{outline:2px dashed var(--bronze);outline-offset:2px}
 .dash-card h3 .dash-drag{color:var(--text-muted);cursor:grab;margin-right:5px;font-weight:400}
+.dash-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+.dash-card-head h3{margin:0}
+.dash-x{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:3px 6px;border-radius:4px;flex:0 0 auto}
+.dash-x:hover{background:#f0e9e2;color:var(--red)}
 
 /* ─── STAT CARDS ─── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
@@ -4189,7 +4193,8 @@ function renderDashInfographics(active, todayIn, todayOut) {
       ondragstart="dashDragStart(event,'${inst.id}')" ondragover="dashDragOver(event)"
       ondragenter="this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')"
       ondrop="this.classList.remove('drag-over');dashDrop(event,'${inst.id}')" style="${span}">
-      <h3><span class="dash-drag" title="Drag to reorder">⠿</span> ${escAttr(t)}</h3>${body(inst)}</div>`;
+      <div class="dash-card-head"><h3><span class="dash-drag" title="Drag to reorder">⠿</span> ${escAttr(t)}</h3>
+      <button class="dash-x" title="Remove from dashboard" onclick="dashRemove('${inst.id}')">✕</button></div>${body(inst)}</div>`;
   }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “⚙ Customize dashboard”.</div>';
 }
 
