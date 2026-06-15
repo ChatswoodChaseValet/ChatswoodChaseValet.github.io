@@ -128,34 +128,37 @@ body{
   line-height:1;
 }
 
-/* ─── TABS ─── */
+/* ─── SIDEBAR NAV ─── */
+.layout{display:flex;align-items:stretch}
 .tabs{
   background:var(--maroon);
-  border-bottom:1px solid var(--maroon-dark);
-  padding:0 32px;
   display:flex;
-  gap:0;
-  overflow-x:auto;
+  flex-direction:column;
+  gap:2px;
+  padding:14px 0;
+  flex:0 0 190px;
+  width:190px;
+  align-self:stretch;
+  overflow-y:auto;
 }
 .tab{
-  padding:14px 22px;
+  padding:13px 24px;
   font-size:13px;
   letter-spacing:1px;
   text-transform:uppercase;
   font-weight:600;
   cursor:pointer;
-  color:rgba(255,255,255,.92);
-  border-bottom:3px solid transparent;
-  transition:all .15s;
+  color:rgba(255,255,255,.85);
   background:none;
-  border-top:none;
-  border-left:none;
-  border-right:none;
+  border:none;
+  border-left:3px solid transparent;
+  transition:all .15s;
   font-family:inherit;
   white-space:nowrap;
+  text-align:left;
 }
 .tab:hover{color:#fff;background:var(--maroon-light)}
-.tab.active{color:#fff;border-bottom-color:var(--champagne)}
+.tab.active{color:#fff;border-left-color:var(--champagne);background:var(--maroon-light)}
 /* Mobile (simple) mode — hide desktop-only tabs for an easier staff view */
 body.mobile-mode .tab.desktop-only{display:none}
 
@@ -169,7 +172,7 @@ body.mobile-mode .tab.desktop-only{display:none}
 .damage-pad.readonly .damage-dot{cursor:default}
 
 /* ─── MAIN ─── */
-.main{padding:24px 32px;max-width:1400px;margin:0 auto}
+.main{flex:1;min-width:0;padding:24px 32px;max-width:1400px;margin:0 auto}
 .view{display:none}
 .view.active{display:block}
 
@@ -414,8 +417,10 @@ tr:hover td{background:var(--bg)}
   #header-date{font-size:10px;letter-spacing:1.5px}
   .header-clock{font-size:26px;letter-spacing:1px}
 
-  .tabs{padding:0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .tab{padding:12px 14px;font-size:11px;flex-shrink:0}
+  .layout{flex-direction:column}
+  .tabs{flex-direction:row;width:auto;flex:none;align-self:auto;padding:0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{padding:12px 14px;font-size:11px;flex-shrink:0;border-left:none;border-bottom:3px solid transparent}
+  .tab.active{border-left-color:transparent;border-bottom-color:var(--champagne)}
   .main{padding:14px}
 
   .stats-row{grid-template-columns:1fr 1fr;gap:10px}
@@ -870,7 +875,8 @@ body.dark-mode .scan-banner {
   </div>
 </div>
 
-<!-- TABS -->
+<div class="layout">
+<!-- SIDEBAR NAV -->
 <div class="tabs">
   <button class="tab active desktop-only" onclick="showView(&#39;dashboard&#39;)">Dashboard</button>
   <button class="tab" onclick="showView(&#39;new-entry&#39;)">New Entry</button>
@@ -2107,6 +2113,7 @@ body.dark-mode .scan-banner {
 </div>
 
 </div><!-- /main -->
+</div><!-- /layout -->
 
 <!-- MODAL -->
 <div class="modal" id="modal">
