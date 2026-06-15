@@ -184,19 +184,18 @@ body.mobile-mode .tab.desktop-only{display:none}
 .view{display:none}
 .view.active{display:block}
 
-/* ─── SETTINGS SUB-MENU (side list) ─── */
-.settings-layout{display:flex;align-items:flex-start;gap:22px}
-.settings-sub{display:flex;flex-direction:column;gap:4px;flex:0 0 196px;position:sticky;top:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px}
-.set-pill{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:6px;border:1px solid transparent;background:none;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s}
-.set-pill:hover{background:var(--bg);border-color:var(--border)}
-.set-pill.active{background:var(--maroon);color:#fff;border-color:var(--maroon)}
-.settings-content{flex:1;min-width:0}
+/* ─── SETTINGS FLYOUT SUB-MENU (pops out beside the icon rail) ─── */
+.nav-flyout{display:none;flex:0 0 212px;background:#3a0e16;align-self:stretch;padding:14px 10px;flex-direction:column;gap:2px}
+.nav-flyout.open{display:flex}
+.nav-flyout-title{color:var(--champagne);font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:4px 12px 12px}
+.flyout-item{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:6px;border:none;background:none;color:rgba(255,255,255,.82);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,color .12s}
+.flyout-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.flyout-item.active{background:var(--maroon-light);color:#fff}
 .set-section{display:none}
 .set-section.show{display:block}
 @media (max-width:820px){
-  .settings-layout{flex-direction:column;gap:14px}
-  .settings-sub{flex-direction:row;flex-wrap:wrap;flex:none;position:static}
-  .set-pill{width:auto;border-radius:20px;border-color:var(--border)}
+  .nav-flyout.open{flex-direction:row;flex-wrap:wrap;flex:none;width:100%}
+  .flyout-item{width:auto;border-radius:20px;border:1px solid rgba(255,255,255,.25)}
 }
 
 /* ─── DASHBOARD INFOGRAPHICS ─── */
@@ -946,6 +945,17 @@ body.dark-mode .scan-banner {
   <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)" aria-label="Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="tab-label">Customers</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;reports&#39;)" aria-label="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="tab-label">Reports</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;settings&#39;)" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="tab-label">Settings</span></button>
+</div>
+
+<!-- Settings sub-menu flyout — pops out beside the rail when Settings is open -->
+<div id="settings-flyout" class="nav-flyout">
+  <div class="nav-flyout-title">Settings</div>
+  <button class="flyout-item" data-group="access" onclick="showSettingsGroup('access')">Staff &amp; Access</button>
+  <button class="flyout-item" data-group="carpark" onclick="showSettingsGroup('carpark')">Car Park</button>
+  <button class="flyout-item" data-group="retailers" onclick="showSettingsGroup('retailers')">Retailers</button>
+  <button class="flyout-item" data-group="alerts" onclick="showSettingsGroup('alerts')">Alerts &amp; Messaging</button>
+  <button class="flyout-item" data-group="devices" onclick="showSettingsGroup('devices')">Devices</button>
+  <button class="flyout-item" data-group="data" onclick="showSettingsGroup('data')">Data &amp; Backup</button>
 </div>
 
 <div class="main">
@@ -1875,17 +1885,6 @@ body.dark-mode .scan-banner {
 <!-- ───────── SETTINGS VIEW ───────── -->
 <div class="view" id="view-settings">
 
-  <div class="settings-layout">
-  <div class="settings-sub" id="settings-sub">
-    <button class="set-pill" data-group="access" onclick="showSettingsGroup('access')">Staff &amp; Access</button>
-    <button class="set-pill" data-group="carpark" onclick="showSettingsGroup('carpark')">Car Park</button>
-    <button class="set-pill" data-group="retailers" onclick="showSettingsGroup('retailers')">Retailers</button>
-    <button class="set-pill" data-group="alerts" onclick="showSettingsGroup('alerts')">Alerts &amp; Messaging</button>
-    <button class="set-pill" data-group="devices" onclick="showSettingsGroup('devices')">Devices</button>
-    <button class="set-pill" data-group="data" onclick="showSettingsGroup('data')">Data &amp; Backup</button>
-  </div>
-
-  <div class="settings-content">
   <div class="section set-section" data-setgroup="access">
     <div class="section-header">
       <div class="section-title">Cloud Sync &amp; Security</div>
@@ -2201,8 +2200,6 @@ body.dark-mode .scan-banner {
       <button class="btn btn-danger" onclick="confirmClearAll()">Clear All Data</button>
     </div>
   </div>
-  </div><!-- /settings-content -->
-  </div><!-- /settings-layout -->
 </div>
 
 </div><!-- /main -->
@@ -2679,6 +2676,10 @@ function showView(name) {
   const names = ['dashboard','new-entry','quick-pickup','pickup-queue','bags','active','log','customers','reports','settings'];
   const i = names.indexOf(name);
   if (i >= 0 && tabs[i]) tabs[i].classList.add('active');
+
+  // Settings sub-menu flyout shows only while on Settings.
+  const fly = document.getElementById('settings-flyout');
+  if (fly) fly.classList.toggle('open', name === 'settings');
 
   if (name === 'dashboard') renderDashboard();
   if (name === 'new-entry') prepareNewEntry();
@@ -6396,7 +6397,7 @@ function renderComparison() {
 // Settings sub-menu: show one group of sections at a time.
 function showSettingsGroup(g) {
   document.querySelectorAll('#view-settings .set-section').forEach(s => s.classList.toggle('show', s.dataset.setgroup === g));
-  document.querySelectorAll('#settings-sub .set-pill').forEach(p => p.classList.toggle('active', p.dataset.group === g));
+  document.querySelectorAll('#settings-flyout .flyout-item').forEach(p => p.classList.toggle('active', p.dataset.group === g));
 }
 
 function renderSettings() {
