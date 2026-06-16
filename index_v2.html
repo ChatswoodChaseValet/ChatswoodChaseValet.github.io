@@ -5671,7 +5671,7 @@ function printShopStatement(shop) {
   const list = shopOpenCharges(shop).filter(e => e.timeOut).sort((a, b) => new Date(a.timeIn) - new Date(b.timeIn));
   if (!list.length) { alert('No billable charges to print for ' + shop + ' yet.'); return; }
   const total = list.reduce((s, e) => s + shopChargeFor(e), 0);
-  const rows = list.map(e => `<tr><td>${e.ticket}</td><td>${fmtDate(new Date(e.timeIn))}</td><td>${(e.brand || '') + ' ' + (e.model || '')}${e.rego ? ' · ' + e.rego : ''}</td><td>${e.name || ''}</td><td style="text-align:right">${fmtMoney(shopChargeFor(e))}</td></tr>`).join('');
+  const rows = list.map(e => `<tr><td>${e.ticket}</td><td>${fmtDate(new Date(e.timeIn))}</td><td>${fmtTime(new Date(e.timeIn))}</td><td>${e.timeOut ? fmtTime(new Date(e.timeOut)) : '—'}</td><td>${e.timeOut ? fmtDuration(new Date(e.timeOut) - new Date(e.timeIn)) : '—'}</td><td>${(e.brand || '') + ' ' + (e.model || '')}${e.rego ? ' · ' + e.rego : ''}</td><td>${e.name || ''}</td><td style="text-align:right">${fmtMoney(shopChargeFor(e))}</td></tr>`).join('');
   const w = window.open('', '_blank', 'width=800,height=900');
   w.document.write(`<!DOCTYPE html><html><head><title>Statement — ${shop}</title>
     <style>body{font-family:Arial,Helvetica,sans-serif;color:#222;padding:28px;max-width:720px;margin:0 auto}
@@ -5683,7 +5683,7 @@ function printShopStatement(shop) {
     <body>
     <h1>Chatswood Chase Valet — Parking Statement</h1>
     <div class="sub">Charged to <b>${shop}</b> · Issued ${fmtDate(new Date())}</div>
-    <table><thead><tr><th>Ticket</th><th>Date</th><th>Vehicle</th><th>Customer</th><th style="text-align:right">Amount</th></tr></thead>
+    <table><thead><tr><th>Ticket</th><th>Date</th><th>In</th><th>Out</th><th>Duration</th><th>Vehicle</th><th>Customer</th><th style="text-align:right">Amount</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <div class="tot">Total due: ${fmtMoney(total)}</div>
     <div class="meta">${list.length} parking session${list.length !== 1 ? 's' : ''} · Valet desk 0427 000 822</div>
