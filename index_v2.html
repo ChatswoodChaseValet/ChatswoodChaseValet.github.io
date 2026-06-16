@@ -388,6 +388,24 @@ tr:hover td{background:var(--bg)}
 /* Filter labels sit directly on the maroon page background — keep them light */
 .filters .form-label{color:rgba(255,255,255,.85)}
 
+/* ─── ACTIVE CARS as cards on phones (no sideways table scroll) ─── */
+.active-cards{display:none;flex-direction:column;gap:12px;margin-top:14px}
+.acard{border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:#fff;
+  display:flex;flex-direction:column;gap:8px}
+.acard-pickup{background:#fff5d4;border-left:4px solid var(--bronze)}
+.acard-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.acard-ticket{font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);font-size:15px}
+.acard-car{font-size:15px;color:var(--text)}
+.acard-car .mono{font-family:'Courier New',monospace;font-weight:bold}
+.acard-meta{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--text-muted)}
+.acard-meta .acard-fee{margin-left:auto;font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)}
+.acard-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.acard-actions .btn{flex:0 0 auto}
+@media (max-width:700px){
+  #view-active .table-wrap{display:none}
+  #view-active .active-cards{display:flex}
+}
+
 /* ─── SITE FOOTER (property owner + sponsor credits) ─── */
 .site-footer{display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;
   padding:20px 16px 28px;border-top:1px solid var(--border);background:var(--bone)}
@@ -1428,6 +1446,8 @@ body.dark-mode .scan-banner {
     </tr></tbody>
       </table>
     </div>
+    <!-- Phone-friendly card list (CSS swaps this in for the wide table on small screens) -->
+    <div class="active-cards" id="active-cards"></div>
   </div>
 </div>
 
@@ -4458,8 +4478,10 @@ function renderActive() {
   const aBadge = document.getElementById('active-tab-badge');
   if (aBadge) { aBadge.textContent = active.length; aBadge.style.display = active.length > 0 ? '' : 'none'; }
   const tbody = document.getElementById('active-tbody');
+  const cardWrap = document.getElementById('active-cards');
   if (active.length === 0) {
     tbody.innerHTML = '<tr><td colspan="10" class="empty" style="border-bottom:none">No active vehicles — all cars have been picked up</td></tr>';
+    if (cardWrap) cardWrap.innerHTML = '<div class="empty" style="text-align:center;color:var(--text-muted);padding:18px">No active vehicles — all cars have been picked up</div>';
     return;
   }
   const now = new Date();
@@ -4476,7 +4498,7 @@ function renderActive() {
     return new Date(a.timeIn) - new Date(b.timeIn);
   });
 
-  tbody.innerHTML = sorted.map(e => {
+  const built = sorted.map(e => {
     const dur = now - new Date(e.timeIn);
     const hrs = dur / 3600000;
     const fees = calculateTotalFee(dur);
@@ -4514,7 +4536,16 @@ function renderActive() {
       return `<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest('${e.id}')" title="Cancel pickup request" style="background:${bg};color:#fff">${label}</button>`;
     })();
 
-    return `<tr class="active" style="${rowStyle}">
+    // Action buttons — identical for the desktop table cell and the phone card.
+    const actions = `${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none" onclick="event.stopPropagation()" title="Call ${e.phone}">Call</a>` : ''}`
+      + `<button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">QR</button>`
+      + `<button class="btn btn-secondary btn-sm" onclick="printKeyTag('${e.id}')" title="Print key tag">Print</button>`
+      + `<button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">Edit</button>`
+      + pickupBtn
+      + `<button class="btn btn-secondary btn-sm" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup" style="${e.bagStatus && e.bagStatus!=='done' ? 'background:#531620;color:#fff' : ''}">${e.bagStatus && e.bagStatus!=='done' ? '•' : ''}</button>`
+      + `<button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')" style="margin-left:4px">✓ Mark Out</button>`;
+
+    const row = `<tr class="active" style="${rowStyle}">
       <td class="ticket-num">${e.ticket}</td>
       <td>${e.name || '—'}</td>
       <td style="font-family:'Courier New',monospace;font-weight:bold">${e.rego}</td>
@@ -4524,17 +4555,29 @@ function renderActive() {
       <td>${fmtTime(new Date(e.timeIn))}</td>
       <td><span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span></td>
       <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(fees.total)}</td>
-      <td>
-        ${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none" onclick="event.stopPropagation()" title="Call ${e.phone}">Call</a>` : ''}
-        <button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">QR</button>
-        <button class="btn btn-secondary btn-sm" onclick="printKeyTag('${e.id}')" title="Print key tag">Print</button>
-        <button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">Edit</button>
-        ${pickupBtn}
-        <button class="btn btn-secondary btn-sm" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup" style="${e.bagStatus && e.bagStatus!=='done' ? 'background:#531620;color:#fff' : ''}">${e.bagStatus && e.bagStatus!=='done' ? '•' : ''}</button>
-        <button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')" style="margin-left:4px">✓ Mark Out</button>
-      </td>
+      <td>${actions}</td>
     </tr>`;
-  }).join('');
+
+    const card = `<div class="acard${e.pickupRequested ? ' acard-pickup' : ''}">
+      <div class="acard-top">
+        <span class="acard-ticket">${e.ticket}</span>
+        <span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span>
+      </div>
+      <div class="acard-car"><b>${e.brand}</b>${e.model ? ' ' + e.model : ''} · <span class="mono">${e.rego}</span></div>
+      <div class="acard-meta">
+        <span>Bay <b style="color:var(--text)">${e.bay}</b></span>
+        <span>In ${fmtTime(new Date(e.timeIn))}</span>
+        <span>${e.name || '—'}</span>
+        <span class="acard-fee">${fmtMoney(fees.total)}</span>
+      </div>
+      <div class="acard-actions">${actions}</div>
+    </div>`;
+
+    return { row, card };
+  });
+
+  tbody.innerHTML = built.map(b => b.row).join('');
+  if (cardWrap) cardWrap.innerHTML = built.map(b => b.card).join('');
 }
 
 // Open the OS share sheet (or SMS deep-link as fallback) with a link
