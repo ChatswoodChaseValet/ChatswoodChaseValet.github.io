@@ -229,6 +229,8 @@ body.mobile-mode .tab.desktop-only{display:none}
 .dash-card:active{cursor:grabbing}
 .dash-card.drag-over{outline:2px dashed var(--bronze);outline-offset:2px}
 .dash-card.dragging{opacity:.4;cursor:grabbing}
+/* Press-and-hold has "picked up" the widget — lift it so the user knows it can now be moved */
+.dash-card.dash-armed{transform:scale(1.03);box-shadow:0 8px 22px rgba(0,0,0,.28);cursor:grabbing;transition:transform .12s,box-shadow .12s}
 .dash-card h3 .dash-drag{color:var(--text-muted);margin-right:6px;font-weight:400;font-size:16px}
 .dash-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
 .dash-card-head h3{margin:0}
@@ -4308,7 +4310,7 @@ function renderDashInfographics() {
       : def.title + (def.opts.includes('range') && inst.range !== 'today' ? ' · ' + rangeLabel(inst.range) : '');
     const span = inst.span === 99 ? 'grid-column:1/-1' : inst.span === 2 ? 'grid-column:span 2' : '';
     return `<div class="dash-card${def.stat ? ' dash-card-stat' : ''}" data-wid="${inst.id}" style="${span}">
-      <div class="dash-card-head"><h3><span class="dash-drag" title="Drag to reorder">⠿</span> ${escAttr(t)}</h3>
+      <div class="dash-card-head"><h3><span class="dash-drag" title="Press &amp; hold, then drag to move">⠿</span> ${escAttr(t)}</h3>
       <button class="dash-x" title="Remove from dashboard" onclick="dashRemove('${inst.id}')">✕</button></div>${body(inst)}</div>`;
   }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “Customize dashboard”.</div>';
 
@@ -4343,17 +4345,37 @@ function dashDrop(ev, targetId) { ev.preventDefault(); if (!dashDragId || dashDr
 let dashPtr = null;
 function dashPointerDnDInit() {
   if (dashPointerDnDInit._done) return; dashPointerDnDInit._done = true;
+  // On touch, a widget must be pressed-and-held this long before it can be
+  // dragged — so scrolling past widgets or a quick tap never moves one by
+  // accident. A mouse (precise) arms instantly.
+  const LONG_PRESS_MS = 400;
   document.addEventListener('pointerdown', ev => {
     if (ev.button === 2) return;                                      // ignore right-click
     if (ev.target.closest && ev.target.closest('.dash-x,button,a,select,input,textarea')) return; // keep controls clickable
     const card = ev.target.closest && ev.target.closest('#dash-infographics .dash-card');
     if (!card || !card.getAttribute('data-wid')) return;
-    dashPtr = { id: card.getAttribute('data-wid'), card, grid: card.closest('#dash-infographics'), x: ev.clientX, y: ev.clientY, dragging: false, target: null };
+    const isMouse = ev.pointerType === 'mouse';
+    dashPtr = { id: card.getAttribute('data-wid'), card, grid: card.closest('#dash-infographics'), x: ev.clientX, y: ev.clientY, dragging: false, target: null, armed: isMouse, timer: null };
+    if (!isMouse) {
+      dashPtr.timer = setTimeout(() => {
+        if (!dashPtr) return;
+        dashPtr.armed = true;                       // held long enough — now draggable
+        dashPtr.card.classList.add('dash-armed');
+        if (typeof hapticFeedback === 'function') hapticFeedback('success');
+      }, LONG_PRESS_MS);
+    }
   });
   document.addEventListener('pointermove', ev => {
     if (!dashPtr) return;
+    const moved = Math.hypot(ev.clientX - dashPtr.x, ev.clientY - dashPtr.y);
+    if (!dashPtr.armed) {
+      // Still in the hold window: a real move means the user is scrolling, so
+      // cancel the pending pick-up and let the page scroll normally.
+      if (moved > 8) { clearTimeout(dashPtr.timer); dashPtr = null; }
+      return;
+    }
     if (!dashPtr.dragging) {
-      if (Math.hypot(ev.clientX - dashPtr.x, ev.clientY - dashPtr.y) < 6) return;
+      if (moved < 6) return;
       dashPtr.dragging = true; dashPtr.card.classList.add('dragging');
     }
     ev.preventDefault();
@@ -4366,7 +4388,8 @@ function dashPointerDnDInit() {
   const end = () => {
     if (!dashPtr) return;
     const p = dashPtr; dashPtr = null;
-    if (p.card) p.card.classList.remove('dragging');
+    if (p.timer) clearTimeout(p.timer);
+    if (p.card) p.card.classList.remove('dragging', 'dash-armed');
     p.grid.querySelectorAll('.dash-card.drag-over').forEach(c => c.classList.remove('drag-over'));
     if (p.dragging) {
       if (p.target && p.target !== p.id) {
