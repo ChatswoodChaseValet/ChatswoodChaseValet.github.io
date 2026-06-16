@@ -1729,6 +1729,9 @@ body.dark-mode .scan-banner {
     </div>
     <div id="rep-daily-list"><div class="empty">No cars in this range</div></div>
 
+    <div class="section-title" style="margin-top:26px;margin-bottom:10px">Peak Times — check-ins by hour</div>
+    <div id="rep-daily-peak"><div class="empty">No cars in this range</div></div>
+
     <div class="section-title" style="margin-top:26px;margin-bottom:10px">Customer Spend</div>
     <div id="rep-spend"><div class="empty">No completed trips in this range</div></div>
 
@@ -6183,6 +6186,33 @@ function downloadReportPDF() {
 
 // Daily Volume chart orientation (per-device preference).
 let lastDailyList = [];
+let lastPeakHours = [];
+// Render a by-hour chart (used for the Peak Times chart), vertical or horizontal.
+function hourChartHTML(hours, dir) {
+  const first = hours.findIndex(v => v > 0);
+  if (first < 0) return '<div class="empty">No data in this range</div>';
+  let last = first; hours.forEach((v, h) => { if (v > 0) last = h; });
+  const max = Math.max(...hours);
+  const slice = []; for (let h = first; h <= last; h++) slice.push([h, hours[h]]);
+  if (dir === 'horizontal') {
+    return slice.map(([h, c]) => `<div class="brand-row">
+        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px;min-width:48px">${hourLabel(h)}</div>
+        <div class="brand-bar-wrap"><div class="brand-bar" style="width:${max ? (c / max * 100) : 0}%;background:linear-gradient(90deg,var(--maroon),#a04a52)"></div></div>
+        <div class="brand-count">${c}</div>
+      </div>`).join('');
+  }
+  const BAR_MAX = 130;
+  return `<div style="display:flex;align-items:flex-end;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 2px 2px;min-height:${BAR_MAX + 44}px">`
+    + slice.map(([h, c]) => {
+        const ht = Math.max(3, Math.round((c / max) * BAR_MAX));
+        return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:34px">
+          <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${c}</div>
+          <div title="${hourLabel(h)}: ${c}" style="width:24px;height:${ht}px;background:linear-gradient(180deg,var(--maroon),#a04a52);border-radius:3px 3px 0 0"></div>
+          <div style="font-size:9px;color:var(--text-muted);white-space:nowrap;font-family:'Courier New',monospace">${hourLabel(h)}</div>
+        </div>`;
+      }).join('')
+    + `</div>`;
+}
 function getDailyChartDir() {
   return localStorage.getItem('valet_daily_chart') === 'horizontal' ? 'horizontal' : 'vertical';
 }
@@ -6228,6 +6258,9 @@ function renderDailyVolume() {
         }).join('')
       + `</div>`;
   }
+  // Peak Times chart (check-ins by hour) — same orientation as the toggle.
+  const pk = document.getElementById('rep-daily-peak');
+  if (pk) pk.innerHTML = lastPeakHours.length ? hourChartHTML(lastPeakHours, dir) : '<div class="empty">No cars in this range</div>';
 }
 
 function renderReports() {
@@ -6303,6 +6336,9 @@ function renderReports() {
     dailyMap[d] = (dailyMap[d] || 0) + 1;
   });
   lastDailyList = Object.entries(dailyMap).sort((a,b) => a[0].localeCompare(b[0]));
+  const inHours = new Array(24).fill(0);
+  filtered.forEach(e => { if (e.timeIn) inHours[new Date(e.timeIn).getHours()]++; });
+  lastPeakHours = inHours;
   renderDailyVolume();
 
   renderInsights(filtered);
