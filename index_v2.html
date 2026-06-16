@@ -1999,6 +1999,32 @@ body.dark-mode .scan-banner {
 
   <div class="section set-section" data-setgroup="devices">
     <div class="section-header">
+      <div class="section-title">Square Terminal (card payments)</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="sq-status">—</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+      Send the amount straight to a <strong>Square Terminal</strong> at checkout — the customer
+      taps their card and the entry is marked Paid · Card automatically. Currently set up for
+      <strong>Sandbox</strong> (test mode), so no real money moves until you switch to a live token.
+    </p>
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-label">Terminal Device ID</label>
+      <input type="text" id="s-square-device" class="form-input" placeholder="Paste the paired terminal's Device ID" style="font-family:'Courier New',monospace;font-size:12px">
+    </div>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-primary" onclick="saveSquareSettings()">Save</button>
+    </div>
+    <div style="background:var(--sandstone);padding:12px;border-radius:4px;font-size:12px;line-height:1.7">
+      <strong>One-time setup (Sandbox):</strong><br>
+      1. Create a free account at <a href="https://developer.squareup.com" target="_blank" style="color:var(--maroon)">developer.squareup.com</a> and open the <strong>Sandbox</strong>.<br>
+      2. Set the access token as a secret: <code>supabase secrets set SQUARE_ACCESS_TOKEN=EAAA… --project-ref ebqiitxiyzzbkgyfypss</code>, then deploy <code>square-terminal-checkout</code>.<br>
+      3. To test without hardware, use Square's sandbox auto-complete device ID: <code>9fa747a2-25ff-48ee-b078-04381f7c828f</code> (paste it above).<br>
+      For a real terminal, pair it in your Square dashboard and paste its Device ID. Switch to live by setting <code>SQUARE_ENV=production</code> + a live token.
+    </div>
+  </div>
+
+  <div class="section set-section" data-setgroup="devices">
+    <div class="section-header">
       <div class="section-title">Phone &amp; Display</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
@@ -3542,6 +3568,10 @@ function checkout(id) {
   }
   const coverEl = document.getElementById('checkout-shop-cover');
   if (coverEl) coverEl.value = (e.shopCover != null && !isNaN(e.shopCover)) ? e.shopCover : '';
+  // Square Terminal charge button — only when a terminal device is configured.
+  const sqRow = document.getElementById('square-pay-row');
+  if (sqRow) sqRow.style.display = (settings.squareDeviceId || '').trim() ? 'block' : 'none';
+  resetSquareChargeUI();
   document.getElementById('checkout-modal').classList.add('show');
   document.getElementById('checkout-modal').dataset.entryId = id;
   document.getElementById('checkout-modal').dataset.calculatedFee = fees.total;
@@ -3773,6 +3803,91 @@ function removeDiscount(index) {
   renderDiscountList();
 }
 
+// ─── Square Terminal payment (sandbox-ready) ───
+let squarePoll = null;
+function resetSquareChargeUI() {
+  if (squarePoll) { clearTimeout(squarePoll); squarePoll = null; }
+  const btn = document.getElementById('square-charge-btn');
+  const lbl = document.getElementById('square-charge-label');
+  const st = document.getElementById('square-status');
+  if (btn) btn.disabled = false;
+  if (lbl) lbl.textContent = 'Charge on Square Terminal';
+  if (st) { st.textContent = ''; st.style.color = ''; }
+}
+// Customer's due amount (after discounts / shop coverage) in cents.
+function squareDueCents() {
+  const t = (document.getElementById('checkout-total').textContent || '').replace(/[^0-9.]/g, '');
+  return Math.round((parseFloat(t) || 0) * 100);
+}
+async function chargeOnTerminal() {
+  const deviceId = (settings.squareDeviceId || '').trim();
+  if (!deviceId) { alert('Set a Square Terminal Device ID in Settings first.'); return; }
+  const amountCents = squareDueCents();
+  if (amountCents <= 0) { alert('Nothing to charge — the customer total is $0.'); return; }
+  const modal = document.getElementById('checkout-modal');
+  const e = entries.find(x => x.id === modal.dataset.entryId);
+  const btn = document.getElementById('square-charge-btn');
+  const lbl = document.getElementById('square-charge-label');
+  const st = document.getElementById('square-status');
+  btn.disabled = true; lbl.textContent = 'Sending to terminal…';
+  st.style.color = 'var(--text-muted)'; st.textContent = '';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/square-terminal-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ action: 'create', amountCents, deviceId, reference: e ? ('Ticket ' + e.ticket) : 'Valet' }),
+    });
+    const d = await res.json();
+    if (!d.ok || !d.checkoutId) {
+      st.style.color = 'var(--red)'; st.textContent = 'Could not start: ' + (d.error || 'unknown');
+      btn.disabled = false; lbl.textContent = 'Try again'; return;
+    }
+    lbl.textContent = 'Waiting for tap…';
+    st.style.color = 'var(--text-muted)'; st.textContent = 'Ask the customer to tap their card on the terminal.';
+    pollSquareCheckout(d.checkoutId, 0);
+  } catch (err) {
+    st.style.color = 'var(--red)'; st.textContent = 'Network error — try again.';
+    btn.disabled = false; lbl.textContent = 'Try again';
+  }
+}
+function pollSquareCheckout(checkoutId, tries) {
+  const st = document.getElementById('square-status');
+  const btn = document.getElementById('square-charge-btn');
+  const lbl = document.getElementById('square-charge-label');
+  if (tries > 45) {   // ~90s
+    if (st) { st.style.color = 'var(--red)'; st.textContent = 'Timed out waiting for the terminal.'; }
+    if (btn) btn.disabled = false; if (lbl) lbl.textContent = 'Try again';
+    return;
+  }
+  squarePoll = setTimeout(async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/square-terminal-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        body: JSON.stringify({ action: 'status', checkoutId }),
+      });
+      const d = await res.json();
+      if (d.ok && d.status === 'COMPLETED') {
+        document.getElementById('checkout-pay-status').value = 'paid';
+        document.getElementById('checkout-pay-method').value = 'card';
+        if (typeof updateCheckoutTotalDisplay === 'function') updateCheckoutTotalDisplay();
+        if (st) { st.style.color = 'var(--green)'; st.textContent = '✓ Paid on terminal — confirm checkout to finish.'; }
+        if (lbl) lbl.textContent = '✓ Paid';
+        if (typeof hapticFeedback === 'function') hapticFeedback('success');
+        return;
+      }
+      if (d.ok && (d.status === 'CANCELED' || d.status === 'CANCEL_REQUESTED')) {
+        if (st) { st.style.color = 'var(--red)'; st.textContent = 'Payment cancelled on the terminal.'; }
+        if (btn) btn.disabled = false; if (lbl) lbl.textContent = 'Try again';
+        return;
+      }
+      pollSquareCheckout(checkoutId, tries + 1);
+    } catch (err) {
+      pollSquareCheckout(checkoutId, tries + 1);
+    }
+  }, 2000);
+}
+
 function confirmCheckout() {
   const modal = document.getElementById('checkout-modal');
   const id = modal.dataset.entryId;
@@ -3890,6 +4005,7 @@ function showCheckoutToast(entry, total) {
 }
 
 function closeCheckoutModal() {
+  if (squarePoll) { clearTimeout(squarePoll); squarePoll = null; }
   document.getElementById('checkout-modal').classList.remove('show');
 }
 
@@ -6775,6 +6891,22 @@ function updateVehicleAiUI() {
   }
 }
 
+function saveSquareSettings() {
+  settings.squareDeviceId = document.getElementById('s-square-device').value.trim();
+  saveSettingsToStorage();
+  updateSquareUI();
+  alert(settings.squareDeviceId ? 'Saved — Square Terminal device set.' : 'Saved — terminal device cleared.');
+}
+function updateSquareUI() {
+  const el = document.getElementById('s-square-device');
+  if (el && !el.value) el.value = settings.squareDeviceId || '';
+  const status = document.getElementById('sq-status');
+  if (status) {
+    if (settings.squareDeviceId) { status.textContent = '✓ Device set'; status.style.color = 'var(--green)'; }
+    else { status.textContent = '○ No device'; status.style.color = 'var(--text-muted)'; }
+  }
+}
+
 function resetUsageCounter() {
   if (!confirm('Reset the usage counter? (This is just a local tracker — the real quota is tracked by Plate Recognizer.)')) return;
   settings.plateRecognizerCount = 0;
@@ -6964,6 +7096,7 @@ function renderSettings() {
   if (prKey) prKey.value = settings.plateRecognizerKey || '';
   updatePlateRecognizerUI();
   updateVehicleAiUI();
+  updateSquareUI();
   // Populate Key-Tag Printer settings
   const pType = document.getElementById('s-printer-type');
   if (pType) pType.value = settings.printerType || 'bixolon';
@@ -10151,6 +10284,14 @@ document.addEventListener('DOMContentLoaded', () => {
         <label class="form-label">Attendant (returning car)</label>
         <input type="text" id="checkout-attendant-out" class="form-input" placeholder="e.g. JD" maxlength="6" style="text-transform:uppercase">
       </div>
+    </div>
+
+    <div id="square-pay-row" style="display:none;margin-bottom:14px">
+      <button class="btn btn-primary" id="square-charge-btn" onclick="chargeOnTerminal()" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#3a0e16">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        <span id="square-charge-label">Charge on Square Terminal</span>
+      </button>
+      <div id="square-status" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
     </div>
 
     <div class="btn-row" style="justify-content:flex-end">
