@@ -505,17 +505,26 @@ tr:hover td{background:var(--bg)}
   .header-clock{font-size:26px;letter-spacing:1px}
 
   .layout{flex-direction:column}
-  .tabs{flex-direction:row;width:auto;flex:none;align-self:auto;padding:0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .tab{flex-direction:row;gap:7px;padding:12px 14px;flex-shrink:0;border-left:none;border-bottom:3px solid transparent}
-  .tab.active{border-left-color:transparent;border-bottom-color:var(--champagne)}
-  .tab svg{width:17px;height:17px}
-  /* phones have no hover — show the word inline next to the icon */
-  .tab-label{position:static;opacity:1;transform:none;background:none;box-shadow:none;color:inherit;padding:0;font-size:11px;letter-spacing:.5px;pointer-events:auto}
-  .tab-badge{position:static;margin-left:4px}
+  /* Phones: the nav becomes a fixed bottom bar (app-style, thumb-reachable),
+     so it never eats horizontal width. Icons stack over their label. */
+  .tabs{flex-direction:row;width:100%;flex:none;align-self:auto;
+    position:fixed;left:0;right:0;bottom:0;z-index:500;
+    padding:0;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    justify-content:space-around;
+    border-top:1px solid rgba(255,255,255,.14);box-shadow:0 -2px 12px rgba(0,0,0,.18)}
+  .tab{flex-direction:column;gap:3px;padding:8px 10px 7px;flex-shrink:0;min-width:58px;
+    border-left:none;border-top:3px solid transparent}
+  .tab.active{border-left-color:transparent;border-top-color:var(--champagne)}
+  .tab svg{width:21px;height:21px}
+  /* phones have no hover — show the word under the icon */
+  .tab-label{position:static;opacity:1;transform:none;background:none;box-shadow:none;color:inherit;padding:0;font-size:10px;letter-spacing:.3px;pointer-events:auto;text-transform:none}
+  .tab-badge{top:2px;right:8px}
   /* On phones the layout stacks; drop the auto centring margins so .main fills
      the screen width instead of sizing to its content (which caused the whole
-     page to be ~2x wide and scroll sideways). */
+     page to be ~2x wide and scroll sideways). Bottom padding clears the
+     fixed nav bar so the last content/footer isn't hidden behind it. */
   .main{padding:14px;margin:0;max-width:100%;min-width:0}
+  body{padding-bottom:62px}
 
   .stats-row{grid-template-columns:1fr 1fr;gap:10px}
   .stat-value{font-size:24px}
