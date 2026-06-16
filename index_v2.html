@@ -1018,8 +1018,8 @@ body.dark-mode .scan-banner {
 <!-- Reports sub-menu flyout -->
 <div id="reports-flyout" class="nav-flyout">
   <div class="nav-flyout-title">Reports</div>
-  <button class="flyout-item" data-group="peak" onclick="goReport('peak')">Peak Times</button>
   <button class="flyout-item" data-group="volume" onclick="goReport('volume')">Daily Volume</button>
+  <button class="flyout-item" data-group="peak" onclick="goReport('peak')">Peak Times</button>
   <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
   <button class="flyout-item" data-group="discounts" onclick="goReport('discounts')">Discounts</button>
   <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
@@ -6154,7 +6154,7 @@ function downloadReportPDF() {
 
 function renderReports() {
   // Default to the first report in the flyout when none is shown yet.
-  if (!document.querySelector('#view-reports .rep-section.show')) showReportsGroup('peak');
+  if (!document.querySelector('#view-reports .rep-section.show')) showReportsGroup('volume');
   renderShopAccounts();
   const from = document.getElementById('report-from').value;
   const to = document.getElementById('report-to').value;
