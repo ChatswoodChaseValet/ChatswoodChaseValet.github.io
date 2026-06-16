@@ -6211,7 +6211,7 @@ function hourChartHTML(inH, outH, dir) {
   const slice = []; for (let h = first; h <= last; h++) slice.push([h, inH[h], outH[h]]);
   if (dir === 'horizontal') {
     return legend + slice.map(([h, ci, co]) => `<div class="brand-row" style="align-items:center">
-        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px;min-width:48px">${hourLabel(h)}</div>
+        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:14px;font-weight:bold;color:var(--text);min-width:56px">${hourLabel(h)}</div>
         <div style="flex:1;display:flex;flex-direction:column;gap:3px">
           <div title="${hourLabel(h)} in: ${ci}" style="height:9px;border-radius:3px;width:${ci / max * 100}%;min-width:2px;background:${IN}"></div>
           <div title="${hourLabel(h)} out: ${co}" style="height:9px;border-radius:3px;width:${co / max * 100}%;min-width:2px;background:${OUT}"></div>
@@ -6229,7 +6229,7 @@ function hourChartHTML(inH, outH, dir) {
             <div title="${hourLabel(h)} in: ${ci}" style="width:11px;height:${hi}px;background:${IN};border-radius:3px 3px 0 0"></div>
             <div title="${hourLabel(h)} out: ${co}" style="width:11px;height:${ho}px;background:${OUT};border-radius:3px 3px 0 0"></div>
           </div>
-          <div style="font-size:9px;color:var(--text-muted);white-space:nowrap;font-family:'Courier New',monospace">${hourLabel(h)}</div>
+          <div style="font-size:12px;font-weight:bold;color:var(--text);white-space:nowrap;font-family:'Courier New',monospace">${hourLabel(h)}</div>
         </div>`;
       }).join('')
     + `</div>`;
@@ -6258,7 +6258,7 @@ function renderDailyVolume() {
     c.innerHTML = list.map(([date, count]) => {
       const lbl = `${date.slice(8,10)}/${date.slice(5,7)}/${date.slice(2,4)}`;
       return `<div class="brand-row">
-        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px">${lbl}</div>
+        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:14px;font-weight:bold;color:var(--text);min-width:64px">${lbl}</div>
         <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(count/max)*100}%;background:linear-gradient(90deg,var(--bronze),var(--bronze-light))"></div></div>
         <div class="brand-count">${count}</div>
       </div>`;
@@ -6273,7 +6273,7 @@ function renderDailyVolume() {
           return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:32px">
             <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${count}</div>
             <div title="${lbl}: ${count}" style="width:24px;height:${h}px;background:linear-gradient(180deg,var(--bronze),var(--bronze-light));border-radius:3px 3px 0 0"></div>
-            <div style="font-size:9px;color:var(--text-muted);white-space:nowrap;font-family:'Courier New',monospace">${lbl}</div>
+            <div style="font-size:12px;font-weight:bold;color:var(--text);white-space:nowrap;font-family:'Courier New',monospace">${lbl}</div>
           </div>`;
         }).join('')
       + `</div>`;
