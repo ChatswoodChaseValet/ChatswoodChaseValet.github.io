@@ -388,6 +388,16 @@ tr:hover td{background:var(--bg)}
 /* Filter labels sit directly on the maroon page background — keep them light */
 .filters .form-label{color:rgba(255,255,255,.85)}
 
+/* ─── SITE FOOTER (property owner + sponsor credits) ─── */
+.site-footer{display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;
+  padding:20px 16px 28px;border-top:1px solid var(--border);background:var(--bone)}
+.site-footer-item{display:flex;flex-direction:column;align-items:center;gap:7px}
+.site-footer-cap{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted)}
+.site-footer-logo{height:28px;width:auto;max-width:150px;object-fit:contain;opacity:.9}
+.site-footer-word{font-size:17px;font-weight:700;letter-spacing:3px;color:var(--maroon)}
+.site-footer-sep{width:1px;height:38px;background:var(--border)}
+@media (max-width:500px){.site-footer{gap:22px}.site-footer-sep{display:none}}
+
 /* ─── MODAL ─── */
 .modal{
   display:none;
@@ -2112,6 +2122,24 @@ body.dark-mode .scan-banner {
 
 </div><!-- /main -->
 </div><!-- /layout -->
+
+<!-- Property owner + sponsor credits. Logos self-host as vicinity-logo.png /
+     lexus-logo.png; if a file is missing we fall back to a clean text wordmark. -->
+<div class="site-footer">
+  <div class="site-footer-item">
+    <span class="site-footer-cap">A Vicinity Centre</span>
+    <img src="vicinity-logo.png" alt="Vicinity Centres" class="site-footer-logo"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+    <span class="site-footer-word" style="display:none">VICINITY</span>
+  </div>
+  <div class="site-footer-sep"></div>
+  <div class="site-footer-item">
+    <span class="site-footer-cap">Valet proudly sponsored by</span>
+    <img src="lexus-logo.png" alt="Lexus" class="site-footer-logo"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+    <span class="site-footer-word" style="display:none">LEXUS</span>
+  </div>
+</div>
 
 <!-- MODAL -->
 <div class="modal" id="modal">
