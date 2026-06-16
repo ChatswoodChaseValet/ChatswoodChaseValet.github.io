@@ -101,6 +101,20 @@ serve(async (req: Request) => {
       return json({ ok: true, status: d.checkout?.status });
     }
 
+    // ── Clear stuck checkouts (cancel any PENDING / IN_PROGRESS) ──
+    if (action === "clearPending") {
+      let cancelled = 0;
+      for (const status of ["PENDING", "IN_PROGRESS"]) {
+        const res = await sq("/v2/terminals/checkouts/search", "POST", { query: { filter: { status } }, limit: 100 });
+        const d = await res.json();
+        for (const co of (d.checkouts || [])) {
+          await sq("/v2/terminals/checkouts/" + co.id + "/cancel", "POST");
+          cancelled++;
+        }
+      }
+      return json({ ok: true, cancelled });
+    }
+
     return json({ ok: false, error: "unknown action" }, 400);
   } catch (e) {
     console.error(`[square] ERROR ${String(e)}`);

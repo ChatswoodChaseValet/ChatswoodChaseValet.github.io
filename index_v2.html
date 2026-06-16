@@ -3805,14 +3805,37 @@ function removeDiscount(index) {
 
 // ─── Square Terminal payment (sandbox-ready) ───
 let squarePoll = null;
+let squareCheckoutId = null;
 function resetSquareChargeUI() {
   if (squarePoll) { clearTimeout(squarePoll); squarePoll = null; }
+  squareCheckoutId = null;
   const btn = document.getElementById('square-charge-btn');
   const lbl = document.getElementById('square-charge-label');
   const st = document.getElementById('square-status');
+  const cancel = document.getElementById('square-cancel-btn');
   if (btn) btn.disabled = false;
   if (lbl) lbl.textContent = 'Charge on Square Terminal';
   if (st) { st.textContent = ''; st.style.color = ''; }
+  if (cancel) cancel.style.display = 'none';
+}
+// Cancel an in-progress terminal payment (also frees the device for the next car).
+function cancelSquareCheckout() {
+  if (squarePoll) { clearTimeout(squarePoll); squarePoll = null; }
+  const id = squareCheckoutId; squareCheckoutId = null;
+  if (id) {
+    fetch(`${SUPABASE_URL}/functions/v1/square-terminal-checkout`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ action: 'cancel', checkoutId: id }),
+    }).catch(() => {});
+  }
+  const btn = document.getElementById('square-charge-btn');
+  const lbl = document.getElementById('square-charge-label');
+  const st = document.getElementById('square-status');
+  const cancel = document.getElementById('square-cancel-btn');
+  if (btn) btn.disabled = false;
+  if (lbl) lbl.textContent = 'Charge on Square Terminal';
+  if (st) { st.style.color = 'var(--text-muted)'; st.textContent = 'Cancelled — you can charge again or take payment another way.'; }
+  if (cancel) cancel.style.display = 'none';
 }
 // Customer's due amount (after discounts / shop coverage) in cents.
 function squareDueCents() {
@@ -3842,8 +3865,11 @@ async function chargeOnTerminal() {
       st.style.color = 'var(--red)'; st.textContent = 'Could not start: ' + (d.error || 'unknown');
       btn.disabled = false; lbl.textContent = 'Try again'; return;
     }
+    squareCheckoutId = d.checkoutId;
     lbl.textContent = 'Waiting for tap…';
     st.style.color = 'var(--text-muted)'; st.textContent = 'Ask the customer to tap their card on the terminal.';
+    const cancel = document.getElementById('square-cancel-btn');
+    if (cancel) cancel.style.display = 'block';
     pollSquareCheckout(d.checkoutId, 0);
   } catch (err) {
     st.style.color = 'var(--red)'; st.textContent = 'Network error — try again.';
@@ -3854,9 +3880,18 @@ function pollSquareCheckout(checkoutId, tries) {
   const st = document.getElementById('square-status');
   const btn = document.getElementById('square-charge-btn');
   const lbl = document.getElementById('square-charge-label');
-  if (tries > 45) {   // ~90s
-    if (st) { st.style.color = 'var(--red)'; st.textContent = 'Timed out waiting for the terminal.'; }
+  const cancelBtn = document.getElementById('square-cancel-btn');
+  if (tries > 45) {   // ~90s — give up and cancel so the device isn't left busy
+    if (squareCheckoutId) {
+      fetch(`${SUPABASE_URL}/functions/v1/square-terminal-checkout`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        body: JSON.stringify({ action: 'cancel', checkoutId: squareCheckoutId }),
+      }).catch(() => {});
+      squareCheckoutId = null;
+    }
+    if (st) { st.style.color = 'var(--red)'; st.textContent = 'Timed out — terminal payment cancelled. Try again.'; }
     if (btn) btn.disabled = false; if (lbl) lbl.textContent = 'Try again';
+    if (cancelBtn) cancelBtn.style.display = 'none';
     return;
   }
   squarePoll = setTimeout(async () => {
@@ -3874,12 +3909,16 @@ function pollSquareCheckout(checkoutId, tries) {
         const e = entries.find(x => x.id === document.getElementById('checkout-modal').dataset.entryId);
         if (e) e.squarePayment = d.paymentId || checkoutId || null;
         if (typeof updateCheckoutTotalDisplay === 'function') updateCheckoutTotalDisplay();
+        squareCheckoutId = null;
+        if (cancelBtn) cancelBtn.style.display = 'none';
         if (st) { st.style.color = 'var(--green)'; st.textContent = '✓ Paid on terminal — confirm checkout to finish.'; }
         if (lbl) lbl.textContent = '✓ Paid';
         if (typeof hapticFeedback === 'function') hapticFeedback('success');
         return;
       }
       if (d.ok && (d.status === 'CANCELED' || d.status === 'CANCEL_REQUESTED')) {
+        squareCheckoutId = null;
+        if (cancelBtn) cancelBtn.style.display = 'none';
         if (st) { st.style.color = 'var(--red)'; st.textContent = 'Payment cancelled on the terminal.'; }
         if (btn) btn.disabled = false; if (lbl) lbl.textContent = 'Try again';
         return;
@@ -4009,6 +4048,14 @@ function showCheckoutToast(entry, total) {
 
 function closeCheckoutModal() {
   if (squarePoll) { clearTimeout(squarePoll); squarePoll = null; }
+  // If a terminal payment was still waiting, cancel it so the device is freed.
+  if (squareCheckoutId) {
+    fetch(`${SUPABASE_URL}/functions/v1/square-terminal-checkout`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ action: 'cancel', checkoutId: squareCheckoutId }),
+    }).catch(() => {});
+    squareCheckoutId = null;
+  }
   document.getElementById('checkout-modal').classList.remove('show');
 }
 
@@ -10298,6 +10345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <span id="square-charge-label">Charge on Square Terminal</span>
       </button>
       <div id="square-status" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+      <button class="btn btn-secondary btn-sm" id="square-cancel-btn" onclick="cancelSquareCheckout()" style="display:none;margin-top:8px;width:100%">Cancel terminal payment</button>
     </div>
 
     <div class="btn-row" style="justify-content:flex-end">
