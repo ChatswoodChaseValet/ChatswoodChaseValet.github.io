@@ -4694,7 +4694,7 @@ function dashResizeInit() {
 }
 
 // Tap a widget → show the underlying rows (e.g. which customers are returning).
-const WDET_LABELS = { name:'Customer', rego:'Plate', bay:'Spot', brand:'Vehicle', timein:'In', timeout:'Out', when:'Date', duration:'Stay', fee:'Fee', tip:'Tip', visits:'Visits' };
+const WDET_LABELS = { name:'Customer', rego:'Plate', bay:'Spot', brand:'Vehicle', timein:'In', timeout:'Out', when:'Date', duration:'Stay', fee:'Fee', tip:'Tip', visits:'Visits', pay:'Paid' };
 function widgetCell(e, c) {
   switch (c) {
     case 'name': return e.name || '—';
@@ -4708,6 +4708,11 @@ function widgetCell(e, c) {
     case 'fee': return e.totalFee != null ? fmtMoney(e.totalFee) : '—';
     case 'tip': return e.tip ? fmtMoney(e.tip) : '—';
     case 'visits': return String(e._visits || '');
+    case 'pay':
+      if (e.paymentStatus === 'shop') return 'Shop' + (e.shopAccount ? ': ' + e.shopAccount : '');
+      if (e.paymentStatus === 'comp') return 'Comp';
+      if (e.paymentStatus === 'unpaid') return 'Unpaid';
+      return e.paymentMethod ? (e.paymentMethod.charAt(0).toUpperCase() + e.paymentMethod.slice(1)) : '—';
   }
   return '';
 }
@@ -4715,7 +4720,7 @@ function openWidgetDetail(id) {
   // Stat numbers, the notes box and the recent-activity table have no extra
   // detail to drill into (the pickups stat jumps to the queue instead).
   if (id === 'pickups') { showView('pickup-queue'); return; }
-  if (['cars_in','cars_out','on_site','revenue','avg_stay','handover','recent'].includes(id)) return;
+  if (['cars_in','cars_out','on_site','avg_stay','handover','recent'].includes(id)) return;
   const inst = getDashLayout().find(x => x.id === id) || dashNormalize(id);
   const def = dashWidgetDef(id);
   if (!inst || !def) return;
@@ -4750,9 +4755,10 @@ function openWidgetDetail(id) {
     case 'brands':
       data = inByIn.slice().sort((a,b) => (a.brand||'').localeCompare(b.brand||''));
       cols = ['brand','name','rego', ...dcol, 'timein']; note = data.length + ' cars'; break;
+    case 'revenue':
     case 'money':
       data = comp.slice().sort((a,b) => (b.totalFee||0) - (a.totalFee||0));
-      cols = ['name','rego','brand', ...dcol, 'fee','tip','timeout']; note = data.length + ' completed'; break;
+      cols = ['name','rego','brand', ...dcol, 'fee','tip','pay','timeout']; note = data.length + ' paid · ' + fmtMoney(comp.reduce((s,e)=>s+(e.totalFee||0),0)); break;
   }
   document.getElementById('widget-detail-title').textContent = (inst.title && inst.title.trim()) ? inst.title.trim() : def.title;
   document.getElementById('widget-detail-note').textContent = note + ' · ' + (r === '7days' ? 'last 7 days' : r === 'all' ? 'all time' : 'today');
