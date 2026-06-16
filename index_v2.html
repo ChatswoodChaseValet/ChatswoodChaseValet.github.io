@@ -3911,9 +3911,11 @@ function pollSquareCheckout(checkoutId, tries) {
         if (typeof updateCheckoutTotalDisplay === 'function') updateCheckoutTotalDisplay();
         squareCheckoutId = null;
         if (cancelBtn) cancelBtn.style.display = 'none';
-        if (st) { st.style.color = 'var(--green)'; st.textContent = '✓ Paid on terminal — confirm checkout to finish.'; }
+        if (st) { st.style.color = 'var(--green)'; st.textContent = '✓ Paid on terminal — checking out…'; }
         if (lbl) lbl.textContent = '✓ Paid';
         if (typeof hapticFeedback === 'function') hapticFeedback('success');
+        // Payment succeeded — finalise the checkout automatically (no Confirm tap needed).
+        setTimeout(() => { try { confirmCheckout(); } catch (e) {} }, 800);
         return;
       }
       if (d.ok && (d.status === 'CANCELED' || d.status === 'CANCEL_REQUESTED')) {
