@@ -4720,7 +4720,7 @@ function renderActive() {
 
     const row = `<tr class="active" style="${rowStyle}">
       <td class="ticket-num">${e.ticket}</td>
-      <td>${e.name || '—'}</td>
+      <td>${e.name || '—'}${vipTag(e.vip)}</td>
       <td style="font-family:'Courier New',monospace;font-weight:bold">${e.rego}</td>
       <td><b>${e.brand}</b></td>
       <td>${e.model || '—'}</td>
@@ -4740,7 +4740,7 @@ function renderActive() {
       <div class="acard-meta">
         <span>Bay <b style="color:var(--text)">${e.bay}</b></span>
         <span>In ${fmtTime(new Date(e.timeIn))}</span>
-        <span>${e.name || '—'}</span>
+        <span>${e.name || '—'}${vipTag(e.vip)}</span>
         <span class="acard-fee">${fmtMoney(fees.total)}</span>
       </div>
       <div class="acard-actions">${actions}</div>
@@ -5093,7 +5093,7 @@ function renderQuickPickup() {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
         <div style="flex:1;min-width:0">
           <div style="font-family:'Courier New',monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">${e.ticket}</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${e.name || 'No name'}</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${e.name || 'No name'}${vipTag(e.vip)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--bronze);font-weight:600">Bay</div>
@@ -5383,6 +5383,11 @@ function shopChargeFor(e) {
 function customerDueAfterShop(total, shopCover) {
   if (shopCover == null || isNaN(shopCover)) return 0;        // shop covers full
   return Math.max(0, (Number(total) || 0) - Number(shopCover));
+}
+
+// Small gold "★ VIP" pill — shown next to a VIP customer's name across the app.
+function vipTag(on) {
+  return on ? ' <span style="display:inline-block;background:var(--bronze);color:#fff;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 5px;border-radius:9px;vertical-align:middle">★ VIP</span>' : '';
 }
 
 // Outstanding (unsettled) shop-billed cars for a given shop.
