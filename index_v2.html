@@ -203,7 +203,7 @@ body.mobile-mode .tab.desktop-only{display:none}
 
 /* ─── DASHBOARD INFOGRAPHICS ─── */
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(264px,1fr));gap:14px;margin-bottom:22px}
-.dash-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column}
+.dash-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-self:start}
 .dash-card h3{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin:0 0 12px}
 .dash-donut{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;flex:1}
 .dash-donut .cap{font-size:12px;color:var(--text-muted)}
@@ -231,6 +231,13 @@ body.mobile-mode .tab.desktop-only{display:none}
 .dash-card.dragging{opacity:.4;cursor:grabbing}
 /* Press-and-hold has "picked up" the widget — lift it so the user knows it can now be moved */
 .dash-card.dash-armed{transform:scale(1.03);box-shadow:0 8px 22px rgba(0,0,0,.28);cursor:grabbing;transition:transform .12s,box-shadow .12s}
+/* On phones the dashboard is a single column; ignore Wide/Large width so a
+   2-wide widget can't force a second column and push the page off-screen.
+   Tall widgets still keep their extra height. */
+@media (max-width:600px){
+  .dash-grid{grid-template-columns:1fr}
+  .dash-grid .dash-card{grid-column:auto !important}
+}
 .dash-card h3 .dash-drag{color:var(--text-muted);margin-right:6px;font-weight:400;font-size:16px}
 .dash-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
 .dash-card-head h3{margin:0}
@@ -4163,6 +4170,7 @@ function dashNormalize(x) {
     id,
     title: o.title || '',
     span: [1,2,99].includes(o.span) ? o.span : 1,
+    rows: [1,2].includes(o.rows) ? o.rows : 1,
     range: ['today','7days','all'].includes(o.range) ? o.range : 'today',
     limit: (o.limit === 0 || o.limit) ? o.limit : 5,
     cols: Array.isArray(o.cols) && o.cols.length ? o.cols.filter(c => DASH_COLS[c]) : ['name','rego','bay'],
@@ -4309,7 +4317,9 @@ function renderDashInfographics() {
     const t = inst.title && inst.title.trim() ? inst.title.trim()
       : def.title + (def.opts.includes('range') && inst.range !== 'today' ? ' · ' + rangeLabel(inst.range) : '');
     const span = inst.span === 99 ? 'grid-column:1/-1' : inst.span === 2 ? 'grid-column:span 2' : '';
-    return `<div class="dash-card${def.stat ? ' dash-card-stat' : ''}" data-wid="${inst.id}" style="${span}">
+    const tall = inst.rows === 2 ? 'min-height:300px' : '';
+    const cardStyle = [span, tall].filter(Boolean).join(';');
+    return `<div class="dash-card${def.stat ? ' dash-card-stat' : ''}" data-wid="${inst.id}" style="${cardStyle}">
       <div class="dash-card-head"><h3><span class="dash-drag" title="Press &amp; hold, then drag to move">⠿</span> ${escAttr(t)}</h3>
       <button class="dash-x" title="Remove from dashboard" onclick="dashRemove('${inst.id}')">✕</button></div>${body(inst)}</div>`;
   }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “Customize dashboard”.</div>';
@@ -4333,6 +4343,21 @@ function dashReset() { dashApply(DASH_DEFAULT.map(dashNormalize)); }
 // Title typing must NOT rebuild the modal (would drop focus) — update + re-render dashboard only.
 function dashSetTitle(id, val) { const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return; w.title = val; setDashLayout(l); dashRenderOnly(); }
 function dashSetSpan(id, val) { const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return; w.span = parseInt(val,10); dashApply(l); }
+// Combined size presets: width (span) × height (rows). Lets a widget be made
+// up to 2× wider and/or 2× taller than the default.
+const DASH_SIZES = { normal:[1,1], wide:[2,1], tall:[1,2], large:[2,2], full:[99,1] };
+function dashSizeKey(inst) {
+  if (inst.span === 99) return 'full';
+  if (inst.span === 2 && inst.rows === 2) return 'large';
+  if (inst.span === 2) return 'wide';
+  if (inst.rows === 2) return 'tall';
+  return 'normal';
+}
+function dashSetSize(id, val) {
+  const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return;
+  const [s, r] = DASH_SIZES[val] || [1, 1];
+  w.span = s; w.rows = r; dashApply(l);
+}
 function dashSetOpt(id, key, val) { const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return; w[key] = key==='limit' ? parseInt(val,10) : val; dashApply(l); }
 function dashToggleCol(id, col, on) { const l = getDashLayout(); const w = l.find(x => x.id === id); if (!w) return; const set = new Set(w.cols); on ? set.add(col) : set.delete(col); w.cols = [...set]; if (!w.cols.length) w.cols = ['name']; setDashLayout(l); dashRenderOnly(); }
 function dashDragStart(ev, id) { dashDragId = id; ev.dataTransfer.effectAllowed = 'move'; }
@@ -4494,7 +4519,7 @@ function renderDashCustomizeBody() {
       <div style="display:flex;align-items:center;gap:8px">
         <span class="drag-handle" draggable="true" ondragstart="dashDragStart(event,'${inst.id}')" title="Drag to reorder">⠿</span>
         <input class="form-input" style="flex:1;font-size:13px;padding:7px 10px" value="${escAttr(inst.title)}" placeholder="${escAttr(def.title)}" oninput="dashSetTitle('${inst.id}',this.value)">
-        <select class="form-input" style="width:auto;font-size:12px;padding:6px" onchange="dashSetSpan('${inst.id}',this.value)">${sel(inst.span,[[1,'Normal'],[2,'Wide'],[99,'Full width']])}</select>
+        <select class="form-input" style="width:auto;font-size:12px;padding:6px" onchange="dashSetSize('${inst.id}',this.value)" title="Widget size">${sel(dashSizeKey(inst),[['normal','Normal'],['wide','Wide (2× across)'],['tall','Tall (2× down)'],['large','Large (2×2)'],['full','Full width']])}</select>
         <button class="btn btn-secondary btn-sm" ${i===0?'disabled style="opacity:.35"':''} onclick="dashMove('${inst.id}',-1)" title="Move up">↑</button>
         <button class="btn btn-secondary btn-sm" ${i===layout.length-1?'disabled style="opacity:.35"':''} onclick="dashMove('${inst.id}',1)" title="Move down">↓</button>
         <button class="btn btn-danger btn-sm" onclick="dashRemove('${inst.id}')" title="Hide">✕</button>
