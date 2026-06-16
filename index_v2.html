@@ -403,6 +403,10 @@ tr:hover td{background:var(--bg)}
 /* Filter labels sit directly on the maroon page background — keep them light */
 .filters .form-label{color:rgba(255,255,255,.85)}
 
+/* Daily Volume vertical/horizontal chart-style toggle (icon buttons) */
+.chart-toggle{display:inline-flex;align-items:center;justify-content:center;padding:7px 11px}
+.chart-toggle.on{background:var(--maroon);color:#fff;border-color:var(--maroon)}
+
 /* ─── ACTIVE CARS as cards on phones (no sideways table scroll) ─── */
 .active-cards{display:none;flex-direction:column;gap:12px;margin-top:14px}
 .acard{border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:#fff;
@@ -1723,8 +1727,12 @@ body.dark-mode .scan-banner {
     <div class="section-header">
       <div class="section-title">Daily Volume</div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-secondary btn-sm" id="dv-vertical" onclick="setDailyChartDir('vertical')" title="Vertical columns">Vertical</button>
-        <button class="btn btn-secondary btn-sm" id="dv-horizontal" onclick="setDailyChartDir('horizontal')" title="Horizontal bars">Horizontal</button>
+        <button class="btn btn-secondary btn-sm chart-toggle" id="dv-vertical" onclick="setDailyChartDir('vertical')" title="Vertical columns" aria-label="Vertical columns">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>
+        </button>
+        <button class="btn btn-secondary btn-sm chart-toggle" id="dv-horizontal" onclick="setDailyChartDir('horizontal')" title="Horizontal bars" aria-label="Horizontal bars">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="15" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg>
+        </button>
       </div>
     </div>
     <div id="rep-daily-list"><div class="empty">No cars in this range</div></div>
@@ -6240,9 +6248,8 @@ function renderDailyVolume() {
   // Highlight the active toggle button.
   const vb = document.getElementById('dv-vertical'), hb = document.getElementById('dv-horizontal');
   if (vb && hb) {
-    const on = 'background:var(--maroon);color:#fff;border-color:var(--maroon)';
-    vb.setAttribute('style', dir === 'vertical' ? on : '');
-    hb.setAttribute('style', dir === 'horizontal' ? on : '');
+    vb.classList.toggle('on', dir === 'vertical');
+    hb.classList.toggle('on', dir === 'horizontal');
   }
   const list = lastDailyList;
   if (!list.length) { c.innerHTML = '<div class="empty">No data in this range</div>'; return; }
