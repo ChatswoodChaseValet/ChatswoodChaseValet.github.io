@@ -4913,6 +4913,7 @@ function renderActive() {
     } else if (hrs >= 2) {
       durStyle = 'color:#7a5a00;background:#fff3d4;font-weight:bold;padding:3px 8px;border-radius:3px;border:1px solid #e0a640';
     }
+    durStyle += ';white-space:nowrap';   // keep e.g. "17h 35m" on one line
 
     // Pickup-requested row highlight
     const rowStyle = e.pickupRequested
