@@ -4935,11 +4935,11 @@ function renderQuickPickup() {
       </div>
       ${extrasRow}
       ${statusRow}
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         ${callBtn}
         ${qrBtn}
-        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest('${e.id}')" style="flex:1;padding:14px 10px;font-size:13px">${e.pickupRequested ? '✓ Requested' : 'Request'}</button>
-        <button class="btn btn-primary" onclick="event.stopPropagation();checkout('${e.id}')" style="flex:2;padding:14px 10px;font-size:14px;font-weight:bold">✓ Mark Out · ${fmtMoney(fees.total)}</button>
+        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest('${e.id}')" style="flex:1;min-width:90px;padding:14px 10px;font-size:13px">${e.pickupRequested ? '✓ Requested' : 'Request'}</button>
+        <button class="btn btn-primary" onclick="event.stopPropagation();checkout('${e.id}')" style="flex:1 1 100%;min-width:0;padding:14px 10px;font-size:14px;font-weight:bold;white-space:nowrap">✓ Mark Out · ${fmtMoney(fees.total)}</button>
       </div>
     </div>`;
   }).join('');
@@ -5104,14 +5104,14 @@ function renderBagQueue() {
 
     // Status progress bar: Requested → Collecting → In car → Done.
     const curIdx = STEP_INDEX[st] ?? 0;
-    const stepper = `<div style="display:flex;align-items:center;padding:9px 14px;background:var(--sandstone);border-bottom:1px solid var(--border)">`
+    const stepper = `<div style="display:flex;align-items:center;padding:9px 10px;background:var(--sandstone);border-bottom:1px solid var(--border)">`
       + STEPS.map((label, i) => {
           const isDone = i < curIdx, isCur = i === curIdx;
           const dotBg = isDone ? '#3a7d44' : isCur ? hdr.bg : '#dcd7d0';
           const txtCol = (isDone || isCur) ? '#333' : '#b3aca3';
-          const dot = `<span style="width:18px;height:18px;border-radius:50%;background:${dotBg};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;flex:0 0 auto">${isDone ? '✓' : (i + 1)}</span>`;
-          const lab = `<span style="font-size:11px;font-weight:600;color:${txtCol};margin-left:5px;white-space:nowrap">${label}</span>`;
-          const conn = i < STEPS.length - 1 ? `<span style="flex:1;height:2px;background:${i < curIdx ? '#3a7d44' : '#dcd7d0'};margin:0 6px;min-width:8px"></span>` : '';
+          const dot = `<span style="width:15px;height:15px;border-radius:50%;background:${dotBg};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;flex:0 0 auto">${isDone ? '✓' : (i + 1)}</span>`;
+          const lab = `<span style="font-size:10px;font-weight:600;color:${txtCol};margin-left:4px;white-space:nowrap">${label}</span>`;
+          const conn = i < STEPS.length - 1 ? `<span style="flex:1;height:2px;background:${i < curIdx ? '#3a7d44' : '#dcd7d0'};margin:0 3px;min-width:4px"></span>` : '';
           return `<span style="display:inline-flex;align-items:center;flex:0 0 auto">${dot}${lab}</span>${conn}`;
         }).join('')
       + `</div>`;
