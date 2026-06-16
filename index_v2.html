@@ -2535,8 +2535,12 @@ function fmtTime(d) {
   return d.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', hour12:false });
 }
 function fmtDateISO(d) {
-  // YYYY-MM-DD for date input
-  return d.toISOString().slice(0,10);
+  // YYYY-MM-DD for date inputs — built from LOCAL parts so e.g. midnight on
+  // 1 June (Sydney) doesn't roll back to 31 May via UTC conversion.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 function fmtDuration(ms) {
   if (!ms || ms < 0) return '—';
@@ -6232,7 +6236,7 @@ function renderReports() {
     const max = Math.max(...dailyList.map(([_,c]) => c));
     dailyContainer.innerHTML = dailyList.map(([date, count]) => `
       <div class="brand-row">
-        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px">${fmtDate(new Date(date))}</div>
+        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px">${date.slice(8,10)}/${date.slice(5,7)}/${date.slice(2,4)}</div>
         <div class="brand-bar-wrap">
           <div class="brand-bar" style="width:${(count/max)*100}%;background:linear-gradient(90deg,var(--bronze),var(--bronze-light))"></div>
         </div>
