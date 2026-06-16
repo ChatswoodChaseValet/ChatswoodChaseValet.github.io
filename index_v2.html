@@ -6088,10 +6088,15 @@ function reportData() {
   const daily = Object.keys(byDay).sort().map(d => [d, byDay[d]]);
   const byBrand = {}; list.forEach(e => { const b = e.brand || '—'; byBrand[b] = (byBrand[b] || 0) + 1; });
   const brands = Object.entries(byBrand).sort((a, b) => b[1] - a[1]);
-  const byCust = {}; completed.forEach(e => { const k = e.name || e.phone || '—'; (byCust[k] = byCust[k] || { visits: 0, spent: 0 }); byCust[k].visits++; byCust[k].spent += (e.totalFee || 0); });
-  const spend = Object.entries(byCust).sort((a, b) => b[1].spent - a[1].spent);
-  return { from, to, list, completed, revenue, days, daily, brands, spend,
-    uniqueBrands: Object.keys(byBrand).length, bagJobs: list.filter(e => e.bagStatus).length };
+  // Peak times + average customer stay (shared insights engine).
+  const ins = computeInsights(list);
+  const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const wdMax = Math.max(...ins.weekday);
+  const peakDay = wdMax > 0 ? WD[ins.weekday.indexOf(wdMax)] : '—';
+  return { from, to, list, completed, revenue, days, daily, brands,
+    uniqueBrands: Object.keys(byBrand).length, bagJobs: list.filter(e => e.bagStatus).length,
+    peakIn: ins.peakIn, peakOut: ins.peakOut, peakOcc: ins.peakOcc, peakDay,
+    avgStayMs: ins.avgStay, medStayMs: ins.medStay };
 }
 
 // Download the current report as a CSV (opens in Excel / Google Sheets).
@@ -6111,11 +6116,17 @@ function downloadReportSpreadsheet() {
   row('Unique brands', r.uniqueBrands);
   row('Bag jobs', r.bagJobs);
   row('');
+  row('Peak Times');
+  row('Busiest arrival hour', r.peakIn ? hourLabel(r.peakIn.hour) + ' (' + r.peakIn.count + ' cars)' : '—');
+  row('Busiest pickup hour', r.peakOut ? hourLabel(r.peakOut.hour) + ' (' + r.peakOut.count + ' cars)' : '—');
+  row('Busiest day', r.peakDay);
+  row('Peak cars on site at once', r.peakOcc);
+  row('Average customer stay', r.avgStayMs ? fmtDuration(r.avgStayMs) : '—');
+  row('Median customer stay', r.medStayMs ? fmtDuration(r.medStayMs) : '—');
+  row('');
   row('Daily Volume'); row('Date', 'Cars'); r.daily.forEach(d => row(d[0], d[1]));
   row('');
   row('Brand Breakdown'); row('Brand', 'Cars'); r.brands.forEach(b => row(b[0], b[1]));
-  row('');
-  row('Customer Spend (completed)'); row('Customer', 'Visits', 'Total Spent'); r.spend.forEach(s => row(s[0], s[1].visits, s[1].spent.toFixed(2)));
   const blob = new Blob([L.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -6130,7 +6141,13 @@ function downloadReportPDF() {
   const tbl = (head, rows) => `<table><thead><tr>${head.map(h => `<th${h !== head[0] ? ' style="text-align:right"' : ''}>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
   const dailyRows = r.daily.map(d => `<tr><td>${fmtDate(new Date(d[0]))}</td><td style="text-align:right">${d[1]}</td></tr>`).join('');
   const brandRows = r.brands.map(b => `<tr><td>${b[0]}</td><td style="text-align:right">${b[1]}</td></tr>`).join('');
-  const spendRows = r.spend.map(s => `<tr><td>${s[0]}</td><td style="text-align:right">${s[1].visits}</td><td style="text-align:right">${fmtMoney(s[1].spent)}</td></tr>`).join('');
+  const peakRows =
+    `<tr><td>Busiest arrival hour</td><td style="text-align:right">${r.peakIn ? hourLabel(r.peakIn.hour) + ' (' + r.peakIn.count + ' cars)' : '—'}</td></tr>`
+    + `<tr><td>Busiest pickup hour</td><td style="text-align:right">${r.peakOut ? hourLabel(r.peakOut.hour) + ' (' + r.peakOut.count + ' cars)' : '—'}</td></tr>`
+    + `<tr><td>Busiest day</td><td style="text-align:right">${r.peakDay}</td></tr>`
+    + `<tr><td>Peak cars on site at once</td><td style="text-align:right">${r.peakOcc}</td></tr>`
+    + `<tr><td>Average customer stay</td><td style="text-align:right">${r.avgStayMs ? fmtDuration(r.avgStayMs) : '—'}</td></tr>`
+    + `<tr><td>Median customer stay</td><td style="text-align:right">${r.medStayMs ? fmtDuration(r.medStayMs) : '—'}</td></tr>`;
   const w = window.open('', '_blank', 'width=820,height=900');
   w.document.write(`<!DOCTYPE html><html><head><title>Valet Report ${r.from} to ${r.to}</title>
     <style>body{font-family:Arial,Helvetica,sans-serif;color:#222;padding:28px;max-width:760px;margin:0 auto}
@@ -6152,9 +6169,9 @@ function downloadReportPDF() {
       <div class="sc"><span>Unique brands</span><b>${r.uniqueBrands}</b></div>
       <div class="sc"><span>Bag jobs</span><b>${r.bagJobs}</b></div>
     </div>
+    <h2>Peak Times &amp; Customer Stay</h2>${tbl(['Measure', 'Value'], peakRows)}
     <h2>Daily Volume</h2>${tbl(['Date', 'Cars'], dailyRows)}
     <h2>Brand Breakdown</h2>${tbl(['Brand', 'Cars'], brandRows)}
-    <h2>Customer Spend</h2>${tbl(['Customer', 'Visits', 'Total Spent'], spendRows)}
     <button onclick="window.print()" style="margin-top:22px;padding:10px 20px;background:#531620;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print / Save as PDF</button>
     </body></html>`);
   w.document.close();
