@@ -6528,7 +6528,7 @@ function renderSpend(filtered) {
     + order.map(d => `<div class="brand-row">
         <div class="brand-name" style="font-size:13px;min-width:54px">${WDshort[d]}</div>
         <div class="brand-bar-wrap"><div class="brand-bar" style="width:${max ? (ins.revByWeekday[d] / max * 100) : 0}%;background:linear-gradient(90deg,var(--green),#6fae73)"></div></div>
-        <div class="brand-count" style="min-width:140px;text-align:right;font-family:'Courier New',monospace">${fmtMoney(ins.revByWeekday[d])}${ins.completedByWeekday[d] ? ' · ' + fmtMoney(ins.revByWeekday[d] / ins.completedByWeekday[d]) + '/car' : ''}</div>
+        <div class="brand-count" style="min-width:170px;text-align:right;white-space:nowrap;font-family:'Courier New',monospace">${fmtMoney(ins.revByWeekday[d])}${ins.completedByWeekday[d] ? ' · ' + fmtMoney(ins.revByWeekday[d] / ins.completedByWeekday[d]) + '/car' : ''}</div>
       </div>`).join('');
 
   c.innerHTML = grid + chart;
