@@ -3870,6 +3870,9 @@ function pollSquareCheckout(checkoutId, tries) {
       if (d.ok && d.status === 'COMPLETED') {
         document.getElementById('checkout-pay-status').value = 'paid';
         document.getElementById('checkout-pay-method').value = 'card';
+        // Record Square's payment reference on the entry (saved on Confirm).
+        const e = entries.find(x => x.id === document.getElementById('checkout-modal').dataset.entryId);
+        if (e) e.squarePayment = d.paymentId || checkoutId || null;
         if (typeof updateCheckoutTotalDisplay === 'function') updateCheckoutTotalDisplay();
         if (st) { st.style.color = 'var(--green)'; st.textContent = '✓ Paid on terminal — confirm checkout to finish.'; }
         if (lbl) lbl.textContent = '✓ Paid';
@@ -7150,7 +7153,7 @@ function updatePrinterTypeUI() {
 // ═══════════════════════════════════════════════════
 function exportCSV() {
   if (entries.length === 0) { alert('No entries to export.'); return; }
-  const headers = ['Ticket','Date','Time In','Time Out','Duration (min)','Bay','Brand','Model','Colour','Rego','Customer Name','Phone','Attendant In','Attendant Out','Parking Fee','Valet Fee','Total Fee','Tip','Payment Status','Payment Method','Notes'];
+  const headers = ['Ticket','Date','Time In','Time Out','Duration (min)','Bay','Brand','Model','Colour','Rego','Customer Name','Phone','Attendant In','Attendant Out','Parking Fee','Valet Fee','Total Fee','Tip','Payment Status','Payment Method','Square Payment ID','Notes'];
   const rows = entries.map(e => {
     const tIn = new Date(e.timeIn);
     const tOut = e.timeOut ? new Date(e.timeOut) : null;
@@ -7176,6 +7179,7 @@ function exportCSV() {
       e.tip !== undefined ? e.tip.toFixed(2) : '',
       e.paymentStatus || '',
       e.paymentMethod || '',
+      e.squarePayment || '',
       e.notes || '',
     ];
   });
@@ -8882,6 +8886,7 @@ function jsToDb(e) {
     shop_account: e.shopAccount, shop_cover: e.shopCover,
     shop_settled_at: e.shopSettledAt, shop_settled_by: e.shopSettledBy,
     vip: e.vip ? true : null,
+    square_payment: e.squarePayment || null,
     updated_by: currentUser?.username,
     updated_at: new Date().toISOString(),
   };
@@ -8911,6 +8916,7 @@ function dbToJs(d) {
     shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
     shopSettledAt: d.shop_settled_at, shopSettledBy: d.shop_settled_by,
     vip: !!d.vip,
+    squarePayment: d.square_payment,
   };
 }
 
