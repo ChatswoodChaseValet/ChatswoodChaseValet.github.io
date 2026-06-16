@@ -968,7 +968,6 @@ body.dark-mode .scan-banner {
   <button class="tab" onclick="showView(&#39;pickup-queue&#39;)" aria-label="Queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="tab-label">Queue</span><span class="tab-badge" id="pq-tab-badge" style="display:none">0</span></button>
   <button class="tab" onclick="showView(&#39;bags&#39;)" aria-label="Bags"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="tab-label">Bags</span><span class="tab-badge" id="bag-tab-badge" style="display:none">0</span></button>
   <button class="tab" onclick="showView(&#39;active&#39;)" aria-label="Active Cars"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg><span class="tab-label">Active Cars</span><span class="tab-badge" id="active-tab-badge" style="display:none">0</span></button>
-  <button class="tab desktop-only" onclick="showView(&#39;log&#39;)" aria-label="Full Log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><span class="tab-label">Full Log</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)" aria-label="Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="tab-label">Customers</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;reports&#39;)" aria-label="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="tab-label">Reports</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;settings&#39;)" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="tab-label">Settings</span></button>
@@ -977,13 +976,14 @@ body.dark-mode .scan-banner {
 <!-- Reports sub-menu flyout -->
 <div id="reports-flyout" class="nav-flyout">
   <div class="nav-flyout-title">Reports</div>
-  <button class="flyout-item" data-group="peak" onclick="showReportsGroup('peak')">Peak Times</button>
-  <button class="flyout-item" data-group="volume" onclick="showReportsGroup('volume')">Daily Volume</button>
-  <button class="flyout-item" data-group="spend" onclick="showReportsGroup('spend')">Customer Spend</button>
-  <button class="flyout-item" data-group="brands" onclick="showReportsGroup('brands')">Brands</button>
-  <button class="flyout-item" data-group="bagstaff" onclick="showReportsGroup('bagstaff')">Bag Jobs by Staff</button>
-  <button class="flyout-item" data-group="discounts" onclick="showReportsGroup('discounts')">Discounts</button>
-  <button class="flyout-item" data-group="comparison" onclick="showReportsGroup('comparison')">Period Comparison</button>
+  <button class="flyout-item" data-group="peak" onclick="goReport('peak')">Peak Times</button>
+  <button class="flyout-item" data-group="volume" onclick="goReport('volume')">Daily Volume</button>
+  <button class="flyout-item" data-group="spend" onclick="goReport('spend')">Customer Spend</button>
+  <button class="flyout-item" data-group="brands" onclick="goReport('brands')">Brands</button>
+  <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
+  <button class="flyout-item" data-group="discounts" onclick="goReport('discounts')">Discounts</button>
+  <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
+  <button class="flyout-item" data-group="log" onclick="goReport('log')">Full Log</button>
 </div>
 
 <!-- Settings sub-menu flyout — pops out beside the rail when Settings is open -->
@@ -2607,7 +2607,7 @@ function showView(name) {
   document.getElementById('view-' + name).classList.add('active');
   // Find tab and activate
   const tabs = document.querySelectorAll('.tab');
-  const names = ['dashboard','new-entry','quick-pickup','pickup-queue','bags','active','log','customers','reports','settings'];
+  const names = ['dashboard','new-entry','quick-pickup','pickup-queue','bags','active','customers','reports','settings'];
   const i = names.indexOf(name);
   if (i >= 0 && tabs[i]) tabs[i].classList.add('active');
 
@@ -2615,7 +2615,15 @@ function showView(name) {
   const sFly = document.getElementById('settings-flyout');
   if (sFly) sFly.classList.toggle('open', name === 'settings');
   const rFly = document.getElementById('reports-flyout');
-  if (rFly) rFly.classList.toggle('open', name === 'reports');
+  // Full Log now lives under Reports: keep its flyout open (and the Reports
+  // tab + "Full Log" item highlighted) while the log view is showing.
+  if (rFly) rFly.classList.toggle('open', name === 'reports' || name === 'log');
+  if (name === 'log') {
+    const ri = names.indexOf('reports');
+    if (ri >= 0 && tabs[ri]) tabs[ri].classList.add('active');
+    document.querySelectorAll('#reports-flyout .flyout-item')
+      .forEach(p => p.classList.toggle('active', p.dataset.group === 'log'));
+  }
 
   if (name === 'dashboard') renderDashboard();
   if (name === 'new-entry') prepareNewEntry();
@@ -6353,6 +6361,16 @@ function showSettingsGroup(g) {
 function showReportsGroup(g) {
   document.querySelectorAll('#view-reports .rep-section').forEach(s => s.classList.toggle('show', s.dataset.repgroup === g));
   document.querySelectorAll('#reports-flyout .flyout-item').forEach(p => p.classList.toggle('active', p.dataset.group === g));
+}
+
+// Reports sub-menu click handler. "Full Log" is its own view; the analytics
+// groups live inside view-reports. This switches to the right view first so
+// the item works even when you're currently on the Full Log.
+function goReport(g) {
+  if (g === 'log') { showView('log'); return; }
+  const rv = document.getElementById('view-reports');
+  if (rv && !rv.classList.contains('active')) showView('reports');
+  showReportsGroup(g);
 }
 
 function renderSettings() {
