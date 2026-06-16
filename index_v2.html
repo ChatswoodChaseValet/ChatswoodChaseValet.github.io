@@ -203,7 +203,12 @@ body.mobile-mode .tab.desktop-only{display:none}
 
 /* ─── DASHBOARD INFOGRAPHICS ─── */
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(264px,1fr));gap:14px;margin-bottom:22px}
-.dash-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-self:start}
+.dash-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-self:start;position:relative}
+/* Drag this corner grip to resize a widget (width + height) */
+.dash-resize{position:absolute;right:2px;bottom:2px;width:24px;height:24px;cursor:nwse-resize;opacity:.45;touch-action:none;z-index:3}
+.dash-resize::after{content:'';position:absolute;right:5px;bottom:5px;width:9px;height:9px;border-right:2px solid var(--bronze);border-bottom:2px solid var(--bronze)}
+.dash-resize:hover{opacity:1}
+.dash-card.dash-resizing{outline:2px solid var(--bronze);outline-offset:-2px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
 .dash-card h3{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin:0 0 12px}
 .dash-donut{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;flex:1}
 .dash-donut .cap{font-size:12px;color:var(--text-muted)}
@@ -4199,6 +4204,7 @@ function renderDashInfographics() {
   const ig = document.getElementById('dash-infographics');
   if (!ig) return;
   dashPointerDnDInit();
+  dashResizeInit();
   const now = Date.now();
   const today = new Date();
   const midnight = new Date(); midnight.setHours(0,0,0,0);
@@ -4321,7 +4327,7 @@ function renderDashInfographics() {
     const cardStyle = [span, tall].filter(Boolean).join(';');
     return `<div class="dash-card${def.stat ? ' dash-card-stat' : ''}" data-wid="${inst.id}" style="${cardStyle}">
       <div class="dash-card-head"><h3><span class="dash-drag" title="Press &amp; hold, then drag to move">⠿</span> ${escAttr(t)}</h3>
-      <button class="dash-x" title="Remove from dashboard" onclick="dashRemove('${inst.id}')">✕</button></div>${body(inst)}</div>`;
+      <button class="dash-x" title="Remove from dashboard" onclick="dashRemove('${inst.id}')">✕</button></div>${body(inst)}<span class="dash-resize" title="Drag to resize"></span></div>`;
   }).join('') || '<div class="dash-empty" style="grid-column:1/-1">No widgets shown — click “Customize dashboard”.</div>';
 
   if (hoFocused) {
@@ -4376,7 +4382,7 @@ function dashPointerDnDInit() {
   const LONG_PRESS_MS = 400;
   document.addEventListener('pointerdown', ev => {
     if (ev.button === 2) return;                                      // ignore right-click
-    if (ev.target.closest && ev.target.closest('.dash-x,button,a,select,input,textarea')) return; // keep controls clickable
+    if (ev.target.closest && ev.target.closest('.dash-x,button,a,select,input,textarea,.dash-resize')) return; // keep controls & the resize grip out of reorder
     const card = ev.target.closest && ev.target.closest('#dash-infographics .dash-card');
     if (!card || !card.getAttribute('data-wid')) return;
     const isMouse = ev.pointerType === 'mouse';
@@ -4427,6 +4433,65 @@ function dashPointerDnDInit() {
   };
   document.addEventListener('pointerup', end);
   document.addEventListener('pointercancel', end);
+}
+
+// Drag the bottom-right grip to resize a widget. Width snaps to 1 / 2 / full
+// columns; height snaps to normal / tall. Live-previews while dragging, then
+// commits + saves on release. Separate from the reorder gesture (which is on
+// the card body); the grip is excluded from that handler.
+let dashRz = null;
+function dashResizeInit() {
+  if (dashResizeInit._done) return; dashResizeInit._done = true;
+  document.addEventListener('pointerdown', ev => {
+    const grip = ev.target.closest && ev.target.closest('.dash-resize');
+    if (!grip) return;
+    const card = grip.closest('.dash-card'); if (!card) return;
+    const grid = card.closest('#dash-infographics'); if (!grid) return;
+    ev.preventDefault();
+    const tracks = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean);
+    const gap = parseFloat(getComputedStyle(grid).columnGap) || 14;
+    const cr = card.getBoundingClientRect();
+    const cur = getDashLayout().find(x => x.id === card.getAttribute('data-wid')) || {};
+    dashRz = {
+      id: card.getAttribute('data-wid'), card,
+      totalCols: tracks.length, gap,
+      tw: parseFloat(tracks[0]) || cr.width,
+      left: cr.left, top: cr.top,
+      span: cur.span || 1, rows: cur.rows || 1,
+    };
+    card.classList.add('dash-resizing');
+    try { grip.setPointerCapture(ev.pointerId); } catch (e) {}
+  });
+  document.addEventListener('pointermove', ev => {
+    if (!dashRz) return;
+    ev.preventDefault();
+    const z = dashRz;
+    // Width → columns (only when the grid actually has >1 column, i.e. not phone)
+    if (z.totalCols > 1) {
+      let cols = Math.round((ev.clientX - z.left + z.gap) / (z.tw + z.gap));
+      cols = Math.max(1, Math.min(z.totalCols, cols));
+      z.span = cols >= z.totalCols ? 99 : (cols >= 2 ? 2 : 1);
+    }
+    // Height → normal / tall
+    z.rows = (ev.clientY - z.top) > 230 ? 2 : 1;
+    // Live preview
+    z.card.style.gridColumn = z.span === 99 ? '1/-1' : z.span === 2 ? 'span 2' : 'auto';
+    z.card.style.minHeight = z.rows === 2 ? '300px' : '';
+  }, { passive: false });
+  const endRz = () => {
+    if (!dashRz) return;
+    const z = dashRz; dashRz = null;
+    z.card.classList.remove('dash-resizing');
+    const l = getDashLayout(); const w = l.find(x => x.id === z.id);
+    if (w && (w.span !== z.span || w.rows !== z.rows)) {
+      w.span = z.span; w.rows = z.rows; dashApply(l);
+      if (typeof hapticFeedback === 'function') hapticFeedback('success');
+    } else {
+      dashApply(l);   // re-render to clear any inline preview styles
+    }
+  };
+  document.addEventListener('pointerup', endRz);
+  document.addEventListener('pointercancel', endRz);
 }
 
 // Tap a widget → show the underlying rows (e.g. which customers are returning).
