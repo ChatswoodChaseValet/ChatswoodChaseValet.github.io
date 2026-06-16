@@ -1631,6 +1631,7 @@ body.dark-mode .scan-banner {
       <table>
         <thead>
           <tr>
+            <th onclick="sortCustomers('vip')" style="cursor:pointer" title="Sort VIPs first">VIP <span id="csort-vip"></span></th>
             <th onclick="sortCustomers('name')" style="cursor:pointer" title="Sort by name">Customer <span id="csort-name"></span></th>
             <th>Phone</th>
             <th>Vehicle</th>
@@ -1641,7 +1642,7 @@ body.dark-mode .scan-banner {
           </tr>
         </thead>
         <tbody id="customers-tbody">
-          <tr><td colspan="7" class="empty" style="border-bottom:none">No customers yet</td></tr>
+          <tr><td colspan="8" class="empty" style="border-bottom:none">No customers yet</td></tr>
         </tbody>
       </table>
     </div>
@@ -8412,6 +8413,7 @@ function renderCustomers() {
         const av = (a.name || '').toLowerCase(), bv = (b.name || '').toLowerCase();
         return av < bv ? -dir : av > bv ? dir : 0;
       }
+      case 'vip': return ((a.vip ? 1 : 0) - (b.vip ? 1 : 0)) * dir;
       case 'visitCount': return (a.visitCount - b.visitCount) * dir;
       case 'lifetime':   return (a.lifetime - b.lifetime) * dir;
       case 'lastVisit':
@@ -8420,7 +8422,7 @@ function renderCustomers() {
   });
 
   // Reflect the active sort in the column-header arrows
-  ['name', 'visitCount', 'lifetime', 'lastVisit'].forEach(k => {
+  ['vip', 'name', 'visitCount', 'lifetime', 'lastVisit'].forEach(k => {
     const el = document.getElementById('csort-' + k);
     if (el) el.textContent = customerSort.key === k ? (customerSort.dir === 'asc' ? '▲' : '▼') : '';
   });
@@ -8430,7 +8432,7 @@ function renderCustomers() {
 
   const tbody = document.getElementById('customers-tbody');
   if (customers.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty" style="border-bottom:none">' +
+    tbody.innerHTML = '<tr><td colspan="8" class="empty" style="border-bottom:none">' +
       (search ? 'No matching customers' : 'No customers yet') + '</td></tr>';
     return;
   }
@@ -8440,9 +8442,10 @@ function renderCustomers() {
     const daysSince = Math.floor((new Date() - last) / 86400000);
     const lastText = daysSince === 0 ? 'Today' : daysSince === 1 ? 'Yesterday' : fmtDate(last);
     const vehicle = (c.brand + (c.model ? ' ' + c.model : '')).trim() || '—';
-    const vipBadge = c.vip ? ' <span style="display:inline-block;background:var(--bronze);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:10px;vertical-align:middle">★ VIP</span>' : '';
+    const vipCell = c.vip ? '<span style="display:inline-block;background:var(--bronze);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 7px;border-radius:10px">★ VIP</span>' : '<span style="color:var(--border)">—</span>';
     return `<tr style="cursor:pointer" onclick="showCustomerDetail('${c.rego.replace(/'/g, "\\'")}')">
-      <td><b>${c.name || '—'}</b>${vipBadge}</td>
+      <td style="text-align:center">${vipCell}</td>
+      <td><b>${c.name || '—'}</b></td>
       <td>${c.phone ? `<a href="tel:${c.phone}" onclick="event.stopPropagation()">${c.phone}</a>` : '—'}</td>
       <td>${vehicle}</td>
       <td style="font-family:'Courier New',monospace;font-weight:bold">${c.rego}</td>
