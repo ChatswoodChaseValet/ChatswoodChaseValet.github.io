@@ -1176,6 +1176,10 @@ body.dark-mode .scan-banner {
       </div>
     </div>
 
+    <div id="ai-fill-hint" style="display:none;background:linear-gradient(90deg,#faf9f7,#fafafa);border-left:4px solid var(--bronze);padding:10px 14px;border-radius:4px;margin:-4px 0 16px;font-size:12px;color:var(--text-muted);line-height:1.5">
+      <strong style="color:var(--bronze)">Read from the photo</strong> — <span id="ai-fill-hint-vals" style="color:var(--text);font-weight:600"></span>. Please glance to confirm or correct.
+    </div>
+
     <div class="form-grid">
       <div class="form-field">
         <label class="form-label">
@@ -3302,6 +3306,8 @@ function resetForm() {
   });
   document.getElementById('f-brand').value = '';
   document.getElementById('customer-banner').style.display = 'none';
+  const aiHint = document.getElementById('ai-fill-hint');
+  if (aiHint) aiHint.style.display = 'none';
   clearPendingExtras();
   // Note: f-attendant intentionally kept so you don't have to retype during a shift
 }
@@ -7045,7 +7051,12 @@ function saveVehicleCache(c) {
 // staff edits and free history fills always win. Also reflects in the scan modal.
 function applyVehicleInfo(info) {
   if (!info) return;
-  const fill = (id, v) => { const el = document.getElementById(id); if (el && !el.value && v) el.value = v; };
+  const filled = [];   // the values we actually wrote, for the on-form hint
+  const fill = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && !el.value && v) { el.value = v; filled.push(v); return true; }
+    return false;
+  };
   if (info.make) {
     const bi = document.getElementById('f-brand');
     if (bi && !bi.value) {
@@ -7053,10 +7064,18 @@ function applyVehicleInfo(info) {
         .find(opt => opt.value.toLowerCase() === info.make.toLowerCase());
       bi.value = match ? match.value : info.make;
       if (typeof updateModelOptions === 'function') updateModelOptions();
+      filled.push(bi.value);
     }
   }
   fill('f-model', info.model);
   fill('f-colour', info.colour);
+  // Tell staff these were machine-read so they glance to confirm
+  const hint = document.getElementById('ai-fill-hint');
+  if (hint && filled.length) {
+    const vals = document.getElementById('ai-fill-hint-vals');
+    if (vals) vals.textContent = filled.join(' · ');
+    hint.style.display = 'block';
+  }
   // Show the recognised car in the scan modal status, if it's still open
   const st = document.getElementById('plate-status');
   const modal = document.getElementById('plate-modal');
