@@ -1011,6 +1011,7 @@ body.dark-mode .scan-banner {
   <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
   <button class="flyout-item" data-group="discounts" onclick="goReport('discounts')">Discounts</button>
   <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
+  <button class="flyout-item" data-group="shopaccounts" onclick="goReport('shopaccounts')">Shop Accounts</button>
   <button class="flyout-item" data-group="log" onclick="goReport('log')">Full Log</button>
 </div>
 
@@ -1231,6 +1232,21 @@ body.dark-mode .scan-banner {
       <div class="form-field">
         <label class="form-label">Attendant (taking car)</label>
         <input type="text" id="f-attendant" class="form-input" placeholder="e.g. JD" autocomplete="off" maxlength="6" style="text-transform:uppercase">
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Charge parking to shop
+          <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">VIP — shop pays, settle later</span>
+        </label>
+        <select id="f-shop" class="form-select">
+          <option value="">— No · customer pays —</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Amount shop covers</label>
+        <input type="number" id="f-shop-cover" class="form-input" placeholder="Blank = full fee" step="0.01" min="0">
       </div>
     </div>
 
@@ -1804,6 +1820,14 @@ body.dark-mode .scan-banner {
     </div>
     </div>
   </div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="shopaccounts">
+    <div class="section-header">
+      <div class="section-title">Shop Accounts</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic">Parking billed to shops · settle at end of day/week</div>
+    </div>
+    <div id="rep-shopaccounts"></div>
   </div>
 </div>
 
@@ -2733,6 +2757,12 @@ function prepareNewEntry() {
   document.getElementById('f-ticket').readOnly = true;
   document.getElementById('f-ticket').style.background = 'var(--sandstone)';
   document.getElementById('auto-ticket-btn').style.display = 'none';
+  // Populate the charge-to-shop dropdown from the Level 1 shop list.
+  const shopSel = document.getElementById('f-shop');
+  if (shopSel && shopSel.options.length <= 1) {
+    shopSel.innerHTML = '<option value="">— No · customer pays —</option>'
+      + L1_SHOPS.map(s => `<option value="${escAttr(s)}">${s.replace(/</g, '&lt;')}</option>`).join('');
+  }
   // Draw the (empty) damage diagram for this fresh entry
   renderDamageMarkers();
 }
@@ -2973,6 +3003,13 @@ function saveEntry() {
     photo: pendingCarPhoto,
     gps: pendingGPS,
     damage: damageMarkers.slice(),
+    shopAccount: (document.getElementById('f-shop').value || '').trim() || null,
+    shopCover: (() => {
+      const v = document.getElementById('f-shop-cover').value.trim();
+      return v === '' ? null : (isNaN(parseFloat(v)) ? null : parseFloat(v));
+    })(),
+    shopSettledAt: null,
+    shopSettledBy: null,
   };
 
   // Remember last attendant for convenience
@@ -3365,6 +3402,8 @@ function resetForm() {
     document.getElementById(id).value = '';
   });
   document.getElementById('f-brand').value = '';
+  const shopSel = document.getElementById('f-shop'); if (shopSel) shopSel.value = '';
+  const shopCov = document.getElementById('f-shop-cover'); if (shopCov) shopCov.value = '';
   document.getElementById('customer-banner').style.display = 'none';
   const aiHint = document.getElementById('ai-fill-hint');
   if (aiHint) aiHint.style.display = 'none';
@@ -3485,6 +3524,15 @@ function checkout(id) {
   document.getElementById('checkout-pay-status').value = 'paid';
   document.getElementById('checkout-pay-method').value = 'card';
   document.getElementById('checkout-attendant-out').value = settings.lastAttendant || '';
+  // Charge-to-shop: populate the shop list and pre-select if it was set at check-in.
+  const shopSel = document.getElementById('checkout-shop');
+  if (shopSel) {
+    shopSel.innerHTML = '<option value="">— No · customer pays —</option>'
+      + L1_SHOPS.map(s => `<option value="${escAttr(s)}">${s.replace(/</g, '&lt;')}</option>`).join('');
+    shopSel.value = e.shopAccount || '';
+  }
+  const coverEl = document.getElementById('checkout-shop-cover');
+  if (coverEl) coverEl.value = (e.shopCover != null && !isNaN(e.shopCover)) ? e.shopCover : '';
   document.getElementById('checkout-modal').classList.add('show');
   document.getElementById('checkout-modal').dataset.entryId = id;
   document.getElementById('checkout-modal').dataset.calculatedFee = fees.total;
@@ -3590,6 +3638,23 @@ function updateCheckoutTotalDisplay() {
     }).join('');
   } else {
     discountLines.innerHTML = '';
+  }
+
+  // Charge-to-shop: the shop covers some/all of the fee; show what the customer pays.
+  const shopSel = document.getElementById('checkout-shop');
+  const shop = shopSel ? shopSel.value : '';
+  if (shop) {
+    const coverRaw = document.getElementById('checkout-shop-cover').value.trim();
+    const cover = coverRaw === '' ? null : parseFloat(coverRaw);
+    const shopPays = (cover == null || isNaN(cover)) ? total : Math.min(cover, total);
+    const custDue = Math.max(0, total - shopPays);
+    discountLines.innerHTML += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:#7a5a00"><span>Charged to ${shop}:</span><strong>−${fmtMoney(shopPays)}</strong></div>`;
+    totalEl.textContent = fmtMoney(custDue);
+    totalEl.style.color = custDue === 0 ? 'var(--green)' : 'var(--maroon)';
+    labelEl.innerHTML = custDue === 0
+      ? `<b>CUSTOMER PAYS $0</b> <span style="font-weight:400;font-size:11px;color:var(--text-muted)">· ${shop} billed ${fmtMoney(shopPays)}</span>`
+      : `<b>CUSTOMER PAYS:</b> <span style="font-weight:400;font-size:11px;color:var(--text-muted)">· ${shop} billed ${fmtMoney(shopPays)}</span>`;
+    return;
   }
 
   totalEl.textContent = fmtMoney(total);
@@ -3749,6 +3814,20 @@ function confirmCheckout() {
   e.discounts = discountsToSave;
   e.discountTotal = discountTotal;
   settings.lastAttendant = attOut;
+
+  // Charge-to-shop: record which shop is billed and how much they cover.
+  const shopAccount = (document.getElementById('checkout-shop').value || '').trim();
+  if (shopAccount) {
+    e.shopAccount = shopAccount;
+    const coverRaw = document.getElementById('checkout-shop-cover').value.trim();
+    const cover = coverRaw === '' ? null : parseFloat(coverRaw);
+    e.shopCover = (cover == null || isNaN(cover)) ? null : Math.min(cover, total);
+    e.paymentStatus = 'shop';     // billed to the shop's account, settled later
+    e.paymentMethod = null;
+    if (!e.shopSettledAt) { e.shopSettledAt = null; e.shopSettledBy = null; }
+  } else {
+    e.shopAccount = null; e.shopCover = null;
+  }
 
   saveData(e.id, { immediate: true });
   saveSettingsToStorage();
@@ -5203,6 +5282,152 @@ function renderBagQueue() {
 // so update both when the shops change.
 const L1_SHOPS = ['Bvlgari', 'Burberry', 'Cartier', 'Céline', 'Chaumet', 'Dior', 'Dolce & Gabbana', 'Emporio Armani', 'FRED', 'Georg Jensen', 'Hermès', 'Jaeger-LeCoultre', 'Louis Vuitton', 'Moncler', 'Omega', 'Rimowa', 'Rolex', 'TAG Heuer', 'Tiffany & Co'];
 
+// ─── SHOP ACCOUNTS (a shop pays for a VIP customer's parking, settled later) ───
+// A car can be billed to a shop instead of the customer. shopCover = the $ the
+// shop covers; null means "the full fee" (whatever it works out to at checkout).
+function isShopBilled(e) { return !!(e && e.shopAccount); }
+function isShopSettled(e) { return !!(e && e.shopSettledAt); }
+// What the shop owes for this car. For a fixed cover use that; otherwise the
+// full fee — final once checked out, or the live running fee while still parked.
+function shopChargeFor(e) {
+  if (!isShopBilled(e)) return 0;
+  if (e.shopCover != null && !isNaN(e.shopCover)) return Number(e.shopCover);
+  if (e.timeOut) return Number(e.totalFee) || 0;
+  return calculateTotalFee(new Date() - new Date(e.timeIn)).total;  // running estimate
+}
+// What the customer still pays at the desk (0 when the shop covers it all).
+function customerDueAfterShop(total, shopCover) {
+  if (shopCover == null || isNaN(shopCover)) return 0;        // shop covers full
+  return Math.max(0, (Number(total) || 0) - Number(shopCover));
+}
+
+// Outstanding (unsettled) shop-billed cars for a given shop.
+function shopOpenCharges(shop) {
+  return entries.filter(e => isShopBilled(e) && !isShopSettled(e) && e.shopAccount === shop);
+}
+
+// Render the Shop Accounts report: a card per shop with its outstanding balance,
+// the charges that make it up, and Settle / Statement / CSV actions.
+function renderShopAccounts() {
+  const wrap = document.getElementById('rep-shopaccounts');
+  if (!wrap) return;
+  const billed = entries.filter(e => isShopBilled(e) && !isShopSettled(e));
+  const shops = {};
+  billed.forEach(e => { (shops[e.shopAccount] = shops[e.shopAccount] || []).push(e); });
+  const names = Object.keys(shops).sort((a, b) => a.localeCompare(b));
+  if (names.length === 0) {
+    wrap.innerHTML = '<div class="empty" style="text-align:center;color:var(--text-muted);padding:24px">No outstanding shop charges. When a shop covers a customer’s parking, it appears here until the shop settles.</div>';
+    return;
+  }
+  let grand = 0;
+  names.forEach(s => shops[s].forEach(e => { if (e.timeOut) grand += shopChargeFor(e); }));
+
+  let html = `<div style="background:var(--maroon);color:#fff;border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div><div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--champagne)">Total outstanding</div>
+      <div style="font-size:26px;font-weight:bold;font-family:'Courier New',monospace">${fmtMoney(grand)}</div></div>
+      <div style="font-size:12px;color:var(--champagne)">${names.length} shop${names.length !== 1 ? 's' : ''} with open charges</div></div>`;
+
+  names.forEach(shop => {
+    const list = shops[shop];
+    const done = list.filter(e => e.timeOut);
+    const active = list.filter(e => !e.timeOut);
+    const bal = done.reduce((s, e) => s + shopChargeFor(e), 0);
+    const enc = encodeURIComponent(shop);
+    const disabled = done.length ? '' : ' disabled style="opacity:.45;cursor:not-allowed"';
+    html += `<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:14px;overflow:hidden">
+        <div style="background:var(--sandstone);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <div style="font-size:16px;font-weight:bold;color:var(--maroon)">${shop}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:18px;color:var(--maroon)">${fmtMoney(bal)}</div>
+            <button class="btn btn-secondary btn-sm" onclick="printShopStatement('${enc}')">Statement</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportShopStatementCSV('${enc}')">CSV</button>
+            <button class="btn btn-primary btn-sm" onclick="settleShop('${enc}')"${disabled}>Settle ${fmtMoney(bal)}</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table style="margin:0"><thead><tr><th>Ticket</th><th>Date</th><th>Vehicle</th><th>Customer</th><th>Shop pays</th><th>Status</th></tr></thead><tbody>`;
+    done.concat(active).forEach(e => {
+      const billable = !!e.timeOut;
+      html += `<tr>
+          <td class="ticket-num">${e.ticket}</td>
+          <td>${fmtDate(new Date(e.timeIn))}</td>
+          <td><b>${e.brand || ''}</b> ${e.model || ''}${e.rego ? ' · ' + e.rego : ''}</td>
+          <td>${e.name || '—'}</td>
+          <td style="font-family:'Courier New',monospace;font-weight:bold">${fmtMoney(shopChargeFor(e))} <span style="font-weight:400;color:var(--text-muted);font-size:11px">${e.shopCover == null ? '(full)' : '(part)'}</span></td>
+          <td>${billable ? '<span class="status-pill status-completed">Billable</span>' : '<span class="status-pill status-active">Still parked</span>'}</td>
+        </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    if (active.length) html += `<div style="font-size:11px;color:var(--text-muted);padding:8px 14px;font-style:italic">${active.length} car${active.length !== 1 ? 's' : ''} still parked — added to the balance once checked out.</div>`;
+    html += `</div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+// Mark all of a shop's billable (checked-out) charges as settled.
+function settleShop(shop) {
+  shop = decodeURIComponent(shop);
+  const list = shopOpenCharges(shop).filter(e => e.timeOut);
+  if (!list.length) { alert('No billable (checked-out) charges to settle for ' + shop + ' yet.'); return; }
+  const total = list.reduce((s, e) => s + shopChargeFor(e), 0);
+  if (!confirm(`Settle ${list.length} charge${list.length !== 1 ? 's' : ''} for ${shop} totalling ${fmtMoney(total)}?\n\nThis marks them paid (kept in history) and clears the balance.`)) return;
+  const when = new Date().toISOString();
+  const who = (currentUser && currentUser.username) || '';
+  list.forEach(e => { e.shopSettledAt = when; e.shopSettledBy = who; saveData(e.id, { immediate: true }); });
+  if (typeof cloudAudit === 'function') cloudAudit('shop_settle', 'shop', shop, { count: list.length, total });
+  renderShopAccounts();
+  if (typeof quickToast === 'function') quickToast(`${shop} settled · ${fmtMoney(total)}`);
+}
+
+// Open a printable parking statement for a shop (the charges it owes).
+function printShopStatement(shop) {
+  shop = decodeURIComponent(shop);
+  const list = shopOpenCharges(shop).filter(e => e.timeOut).sort((a, b) => new Date(a.timeIn) - new Date(b.timeIn));
+  if (!list.length) { alert('No billable charges to print for ' + shop + ' yet.'); return; }
+  const total = list.reduce((s, e) => s + shopChargeFor(e), 0);
+  const rows = list.map(e => `<tr><td>${e.ticket}</td><td>${fmtDate(new Date(e.timeIn))}</td><td>${(e.brand || '') + ' ' + (e.model || '')}${e.rego ? ' · ' + e.rego : ''}</td><td>${e.name || ''}</td><td style="text-align:right">${fmtMoney(shopChargeFor(e))}</td></tr>`).join('');
+  const w = window.open('', '_blank', 'width=800,height=900');
+  w.document.write(`<!DOCTYPE html><html><head><title>Statement — ${shop}</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;color:#222;padding:28px;max-width:720px;margin:0 auto}
+    h1{font-size:20px;color:#531620;margin:0 0 2px}.sub{color:#666;font-size:13px;margin-bottom:18px}
+    table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;border-bottom:1px solid #ddd;text-align:left}
+    th{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888}
+    .tot{margin-top:16px;text-align:right;font-size:18px;font-weight:bold;color:#531620}
+    .meta{margin-top:22px;font-size:12px;color:#666}@media print{button{display:none}}</style></head>
+    <body>
+    <h1>Chatswood Chase Valet — Parking Statement</h1>
+    <div class="sub">Charged to <b>${shop}</b> · Issued ${fmtDate(new Date())}</div>
+    <table><thead><tr><th>Ticket</th><th>Date</th><th>Vehicle</th><th>Customer</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="tot">Total due: ${fmtMoney(total)}</div>
+    <div class="meta">${list.length} parking session${list.length !== 1 ? 's' : ''} · Valet desk 0427 000 822</div>
+    <button onclick="window.print()" style="margin-top:22px;padding:10px 20px;background:#531620;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print</button>
+    </body></html>`);
+  w.document.close();
+}
+
+// Download a CSV statement for a shop.
+function exportShopStatementCSV(shop) {
+  shop = decodeURIComponent(shop);
+  const list = shopOpenCharges(shop).filter(e => e.timeOut).sort((a, b) => new Date(a.timeIn) - new Date(b.timeIn));
+  if (!list.length) { alert('No billable charges to export for ' + shop + ' yet.'); return; }
+  const headers = ['Ticket', 'Date', 'Time In', 'Time Out', 'Vehicle', 'Rego', 'Customer', 'Shop Pays', 'Coverage'];
+  const rows = list.map(e => [
+    e.ticket, fmtDate(new Date(e.timeIn)), fmtTime(new Date(e.timeIn)),
+    e.timeOut ? fmtTime(new Date(e.timeOut)) : '', (e.brand || '') + ' ' + (e.model || ''), e.rego || '',
+    e.name || '', shopChargeFor(e).toFixed(2), e.shopCover == null ? 'full fee' : 'partial',
+  ]);
+  const total = list.reduce((s, e) => s + shopChargeFor(e), 0);
+  rows.push(['', '', '', '', '', '', 'TOTAL', total.toFixed(2), '']);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shop-statement-${shop.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${fmtDateISO(new Date())}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // Staff logs a phone-in / walk-up bag request via a shop-picker modal, so it
 // matches what the customer sees (no free-typing the shop each time).
 function logBagRequest(id) {
@@ -5754,6 +5979,7 @@ function setReportRange(range) {
 function renderReports() {
   // Default to the first report in the flyout when none is shown yet.
   if (!document.querySelector('#view-reports .rep-section.show')) showReportsGroup('peak');
+  renderShopAccounts();
   const from = document.getElementById('report-from').value;
   const to = document.getElementById('report-to').value;
   if (!from || !to) {
@@ -6424,6 +6650,7 @@ function goReport(g) {
   const rv = document.getElementById('view-reports');
   if (rv && !rv.classList.contains('active')) showView('reports');
   showReportsGroup(g);
+  if (g === 'shopaccounts') renderShopAccounts();
 }
 
 function renderSettings() {
@@ -8210,6 +8437,8 @@ function jsToDb(e) {
     bag_status: e.bagStatus, bag_requested: e.bagRequested, bag_location: e.bagLocation,
     bag_count: e.bagCount, bag_assigned: e.bagAssigned, bag_notes: e.bagNotes,
     bag_photo: e.bagPhoto, bag_done_at: e.bagDoneAt, bag_in_car_by: e.bagInCarBy,
+    shop_account: e.shopAccount, shop_cover: e.shopCover,
+    shop_settled_at: e.shopSettledAt, shop_settled_by: e.shopSettledBy,
     updated_by: currentUser?.username,
     updated_at: new Date().toISOString(),
   };
@@ -8235,6 +8464,9 @@ function dbToJs(d) {
     bagStatus: d.bag_status, bagRequested: d.bag_requested, bagLocation: d.bag_location,
     bagCount: d.bag_count, bagAssigned: d.bag_assigned, bagNotes: d.bag_notes,
     bagPhoto: d.bag_photo, bagDoneAt: d.bag_done_at, bagInCarBy: d.bag_in_car_by,
+    shopAccount: d.shop_account,
+    shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
+    shopSettledAt: d.shop_settled_at, shopSettledBy: d.shop_settled_by,
   };
 }
 
@@ -9569,6 +9801,19 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="form-field">
         <label class="form-label">Tip</label>
         <input type="number" id="checkout-tip" class="form-input" placeholder="$0.00" step="0.01" min="0">
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-bottom:14px">
+      <div class="form-field">
+        <label class="form-label">Charge parking to shop</label>
+        <select id="checkout-shop" class="form-select" onchange="updateCheckoutTotalDisplay()">
+          <option value="">— No · customer pays —</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Amount shop covers</label>
+        <input type="number" id="checkout-shop-cover" class="form-input" placeholder="Blank = full fee" step="0.01" min="0" oninput="updateCheckoutTotalDisplay()">
       </div>
     </div>
 
