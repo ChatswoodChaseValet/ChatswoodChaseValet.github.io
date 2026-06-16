@@ -6234,14 +6234,19 @@ function renderReports() {
     dailyContainer.innerHTML = '<div class="empty">No data in this range</div>';
   } else {
     const max = Math.max(...dailyList.map(([_,c]) => c));
-    dailyContainer.innerHTML = dailyList.map(([date, count]) => `
-      <div class="brand-row">
-        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px">${date.slice(8,10)}/${date.slice(5,7)}/${date.slice(2,4)}</div>
-        <div class="brand-bar-wrap">
-          <div class="brand-bar" style="width:${(count/max)*100}%;background:linear-gradient(90deg,var(--bronze),var(--bronze-light))"></div>
-        </div>
-        <div class="brand-count">${count}</div>
-      </div>`).join('');
+    const BAR_MAX = 150;   // px — tallest bar
+    dailyContainer.innerHTML =
+      `<div style="display:flex;align-items:flex-end;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 2px 2px;min-height:${BAR_MAX + 46}px">`
+      + dailyList.map(([date, count]) => {
+          const h = Math.max(3, Math.round((count / max) * BAR_MAX));
+          const lbl = `${date.slice(8,10)}/${date.slice(5,7)}`;
+          return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:32px">
+            <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${count}</div>
+            <div title="${lbl}: ${count}" style="width:24px;height:${h}px;background:linear-gradient(180deg,var(--bronze),var(--bronze-light));border-radius:3px 3px 0 0"></div>
+            <div style="font-size:9px;color:var(--text-muted);white-space:nowrap;font-family:'Courier New',monospace">${lbl}</div>
+          </div>`;
+        }).join('')
+      + `</div>`;
   }
 
   renderInsights(filtered);
