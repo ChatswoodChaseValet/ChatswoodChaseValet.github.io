@@ -1006,8 +1006,6 @@ body.dark-mode .scan-banner {
   <div class="nav-flyout-title">Reports</div>
   <button class="flyout-item" data-group="peak" onclick="goReport('peak')">Peak Times</button>
   <button class="flyout-item" data-group="volume" onclick="goReport('volume')">Daily Volume</button>
-  <button class="flyout-item" data-group="spend" onclick="goReport('spend')">Customer Spend</button>
-  <button class="flyout-item" data-group="brands" onclick="goReport('brands')">Brands</button>
   <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
   <button class="flyout-item" data-group="discounts" onclick="goReport('discounts')">Discounts</button>
   <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
@@ -1688,41 +1686,6 @@ body.dark-mode .scan-banner {
     <div id="rep-insights"><div class="empty">No data in this range</div></div>
   </div>
 
-  <div class="section rep-section" data-repgroup="spend">
-    <div class="section-header">
-      <div class="section-title">Customer Spend</div>
-    </div>
-    <div id="rep-spend"><div class="empty">No completed trips in this range</div></div>
-  </div>
-
-  <div class="section rep-section" data-repgroup="brands">
-    <div class="section-header">
-      <div class="section-title">Brand Breakdown</div>
-    </div>
-    <div id="rep-brand-list">
-    <div class="brand-row">
-      <div class="brand-name">Tesla</div>
-      <div class="brand-bar-wrap">
-        <div class="brand-bar" style="width:100%"></div>
-      </div>
-      <div class="brand-count">2</div>
-    </div>
-    <div class="brand-row">
-      <div class="brand-name">Subaru</div>
-      <div class="brand-bar-wrap">
-        <div class="brand-bar" style="width:50%"></div>
-      </div>
-      <div class="brand-count">1</div>
-    </div>
-    <div class="brand-row">
-      <div class="brand-name">Toyota</div>
-      <div class="brand-bar-wrap">
-        <div class="brand-bar" style="width:50%"></div>
-      </div>
-      <div class="brand-count">1</div>
-    </div></div>
-  </div>
-
   <div class="section rep-section" data-repgroup="bagstaff">
     <div class="section-header">
       <div class="section-title">Bag Jobs by Staff</div>
@@ -1734,14 +1697,13 @@ body.dark-mode .scan-banner {
     <div class="section-header">
       <div class="section-title">Daily Volume</div>
     </div>
-    <div id="rep-daily-list">
-      <div class="brand-row">
-        <div class="brand-name" style="font-family:&#39;Courier New&#39;,monospace;font-size:12px">02 June 2026</div>
-        <div class="brand-bar-wrap">
-          <div class="brand-bar" style="width:100%;background:linear-gradient(90deg,var(--bronze),var(--bronze-light))"></div>
-        </div>
-        <div class="brand-count">4</div>
-      </div></div>
+    <div id="rep-daily-list"><div class="empty">No cars in this range</div></div>
+
+    <div class="section-title" style="margin-top:26px;margin-bottom:10px">Customer Spend</div>
+    <div id="rep-spend"><div class="empty">No completed trips in this range</div></div>
+
+    <div class="section-title" style="margin-top:26px;margin-bottom:10px">Brand Breakdown</div>
+    <div id="rep-brand-list"><div class="empty">No cars in this range</div></div>
   </div>
 
   <div class="section rep-section" data-repgroup="discounts">
