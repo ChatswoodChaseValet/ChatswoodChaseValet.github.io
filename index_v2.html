@@ -1718,6 +1718,10 @@ body.dark-mode .scan-banner {
   <div class="section rep-section" data-repgroup="volume">
     <div class="section-header">
       <div class="section-title">Daily Volume</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" id="dv-vertical" onclick="setDailyChartDir('vertical')" title="Vertical columns">Vertical</button>
+        <button class="btn btn-secondary btn-sm" id="dv-horizontal" onclick="setDailyChartDir('horizontal')" title="Horizontal bars">Horizontal</button>
+      </div>
     </div>
     <div id="rep-daily-list"><div class="empty">No cars in this range</div></div>
 
@@ -6156,6 +6160,55 @@ function downloadReportPDF() {
   w.document.close();
 }
 
+// Daily Volume chart orientation (per-device preference).
+let lastDailyList = [];
+function getDailyChartDir() {
+  return localStorage.getItem('valet_daily_chart') === 'horizontal' ? 'horizontal' : 'vertical';
+}
+function setDailyChartDir(dir) {
+  try { localStorage.setItem('valet_daily_chart', dir); } catch (e) {}
+  renderDailyVolume();
+}
+function renderDailyVolume() {
+  const c = document.getElementById('rep-daily-list');
+  if (!c) return;
+  const dir = getDailyChartDir();
+  // Highlight the active toggle button.
+  const vb = document.getElementById('dv-vertical'), hb = document.getElementById('dv-horizontal');
+  if (vb && hb) {
+    const on = 'background:var(--maroon);color:#fff;border-color:var(--maroon)';
+    vb.setAttribute('style', dir === 'vertical' ? on : '');
+    hb.setAttribute('style', dir === 'horizontal' ? on : '');
+  }
+  const list = lastDailyList;
+  if (!list.length) { c.innerHTML = '<div class="empty">No data in this range</div>'; return; }
+  const max = Math.max(...list.map(([_, n]) => n));
+  if (dir === 'horizontal') {
+    c.innerHTML = list.map(([date, count]) => {
+      const lbl = `${date.slice(8,10)}/${date.slice(5,7)}/${date.slice(2,4)}`;
+      return `<div class="brand-row">
+        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px">${lbl}</div>
+        <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(count/max)*100}%;background:linear-gradient(90deg,var(--bronze),var(--bronze-light))"></div></div>
+        <div class="brand-count">${count}</div>
+      </div>`;
+    }).join('');
+  } else {
+    const BAR_MAX = 150;
+    c.innerHTML =
+      `<div style="display:flex;align-items:flex-end;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 2px 2px;min-height:${BAR_MAX + 46}px">`
+      + list.map(([date, count]) => {
+          const h = Math.max(3, Math.round((count / max) * BAR_MAX));
+          const lbl = `${date.slice(8,10)}/${date.slice(5,7)}`;
+          return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:32px">
+            <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${count}</div>
+            <div title="${lbl}: ${count}" style="width:24px;height:${h}px;background:linear-gradient(180deg,var(--bronze),var(--bronze-light));border-radius:3px 3px 0 0"></div>
+            <div style="font-size:9px;color:var(--text-muted);white-space:nowrap;font-family:'Courier New',monospace">${lbl}</div>
+          </div>`;
+        }).join('')
+      + `</div>`;
+  }
+}
+
 function renderReports() {
   // Default to the first report in the flyout when none is shown yet.
   if (!document.querySelector('#view-reports .rep-section.show')) showReportsGroup('volume');
@@ -6228,26 +6281,8 @@ function renderReports() {
     const d = e.timeIn.slice(0, 10);
     dailyMap[d] = (dailyMap[d] || 0) + 1;
   });
-  const dailyList = Object.entries(dailyMap).sort((a,b) => a[0].localeCompare(b[0]));
-  const dailyContainer = document.getElementById('rep-daily-list');
-  if (dailyList.length === 0) {
-    dailyContainer.innerHTML = '<div class="empty">No data in this range</div>';
-  } else {
-    const max = Math.max(...dailyList.map(([_,c]) => c));
-    const BAR_MAX = 150;   // px — tallest bar
-    dailyContainer.innerHTML =
-      `<div style="display:flex;align-items:flex-end;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 2px 2px;min-height:${BAR_MAX + 46}px">`
-      + dailyList.map(([date, count]) => {
-          const h = Math.max(3, Math.round((count / max) * BAR_MAX));
-          const lbl = `${date.slice(8,10)}/${date.slice(5,7)}`;
-          return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:32px">
-            <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${count}</div>
-            <div title="${lbl}: ${count}" style="width:24px;height:${h}px;background:linear-gradient(180deg,var(--bronze),var(--bronze-light));border-radius:3px 3px 0 0"></div>
-            <div style="font-size:9px;color:var(--text-muted);white-space:nowrap;font-family:'Courier New',monospace">${lbl}</div>
-          </div>`;
-        }).join('')
-      + `</div>`;
-  }
+  lastDailyList = Object.entries(dailyMap).sort((a,b) => a[0].localeCompare(b[0]));
+  renderDailyVolume();
 
   renderInsights(filtered);
   renderSpend(filtered);
