@@ -1909,6 +1909,29 @@ body.dark-mode .scan-banner {
 
   <div class="section set-section" data-setgroup="devices">
     <div class="section-header">
+      <div class="section-title">AI Vehicle Identification</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="vai-status">—</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+      When staff use <strong>Snap</strong>, the photo is also read by AI to auto-fill
+      <strong>Brand, Model and Colour</strong> — roughly a fraction of a cent per car, with
+      no minimum spend. Results are cached per plate, and returning cars fill from your own
+      visit history for free, so you only ever pay for genuinely new cars.
+    </p>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;margin-bottom:14px">
+      <input type="checkbox" id="s-vehicle-ai" onchange="saveVehicleAiSetting()" style="width:18px;height:18px">
+      <span>Auto-fill Brand / Model / Colour from the Snap photo</span>
+    </label>
+    <div style="background:var(--sandstone);padding:12px;border-radius:4px;font-size:12px;line-height:1.6">
+      <strong>One-time setup:</strong> this needs the <code>identify-vehicle</code> function
+      deployed with an Anthropic API key set as a Supabase secret. See the deploy notes at the
+      top of <code>supabase/functions/identify-vehicle/index.ts</code>. Until that's done the
+      toggle is harmless — scanning still works, it just won't auto-fill the car details.
+    </div>
+  </div>
+
+  <div class="section set-section" data-setgroup="devices">
+    <div class="section-header">
       <div class="section-title">Phone &amp; Display</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
@@ -6116,6 +6139,27 @@ function savePlateRecognizerKey() {
   alert('Saved! ' + (key ? 'Cloud OCR is now active for plate scanning.' : 'Cleared — will use offline OCR.'));
 }
 
+function saveVehicleAiSetting() {
+  settings.vehicleAiEnabled = !!document.getElementById('s-vehicle-ai').checked;
+  saveSettingsToStorage();
+  updateVehicleAiUI();
+}
+
+function updateVehicleAiUI() {
+  const box = document.getElementById('s-vehicle-ai');
+  if (box) box.checked = !!settings.vehicleAiEnabled;
+  const status = document.getElementById('vai-status');
+  if (status) {
+    if (settings.vehicleAiEnabled) {
+      status.textContent = '✓ On — fills from the Snap photo';
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = '○ Off';
+      status.style.color = 'var(--text-muted)';
+    }
+  }
+}
+
 function resetUsageCounter() {
   if (!confirm('Reset the usage counter? (This is just a local tracker — the real quota is tracked by Plate Recognizer.)')) return;
   settings.plateRecognizerCount = 0;
@@ -6293,6 +6337,7 @@ function renderSettings() {
   const prKey = document.getElementById('s-pr-key');
   if (prKey) prKey.value = settings.plateRecognizerKey || '';
   updatePlateRecognizerUI();
+  updateVehicleAiUI();
   // Populate Key-Tag Printer settings
   const pType = document.getElementById('s-printer-type');
   if (pType) pType.value = settings.printerType || 'bixolon';
@@ -6808,6 +6853,11 @@ async function capturePlate() {
   canvas.height = video.videoHeight;
   ctx.drawImage(video, 0, 0);
 
+  // Grab a small COLOUR copy now, before the offline-OCR path threshold-
+  // converts the canvas to black & white. Used by AI vehicle identification
+  // (make/model/colour) — downscaled to keep the upload and AI cost tiny.
+  lastPlateColourImg = makeColourThumb(canvas);
+
   // Show working status
   const captureBtn = document.getElementById('plate-capture-btn');
   captureBtn.disabled = true;
@@ -6844,6 +6894,8 @@ async function capturePlate() {
         settings.plateRecognizerCount = (settings.plateRecognizerCount || 0) + 1;
         saveSettingsToStorage();
         hapticFeedback('success');
+        // Also read make/model/colour off the photo (cached; only pays when new)
+        maybeIdentifyVehicle(detectedPlate);
         captureBtn.disabled = false;
         captureBtn.textContent = 'Capture Again';
         return;
@@ -6859,6 +6911,8 @@ async function capturePlate() {
 
   // Fall back to Tesseract (offline, 70-85% accurate)
   await capturePlateFallback(canvas);
+  // Read make/model/colour off the photo too (cached; only pays when new)
+  if (detectedPlate) maybeIdentifyVehicle(detectedPlate);
   captureBtn.disabled = false;
   captureBtn.textContent = 'Capture Again';
 }
@@ -6956,6 +7010,108 @@ async function capturePlateFallback(canvas) {
 
 // Stores vehicle info from Plate Recognizer to auto-fill brand/colour later
 let pendingPlateInfo = null;
+
+// ═══════════════════════════════════════════════════
+// AI VEHICLE IDENTIFICATION (Make / Model / Colour from the Snap photo)
+// Uses the identify-vehicle Edge Function (Claude vision). Cheap (a fraction
+// of a cent per photo) and cached three ways so repeat cars cost nothing:
+//   1) local per-plate cache   2) this site's own visit history   3) AI call.
+// ═══════════════════════════════════════════════════
+let lastPlateColourImg = null;  // pristine colour JPEG dataURL of the last Snap
+
+// Downscale the captured frame to <=800px wide so the upload + AI cost stay tiny.
+function makeColourThumb(srcCanvas) {
+  try {
+    const maxW = 800;
+    const scale = Math.min(1, maxW / srcCanvas.width);
+    const w = Math.round(srcCanvas.width * scale);
+    const h = Math.round(srcCanvas.height * scale);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(srcCanvas, 0, 0, w, h);
+    return c.toDataURL('image/jpeg', 0.7);
+  } catch (e) { return null; }
+}
+
+function getVehicleCache() {
+  try { return JSON.parse(localStorage.getItem('valet_vehicle_cache') || '{}'); }
+  catch (e) { return {}; }
+}
+function saveVehicleCache(c) {
+  try { localStorage.setItem('valet_vehicle_cache', JSON.stringify(c)); } catch (e) {}
+}
+
+// Fill Brand/Model/Colour from a {make,model,colour} object — only blanks, so
+// staff edits and free history fills always win. Also reflects in the scan modal.
+function applyVehicleInfo(info) {
+  if (!info) return;
+  const fill = (id, v) => { const el = document.getElementById(id); if (el && !el.value && v) el.value = v; };
+  if (info.make) {
+    const bi = document.getElementById('f-brand');
+    if (bi && !bi.value) {
+      const match = Array.from(document.querySelectorAll('#brand-list option'))
+        .find(opt => opt.value.toLowerCase() === info.make.toLowerCase());
+      bi.value = match ? match.value : info.make;
+      if (typeof updateModelOptions === 'function') updateModelOptions();
+    }
+  }
+  fill('f-model', info.model);
+  fill('f-colour', info.colour);
+  // Show the recognised car in the scan modal status, if it's still open
+  const st = document.getElementById('plate-status');
+  const modal = document.getElementById('plate-modal');
+  const desc = [info.colour, info.make, info.model].filter(Boolean).join(' ');
+  if (st && desc && modal && modal.classList.contains('show')) {
+    const base = st.textContent.split('  ·  ')[0];
+    st.textContent = base + '  ·  ' + desc;
+  }
+}
+
+async function maybeIdentifyVehicle(plate) {
+  if (!settings.vehicleAiEnabled) return;                 // off until enabled in Settings
+  if (!lastPlateColourImg) return;                        // no photo (typed entry, not a Snap)
+  const brandEl = document.getElementById('f-brand');
+  if (brandEl && brandEl.value.trim()) return;            // already filled — don't pay
+  const key = (plate || '').replace(/\s+/g, '').toUpperCase();
+
+  // 1) Local per-plate cache — instant & free
+  if (key) {
+    const cached = getVehicleCache()[key];
+    if (cached) { applyVehicleInfo(cached); return; }
+  }
+
+  // 2) This site's own visit history — free (a returning car we've logged before)
+  if (key && typeof findCustomerByRego === 'function') {
+    const hist = findCustomerByRego(key);
+    if (hist && hist.length && (hist[0].brand || hist[0].colour)) {
+      const info = { make: hist[0].brand || '', model: hist[0].model || '', colour: hist[0].colour || '' };
+      if (key) { const c = getVehicleCache(); c[key] = info; saveVehicleCache(c); }
+      applyVehicleInfo(info);
+      return;
+    }
+  }
+
+  // 3) New car — call the AI vision Edge Function (the only paid path)
+  const st = document.getElementById('plate-status');
+  if (st && st.textContent) st.textContent = st.textContent.split('  ·  ')[0] + '  ·  identifying vehicle…';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/identify-vehicle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ image: lastPlateColourImg }),
+    });
+    const d = await res.json();
+    if (d && d.ok && (d.make || d.model || d.colour)) {
+      const info = { make: d.make || '', model: d.model || '', colour: d.colour || '' };
+      if (key) { const c = getVehicleCache(); c[key] = info; saveVehicleCache(c); }
+      applyVehicleInfo(info);
+    } else if (st) {
+      st.textContent = st.textContent.split('  ·  ')[0];   // drop the "identifying…" note silently
+    }
+  } catch (e) {
+    if (st) st.textContent = st.textContent.split('  ·  ')[0];  // silent — staff can type it manually
+  }
+}
 
 function extractPlate(rawText) {
   // Aussie plates are usually 5-7 alphanumeric chars
