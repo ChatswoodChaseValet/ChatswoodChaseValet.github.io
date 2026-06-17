@@ -105,7 +105,7 @@ The working list of every car on site: ticket, customer, plate, brand, bay, time
 
 Below the list is a **Checked Out Today** section.
 
-> **Overstay alerts:** a banner at the top of Active Cars lists any cars left **overnight** (checked in before today) or **over 6 hours**. Tap a car's chip to go straight to its checkout.
+> **Overstay alerts:** a banner at the top of Active Cars lists any cars left **overnight** (checked in before today) or **over a set number of hours** (default 6, adjustable in *Settings → Car Park → Overstay Alert*). Tap a car's chip to go straight to its checkout.
 
 ## 8. Checking a car OUT & payment
 Tap **✓ Mark Out**. The window shows duration and the fee (parking + the $20 valet fee). Before confirming:
@@ -174,7 +174,7 @@ Export any report to **CSV** or a print-ready **PDF**.
 | Section | What you set |
 |---|---|
 | **Staff & Access** | Staff logins/passwords and security. |
-| **Car Park** | Capacity (open spots). |
+| **Car Park** | Capacity (open spots) for the occupancy gauge, and the **overstay alert** threshold (hours). |
 | **Retailers** | Store list for validations and charge-to-shop. |
 | **Car Wash** | Your wholesale cost per Xtream package/size, so the Car Wash report shows your margin. Customer always pays the retail menu price. |
 | **Alerts & Messaging** | Customer SMS (QR ticket via ClickSend) and the end-of-day close reminder. |

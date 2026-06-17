@@ -2199,6 +2199,22 @@ body.dark-mode .scan-banner {
     <button class="btn btn-primary" onclick="saveCapacity()">Save Capacity</button>
   </div>
 
+  <div class="section set-section" data-setgroup="carpark">
+    <div class="section-header">
+      <div class="section-title">Overstay Alert</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">
+      A car on site longer than this many <strong>hours</strong> is flagged in the Active Cars overstay banner. (Cars left <strong>overnight</strong> — checked in before today — are always flagged.) Synced to all devices.
+    </div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Flag after (hours)</label>
+        <input type="number" id="s-overstay" class="form-input" min="1" max="48" step="0.5" placeholder="e.g. 6">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveOverstayHours()">Save Overstay Alert</button>
+  </div>
+
   <div class="section set-section" data-setgroup="carwash">
     <div class="section-header">
       <div class="section-title">Car Wash — Xtream Costs</div>
@@ -4574,6 +4590,16 @@ function saveCapacity() {
   if (v && v.classList.contains('active')) { try { renderDashboard(); } catch (e) {} }
   if (typeof quickToast === 'function') quickToast('✓ Capacity set to ' + n + ' open spots');
 }
+function saveOverstayHours() {
+  const n = parseFloat(document.getElementById('s-overstay').value);
+  if (!n || n < 1) { alert('Enter a valid number of hours (1 or more).'); return; }
+  cloudSettings.overstayHours = n;
+  try { cloudSaveSetting('overstayHours', n); } catch (e) {}
+  cloudAudit('set_overstay', 'settings', 'overstayHours', { hours: n });
+  const v = document.getElementById('view-active');
+  if (v && v.classList.contains('active')) { try { renderActive(); } catch (e) {} }
+  if (typeof quickToast === 'function') quickToast('✓ Overstay alert set to ' + n + ' hours');
+}
 // Car wash wholesale (Xtream) cost editor — one row per package, Small + Large.
 function renderWashSettings() {
   const c = document.getElementById('wash-cost-table');
@@ -5247,19 +5273,25 @@ function removeWash() {
   quickToast('Car wash removed');
 }
 
-// Overstay / overnight detection for the alert banner.
-const OVERSTAY_HOURS = 6;
+// Overstay / overnight detection for the alert banner. The "long stay" threshold
+// is set by the manager in Settings → Car Park (hours); defaults to 6.
+const DEFAULT_OVERSTAY_HOURS = 6;
+function getOverstayHours() {
+  const v = cloudSettings && Number(cloudSettings.overstayHours);
+  return (v && v > 0) ? v : DEFAULT_OVERSTAY_HOURS;
+}
 function overstayInfo() {
   const active = entries.filter(e => !e.timeOut);
   const now = new Date();
   const today = fmtDateISO(now);
+  const threshold = getOverstayHours();
   const overnight = [], longStay = [];
   active.forEach(e => {
     if (!e.timeIn) return;
     const inDate = fmtDateISO(new Date(e.timeIn));
     const hrs = (now - new Date(e.timeIn)) / 3600000;
     if (inDate < today) overnight.push(e);
-    else if (hrs >= OVERSTAY_HOURS) longStay.push(e);
+    else if (hrs >= threshold) longStay.push(e);
   });
   return { overnight, longStay };
 }
@@ -5281,7 +5313,7 @@ function renderOverstayBanner() {
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${longStay.length ? '12px' : '0'}">${overnight.map(e => chip(e, true)).join('')}</div>`;
   }
   if (longStay.length) {
-    html += `<div style="margin-bottom:6px"><strong style="color:#7a5a00">⏱ ${longStay.length} over ${OVERSTAY_HOURS}h on site</strong></div>
+    html += `<div style="margin-bottom:6px"><strong style="color:#7a5a00">⏱ ${longStay.length} over ${getOverstayHours()}h on site</strong></div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">${longStay.map(e => chip(e, false)).join('')}</div>`;
   }
   el.innerHTML = `<div class="section" style="border-left:4px solid #a83838;background:#fff7f7">${html}</div>`;
@@ -8156,6 +8188,8 @@ function renderSettings() {
   updatePushUI();
   const capEl = document.getElementById('s-capacity');
   if (capEl) capEl.value = getCapacity();
+  const osEl = document.getElementById('s-overstay');
+  if (osEl) osEl.value = getOverstayHours();
   renderWashSettings();
   // Populate Plate Recognizer settings
   const prKey = document.getElementById('s-pr-key');
@@ -10622,6 +10656,13 @@ function handleRealtimeSettingsChange(payload) {
       if (v && v.classList.contains('active')) { try { renderDashboard(); } catch (e) {} }
       const capEl = document.getElementById('s-capacity');
       if (capEl && payload.new.key === 'capacity') capEl.value = getCapacity();
+    }
+    if (payload.new.key === 'overstayHours') {
+      // Overstay threshold changed elsewhere — refresh the banner and the field.
+      const av = document.getElementById('view-active');
+      if (av && av.classList.contains('active')) { try { renderActive(); } catch (e) {} }
+      const osEl = document.getElementById('s-overstay');
+      if (osEl) osEl.value = getOverstayHours();
     }
   }
 }
