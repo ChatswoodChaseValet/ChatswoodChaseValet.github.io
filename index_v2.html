@@ -1023,7 +1023,6 @@ body.dark-mode .scan-banner {
 <div id="reports-flyout" class="nav-flyout">
   <div class="nav-flyout-title">Reports</div>
   <button class="flyout-item" data-group="volume" onclick="goReport('volume')">Daily Volume</button>
-  <button class="flyout-item" data-group="peak" onclick="goReport('peak')">Peak Times</button>
   <button class="flyout-item" data-group="payments" onclick="goReport('payments')">Payments &amp; Cash-Up</button>
   <button class="flyout-item" data-group="staff" onclick="goReport('staff')">Staff Performance</button>
   <button class="flyout-item" data-group="stay" onclick="goReport('stay')">Customer Stay &amp; Tiers</button>
@@ -1741,12 +1740,6 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
-  <div class="section rep-section" data-repgroup="peak">
-    <div class="section-header">
-      <div class="section-title">Peak Times &amp; Stay Patterns</div>
-    </div>
-    <div id="rep-insights"><div class="empty">No data in this range</div></div>
-  </div>
 
   <div class="section rep-section" data-repgroup="bagstaff">
     <div class="section-header">
@@ -6786,7 +6779,6 @@ function renderReports() {
   lastPeakIn = inHours; lastPeakOut = outHours;
   renderDailyVolume();
 
-  renderInsights(filtered);
   renderSpend(filtered);
   renderComparison();
   renderDiscountSummary(filtered);
