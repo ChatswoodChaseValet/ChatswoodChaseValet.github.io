@@ -105,7 +105,7 @@ The working list of every car on site: ticket, customer, plate, brand, bay, time
 
 Below the list is a **Checked Out Today** section.
 
-> **Overstay alerts:** a banner at the top of Active Cars lists any cars left **overnight** (checked in before today) or **over a set number of hours** (default 6, adjustable in *Settings → Car Park → Overstay Alert*). Tap a car's chip to go straight to its checkout.
+> **Overstay alerts:** a banner at the top of Active Cars lists any cars left **overnight** (still on site since before the last closing time) or **over a set number of hours** (default 6, adjustable in *Settings → Car Park → Overstay Alert*). Tap a car's chip to go straight to its checkout.
 
 ## 8. Checking a car OUT & payment
 Tap **✓ Mark Out**. The window shows duration and the fee (parking + the $20 valet fee). Before confirming:

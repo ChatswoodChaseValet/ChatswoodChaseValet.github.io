@@ -5283,14 +5283,16 @@ function getOverstayHours() {
 function overstayInfo() {
   const active = entries.filter(e => !e.timeOut);
   const now = new Date();
-  const today = fmtDateISO(now);
   const threshold = getOverstayHours();
+  // "Overnight" = the car was on site through the last closing (checked in before
+  // it and still here), rather than just before midnight.
+  const lastClose = lastClosingBefore(now);
   const overnight = [], longStay = [];
   active.forEach(e => {
     if (!e.timeIn) return;
-    const inDate = fmtDateISO(new Date(e.timeIn));
-    const hrs = (now - new Date(e.timeIn)) / 3600000;
-    if (inDate < today) overnight.push(e);
+    const tIn = new Date(e.timeIn);
+    const hrs = (now - tIn) / 3600000;
+    if (lastClose && tIn < lastClose) overnight.push(e);
     else if (hrs >= threshold) longStay.push(e);
   });
   return { overnight, longStay };
@@ -5309,7 +5311,7 @@ function renderOverstayBanner() {
   };
   let html = '';
   if (overnight.length) {
-    html += `<div style="margin-bottom:6px"><strong style="color:#a83838">🌙 ${overnight.length} overnight</strong> <span style="color:var(--text-muted);font-size:12px">— checked in before today, still on site</span></div>
+    html += `<div style="margin-bottom:6px"><strong style="color:#a83838">🌙 ${overnight.length} overnight</strong> <span style="color:var(--text-muted);font-size:12px">— still on site since before the last closing</span></div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${longStay.length ? '12px' : '0'}">${overnight.map(e => chip(e, true)).join('')}</div>`;
   }
   if (longStay.length) {
@@ -7829,14 +7831,24 @@ function renderIncidents(filtered) {
 // ═══════════════════════════════════════════════════
 let eodWarnedFor = null; // 'pre' or 'final' for current day to avoid repeating
 
+// Closing instant for the calendar day of `d`. Thursday closes 9:30 PM, else 7 PM.
+function closingTimeForDate(d) {
+  const dow = d.getDay(); // 0=Sun, 4=Thu
+  const closeHour = dow === 4 ? 21 : 19;
+  const closeMin = dow === 4 ? 30 : 0;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), closeHour, closeMin);
+}
 function getClosingTimeForToday() {
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun, 4=Thu
-  // Thursday closes at 9:30 PM (21:30), other days at 7 PM (19:00)
-  const closeHour = dayOfWeek === 4 ? 21 : 19;
-  const closeMin = dayOfWeek === 4 ? 30 : 0;
-  const closing = new Date(now.getFullYear(), now.getMonth(), now.getDate(), closeHour, closeMin);
-  return closing;
+  return closingTimeForDate(new Date());
+}
+// The most recent closing moment that has already passed (walks back day by day).
+function lastClosingBefore(now) {
+  for (let i = 0; i <= 8; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const close = closingTimeForDate(d);
+    if (close < now) return close;
+  }
+  return null;
 }
 
 function checkEndOfDay() {
