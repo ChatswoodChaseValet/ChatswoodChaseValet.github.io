@@ -1397,7 +1397,10 @@ body.dark-mode .scan-banner {
   <div class="section">
     <div class="section-header">
       <div class="section-title">Quick Pickup</div>
-      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="qp-count">2 cars</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn btn-secondary btn-sm" onclick="openLostTicket()" title="Release a car when the customer has lost their ticket">🎫 Lost ticket</button>
+        <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="qp-count">2 cars</div>
+      </div>
     </div>
     <div style="margin-bottom:14px">
       <input type="text" id="qp-search" class="form-input" placeholder="Filter: ticket, rego, bay, name…" oninput="renderQuickPickup()" autocomplete="off">
@@ -1481,6 +1484,7 @@ body.dark-mode .scan-banner {
 
 <!-- ───────── ACTIVE CARS VIEW ───────── -->
 <div class="view" id="view-active">
+  <div id="overstay-banner"></div>
   <div class="section">
     <div class="section-header">
       <div class="section-title">Currently On Site</div>
@@ -5243,7 +5247,48 @@ function removeWash() {
   quickToast('Car wash removed');
 }
 
+// Overstay / overnight detection for the alert banner.
+const OVERSTAY_HOURS = 6;
+function overstayInfo() {
+  const active = entries.filter(e => !e.timeOut);
+  const now = new Date();
+  const today = fmtDateISO(now);
+  const overnight = [], longStay = [];
+  active.forEach(e => {
+    if (!e.timeIn) return;
+    const inDate = fmtDateISO(new Date(e.timeIn));
+    const hrs = (now - new Date(e.timeIn)) / 3600000;
+    if (inDate < today) overnight.push(e);
+    else if (hrs >= OVERSTAY_HOURS) longStay.push(e);
+  });
+  return { overnight, longStay };
+}
+function renderOverstayBanner() {
+  const el = document.getElementById('overstay-banner');
+  if (!el) return;
+  const { overnight, longStay } = overstayInfo();
+  if (!overnight.length && !longStay.length) { el.innerHTML = ''; return; }
+  const now = new Date();
+  const chip = (e, urgent) => {
+    const dur = fmtDuration(now - new Date(e.timeIn));
+    return `<button onclick="checkout('${e.id}')" title="Check out ${e.ticket}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid ${urgent ? '#a83838' : '#e0a640'};background:#fff;border-radius:20px;padding:3px 10px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit">
+      <span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span>
+      <span style="color:var(--text-muted)">Bay ${e.bay} · ${dur}${e.name ? ' · ' + e.name : ''}</span></button>`;
+  };
+  let html = '';
+  if (overnight.length) {
+    html += `<div style="margin-bottom:6px"><strong style="color:#a83838">🌙 ${overnight.length} overnight</strong> <span style="color:var(--text-muted);font-size:12px">— checked in before today, still on site</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${longStay.length ? '12px' : '0'}">${overnight.map(e => chip(e, true)).join('')}</div>`;
+  }
+  if (longStay.length) {
+    html += `<div style="margin-bottom:6px"><strong style="color:#7a5a00">⏱ ${longStay.length} over ${OVERSTAY_HOURS}h on site</strong></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${longStay.map(e => chip(e, false)).join('')}</div>`;
+  }
+  el.innerHTML = `<div class="section" style="border-left:4px solid #a83838;background:#fff7f7">${html}</div>`;
+}
+
 function renderActive() {
+  renderOverstayBanner();
   const active = entries.filter(e => !e.timeOut);
   document.getElementById('active-count').textContent =
     `${active.length} vehicle${active.length !== 1 ? 's' : ''}`;
@@ -5656,6 +5701,43 @@ function closeETAModal() {
 // ═══════════════════════════════════════════════════
 // QUICK PICKUP — mobile-optimised view with big tappable cards
 // ═══════════════════════════════════════════════════
+// Lost-ticket release: verify identity against on-site cars, log, then checkout.
+function openLostTicket() {
+  const s = document.getElementById('lt-search');
+  if (s) s.value = '';
+  renderLostTicketResults();
+  document.getElementById('lost-ticket-modal').classList.add('show');
+}
+function closeLostTicket() {
+  document.getElementById('lost-ticket-modal').classList.remove('show');
+}
+function renderLostTicketResults() {
+  const c = document.getElementById('lt-results');
+  if (!c) return;
+  const q = (document.getElementById('lt-search').value || '').trim().toLowerCase();
+  if (!q) { c.innerHTML = '<div class="empty">Type a name, plate or phone to find the car.</div>'; return; }
+  const active = entries.filter(e => !e.timeOut);
+  const list = active.filter(e => [e.name, e.rego, e.phone, e.bay, e.ticket, e.brand, e.model]
+    .filter(Boolean).some(v => String(v).toLowerCase().includes(q)));
+  if (!list.length) { c.innerHTML = '<div class="empty">No on-site car matches that.</div>'; return; }
+  c.innerHTML = list.slice(0, 8).map(e => `
+    <div style="border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px">
+      <div style="font-size:13px;margin-bottom:8px">
+        <span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span> · <b>${e.brand}</b>${e.model ? ' ' + e.model : ''}
+        <div style="color:var(--text-muted);margin-top:2px">${e.name || '—'} · ${e.rego || '—'} · ${e.phone || 'no phone'} · Bay ${e.bay}</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="releaseLostTicket('${e.id}')">✓ Identity verified — checkout</button>
+    </div>`).join('');
+}
+function releaseLostTicket(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  if (!confirm(`Release ${e.brand} ${e.rego} (${e.name || '—'}) without a ticket?\n\nConfirm you've verified the customer's identity. This release is logged.`)) return;
+  cloudAudit('lost_ticket_release', 'entry', id, { ticket: e.ticket, rego: e.rego, name: e.name, by: currentUser && currentUser.username });
+  closeLostTicket();
+  checkout(id);
+}
+
 function renderQuickPickup() {
   const search = (document.getElementById('qp-search')?.value || '').trim().toLowerCase();
   let active = entries.filter(e => !e.timeOut);
@@ -11409,6 +11491,21 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="customer-modal-body" style="font-size:13px"></div>
     <div class="btn-row" style="justify-content:flex-end;margin-top:16px">
       <button class="btn btn-primary" onclick="closeCustomerModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOST TICKET MODAL -->
+<div class="modal" id="lost-ticket-modal">
+  <div class="modal-box" style="max-width:520px;max-height:84vh;overflow-y:auto">
+    <div class="modal-title">Lost ticket — verify &amp; release</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:12px">
+      Confirm the customer's identity before releasing a car without its ticket — match at least <b>two</b> details (name, plate, phone) or check photo ID. The release is logged against your login.
+    </div>
+    <input type="text" id="lt-search" class="form-input" placeholder="Search on-site cars: name, plate, phone, bay…" oninput="renderLostTicketResults()" autocomplete="off" style="margin-bottom:12px">
+    <div id="lt-results"></div>
+    <div class="btn-row" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary btn-sm" onclick="closeLostTicket()">Close</button>
     </div>
   </div>
 </div>

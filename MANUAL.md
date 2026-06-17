@@ -77,6 +77,8 @@ The card shows bay, duration and fee due; go straight to checkout. The top-bar s
 
 ![Quick Pickup](screenshots/manual/quick-pickup.png)
 
+> **Lost ticket?** Tap **🎫 Lost ticket** on Quick Pickup, search the on-site cars by name/plate/phone, confirm the customer's identity (two details or photo ID), then release. The release is logged against your login.
+
 ## 6. The Pickup Queue
 When a customer asks for their car ahead of time, put it in the **Queue**:
 - From Active Cars tap **Request** and enter the ETA (minutes until they want it).
@@ -102,6 +104,8 @@ The working list of every car on site: ticket, customer, plate, brand, bay, time
 | **✓ Mark Out** | Check the car out and take payment. |
 
 Below the list is a **Checked Out Today** section.
+
+> **Overstay alerts:** a banner at the top of Active Cars lists any cars left **overnight** (checked in before today) or **over 6 hours**. Tap a car's chip to go straight to its checkout.
 
 ## 8. Checking a car OUT & payment
 Tap **✓ Mark Out**. The window shows duration and the fee (parking + the $20 valet fee). Before confirming:
