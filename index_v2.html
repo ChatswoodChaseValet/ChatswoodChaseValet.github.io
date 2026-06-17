@@ -1035,6 +1035,7 @@ body.dark-mode .scan-banner {
 <!-- Reports sub-menu flyout -->
 <div id="reports-flyout" class="nav-flyout">
   <div class="nav-flyout-title">Reports</div>
+  <button class="flyout-item" data-group="management" onclick="goReport('management')">Management Summary</button>
   <button class="flyout-item" data-group="volume" onclick="goReport('volume')">Daily Volume</button>
   <button class="flyout-item" data-group="payments" onclick="goReport('payments')">Payments</button>
   <button class="flyout-item" data-group="staff" onclick="goReport('staff')">Staff Performance</button>
@@ -1781,6 +1782,30 @@ body.dark-mode .scan-banner {
     </div>
   </div>
 
+
+  <div class="section rep-section" data-repgroup="management">
+    <div class="section-header">
+      <div class="section-title">Management Summary</div>
+      <button class="btn btn-secondary btn-sm" onclick="downloadMgmtPDF()">Print / PDF</button>
+    </div>
+    <div id="rep-mgmt-summary"><div class="empty">No data in this range</div></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="management">
+    <div class="section-header">
+      <div class="section-title">Pickup Wait Times</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic">From customer request to handover</div>
+    </div>
+    <div id="rep-pickup-sla"><div class="empty">No pickup requests in this range</div></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="management">
+    <div class="section-header">
+      <div class="section-title">Tenant Validations</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic">Store-sponsored parking, by retailer</div>
+    </div>
+    <div id="rep-tenant-validations"><div class="empty">No validations in this range</div></div>
+  </div>
 
   <div class="section rep-section" data-repgroup="bagstaff">
     <div class="section-header">
@@ -7259,6 +7284,9 @@ function renderReports() {
   renderRepeatCustomers(filtered);
   renderCarWash(filtered);
   renderIncidents(filtered);
+  renderMgmtSummary(filtered);
+  renderPickupSLA(filtered);
+  renderTenantValidations(filtered);
 }
 
 // ═══════════════════════════════════════════════════
@@ -7822,6 +7850,164 @@ function renderIncidents(filtered) {
     </div>`;
   }).join('');
   c.innerHTML = repCards(cards) + repHeading('Logged incidents') + rows;
+}
+
+// ─── Management-facing reports ───
+
+// Pickup wait = time from the customer's request to handover (mark-out).
+function pickupWaitStats(filtered) {
+  const waits = filtered
+    .filter(e => e.pickupRequested && e.timeOut)
+    .map(e => new Date(e.timeOut) - new Date(e.pickupRequested))
+    .filter(ms => ms > 0);
+  if (!waits.length) return null;
+  const sum = waits.reduce((a, b) => a + b, 0);
+  const sorted = waits.slice().sort((a, b) => a - b);
+  const buckets = [
+    { label: '≤ 3 min', max: 3 * 60000, n: 0 },
+    { label: '3–5 min', max: 5 * 60000, n: 0 },
+    { label: '5–10 min', max: 10 * 60000, n: 0 },
+    { label: '10 min +', max: Infinity, n: 0 },
+  ];
+  waits.forEach(w => { (buckets.find(b => w <= b.max) || buckets[buckets.length - 1]).n++; });
+  const within5 = waits.filter(w => w <= 5 * 60000).length;
+  return {
+    count: waits.length, avg: sum / waits.length, median: medianMs(waits),
+    worst: sorted[sorted.length - 1], buckets, within5, pct5: Math.round(within5 / waits.length * 100),
+  };
+}
+function renderPickupSLA(filtered) {
+  const c = document.getElementById('rep-pickup-sla');
+  if (!c) return;
+  const s = pickupWaitStats(filtered);
+  if (!s) { c.innerHTML = '<div class="empty">No pickup requests in this range</div>'; return; }
+  const cards = [
+    ['Requests', String(s.count), 'requested then delivered', 'var(--maroon)'],
+    ['Avg wait', fmtDuration(s.avg), 'request → handover', 'var(--green)'],
+    ['Median wait', fmtDuration(s.median), 'typical wait', 'var(--bronze)'],
+    ['Within 5 min', s.pct5 + '%', `${s.within5} of ${s.count}`, s.pct5 >= 80 ? 'var(--green)' : '#a83838'],
+    ['Longest wait', fmtDuration(s.worst), 'worst case', '#a83838'],
+  ];
+  const max = Math.max(1, ...s.buckets.map(b => b.n));
+  const bars = repHeading('Distribution')
+    + s.buckets.map(b => repBar(b.label, String(b.n), b.n / max,
+        'linear-gradient(90deg,var(--bronze),var(--bronze-light))')).join('');
+  c.innerHTML = repCards(cards) + bars;
+}
+
+// Validations grouped by retailer (tenant), with dollar value — a billing view.
+function tenantValidationData(filtered) {
+  const byTenant = {};
+  filtered.forEach(e => {
+    if (!e.discounts || !e.discounts.length) return;
+    const subtotal = (e.parkingFee || 0) + (e.valetFee || 0);
+    const { breakdown } = calculateDiscountedTotal(subtotal, e.discounts);
+    breakdown.forEach(d => {
+      const t = d.reason || 'Other';
+      const g = byTenant[t] = byTenant[t] || { count: 0, total: 0 };
+      g.count++; g.total += (d.dollarOff || 0);
+    });
+  });
+  return Object.entries(byTenant).map(([tenant, g]) => ({ tenant, ...g }))
+    .sort((a, b) => b.total - a.total);
+}
+function renderTenantValidations(filtered) {
+  const c = document.getElementById('rep-tenant-validations');
+  if (!c) return;
+  const rows = tenantValidationData(filtered);
+  if (!rows.length) { c.innerHTML = '<div class="empty">No validations in this range</div>'; return; }
+  const total = rows.reduce((s, r) => s + r.total, 0);
+  const count = rows.reduce((s, r) => s + r.count, 0);
+  const cards = [
+    ['Validations', String(count), 'store-sponsored', 'var(--maroon)'],
+    ['Total value', fmtMoney(total), 'to recover from tenants', 'var(--green)'],
+    ['Tenants', String(rows.length), 'with validations', 'var(--bronze)'],
+  ];
+  const th = 'padding:6px 8px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)';
+  const td = "padding:6px 8px;border-bottom:1px solid var(--border)";
+  const tdr = td + ";text-align:right;font-family:'Courier New',monospace";
+  const body = rows.map(r => `<tr><td style="${td}">${r.tenant}</td><td style="${tdr}">${r.count}</td><td style="${tdr}">${fmtMoney(r.total)}</td></tr>`).join('')
+    + `<tr style="font-weight:bold"><td style="${td}">Total</td><td style="${tdr}">${count}</td><td style="${tdr}">${fmtMoney(total)}</td></tr>`;
+  c.innerHTML = repCards(cards) + repHeading('By tenant')
+    + `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:360px">`
+    + `<thead><tr><th style="${th};text-align:left">Tenant</th><th style="${th};text-align:right">Validations</th><th style="${th};text-align:right">Value</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+// Roll-up KPI summary for centre management.
+function mgmtSummaryData(filtered) {
+  const completed = filtered.filter(e => e.timeOut);
+  const revenue = completed.reduce((s, e) => s + (e.totalFee || 0), 0);
+  const tips = completed.reduce((s, e) => s + (e.tip || 0), 0);
+  const washCollected = completed.filter(e => e.carWash && e.carWash.service).reduce((s, e) => s + (e.carWash.price || 0), 0);
+  const validations = tenantValidationData(filtered);
+  const valTotal = validations.reduce((s, r) => s + r.total, 0);
+  const sla = pickupWaitStats(filtered);
+  const incidents = filtered.filter(e => e.incident && e.incident.condition === 'damage').length;
+  const bagJobs = filtered.filter(e => e.bagStatus).length;
+  return {
+    cars: filtered.length, completed: completed.length, revenue, tips, washCollected,
+    valCount: validations.reduce((s, r) => s + r.count, 0), valTotal,
+    avgWait: sla ? sla.avg : null, pct5: sla ? sla.pct5 : null,
+    peakOcc: peakOccupancy(filtered), incidents, bagJobs,
+  };
+}
+function renderMgmtSummary(filtered) {
+  const c = document.getElementById('rep-mgmt-summary');
+  if (!c) return;
+  if (!filtered.length) { c.innerHTML = '<div class="empty">No data in this range</div>'; return; }
+  const m = mgmtSummaryData(filtered);
+  const cards = [
+    ['Cars handled', String(m.cars), `${m.completed} completed`, 'var(--maroon)'],
+    ['Parking revenue', fmtMoney(m.revenue), 'completed trips', 'var(--green)'],
+    ['Tips', fmtMoney(m.tips), 'to staff', 'var(--bronze)'],
+    ['Car wash', fmtMoney(m.washCollected), 'collected', 'var(--bronze)'],
+    ['Validations', fmtMoney(m.valTotal), `${m.valCount} store-sponsored`, 'var(--maroon)'],
+    ['Avg pickup wait', m.avgWait != null ? fmtDuration(m.avgWait) : '—', m.pct5 != null ? m.pct5 + '% within 5 min' : 'no requests', 'var(--green)'],
+    ['Peak cars on site', String(m.peakOcc), 'at one time', 'var(--bronze)'],
+    ['Incidents', String(m.incidents), 'new damage logged', m.incidents ? '#a83838' : 'var(--green)'],
+  ];
+  c.innerHTML = repCards(cards);
+}
+// Print-ready management one-pager (browser print dialog → Save as PDF).
+function downloadMgmtPDF() {
+  const from = document.getElementById('report-from').value;
+  const to = document.getElementById('report-to').value;
+  if (!from || !to) { alert('Pick a date range first.'); return; }
+  const filtered = entries.filter(e => { const d = (e.timeIn || '').slice(0, 10); return d >= from && d <= to; });
+  if (!filtered.length) { alert('No data in this date range.'); return; }
+  const m = mgmtSummaryData(filtered);
+  const validations = tenantValidationData(filtered);
+  const stat = (label, val, sub) => `<div class="sc"><span>${label}</span><b>${val}</b>${sub ? `<i>${sub}</i>` : ''}</div>`;
+  const valRows = validations.length
+    ? validations.map(r => `<tr><td>${r.tenant}</td><td class="r">${r.count}</td><td class="r">${fmtMoney(r.total)}</td></tr>`).join('')
+      + `<tr class="tot"><td>Total</td><td class="r">${m.valCount}</td><td class="r">${fmtMoney(m.valTotal)}</td></tr>`
+    : '<tr><td colspan="3">No validations in this period</td></tr>';
+  const w = window.open('', '_blank', 'width=820,height=900');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Valet Management Summary ${from} to ${to}</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;color:#222;padding:28px;max-width:760px;margin:0 auto}
+    h1{font-size:20px;color:#531620;margin:0 0 2px}h2{font-size:14px;color:#531620;margin:22px 0 8px;border-bottom:2px solid #a48d53;padding-bottom:4px}
+    .sub{color:#666;font-size:13px;margin-bottom:16px}
+    .sg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .sc{background:#f1f0ee;border-radius:6px;padding:10px 12px}.sc b{display:block;font-size:19px;color:#531620;margin-top:2px}.sc span{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:1px}.sc i{display:block;font-size:11px;color:#888;font-style:normal;margin-top:2px}
+    table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}.r{text-align:right;font-family:'Courier New',monospace}.tot{font-weight:bold}
+    @media print{button{display:none}}</style></head><body>
+    <h1>Chatswood Chase Valet — Management Summary</h1>
+    <div class="sub">${fmtDate(new Date(from))} &rarr; ${fmtDate(new Date(to))}</div>
+    <div class="sg">
+      ${stat('Cars handled', m.cars, m.completed + ' completed')}
+      ${stat('Parking revenue', fmtMoney(m.revenue), '')}
+      ${stat('Tips', fmtMoney(m.tips), '')}
+      ${stat('Car wash', fmtMoney(m.washCollected), 'collected')}
+      ${stat('Validations', fmtMoney(m.valTotal), m.valCount + ' sponsored')}
+      ${stat('Avg pickup wait', m.avgWait != null ? fmtDuration(m.avgWait) : '—', m.pct5 != null ? m.pct5 + '% within 5 min' : '')}
+      ${stat('Peak cars on site', m.peakOcc, 'at one time')}
+      ${stat('Incidents', m.incidents, 'new damage')}
+    </div>
+    <h2>Tenant Validations</h2>
+    <table><thead><tr><th>Tenant</th><th class="r">Validations</th><th class="r">Value</th></tr></thead><tbody>${valRows}</tbody></table>
+    <button onclick="window.print()" style="margin-top:22px;padding:10px 20px;background:#531620;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print / Save as PDF</button>
+    </body></html>`);
+  w.document.close();
 }
 
 // ═══════════════════════════════════════════════════

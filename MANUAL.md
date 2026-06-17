@@ -155,10 +155,13 @@ Every car builds a database keyed by plate. Search by name, plate or phone for a
 ## 13. Reports
 Pick a date range at the top; every panel updates. Menu groups related panels:
 
+![Reports — Management Summary](screenshots/manual/reports-management.png)
+
 ![Reports — Payments](screenshots/manual/reports-payments.png)
 
 | Menu item | Inside |
 |---|---|
+| **Management Summary** | Centre-facing roll-up (cars, revenue, tips, car wash, validation value, avg pickup wait, peak occupancy, incidents) + **Pickup Wait Times** (request→handover SLA) + **Tenant Validations** (by retailer). Has a **Print / PDF** one-pager. |
 | **Daily Volume** | Cars per day (with revenue), busiest/slowest day + trend, average by weekday, peak times by hour, peak cars on site, customer spend, brand breakdown. |
 | **Payments** | Cash-up (Card/EFTPOS vs cash, tips, outstanding, non-card flagged) plus **Shop Accounts**, **Car Wash** and **Discounts** panels. |
 | **Staff Performance** | Cars parked per attendant; checkouts + revenue + tips per attendant. |
