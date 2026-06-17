@@ -6495,7 +6495,7 @@ let lastPeakIn = [], lastPeakOut = [];
 const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // Derive busiest/slowest day, weekday averages and the trend vs the previous
 // equal-length period — everything the Daily Volume summary needs.
-function computeDailyStats(list, from, to) {
+function computeDailyStats(list, from, to, filtered) {
   if (!list.length) return null;
   let busiest = list[0], slowest = list[0];
   list.forEach(row => {
@@ -6523,7 +6523,8 @@ function computeDailyStats(list, from, to) {
     if (d >= pf && d <= pt) prevTotal++;
   });
   const pct = prevTotal ? Math.round((curTotal - prevTotal) / prevTotal * 100) : null;
-  return { busiest, slowest, weekday, curTotal, prevTotal, pct };
+  const peakOcc = peakOccupancy(filtered || []);
+  return { busiest, slowest, weekday, curTotal, prevTotal, pct, peakOcc };
 }
 function isWeekend(dateISO) {
   const wd = new Date(dateISO + 'T00:00:00').getDay();
@@ -6654,6 +6655,7 @@ function renderDailySummary() {
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
     ${card('Busiest day', fmtDay(s.busiest), `${s.busiest[1]} cars · ${fmtMoney(s.busiest[2])}`)}
     ${card('Slowest day', fmtDay(s.slowest), `${s.slowest[1]} cars · ${fmtMoney(s.slowest[2])}`)}
+    ${card('Peak cars on site', String(s.peakOcc), 'most parked at one time')}
     ${card('Trend', `${s.curTotal} cars`, trend)}
   </div>`;
 }
@@ -6770,7 +6772,7 @@ function renderReports() {
   lastDailyList = Object.entries(dailyMap)
     .sort((a,b) => a[0].localeCompare(b[0]))
     .map(([d, n]) => [d, n, dailyRev[d] || 0]);
-  lastDailyStats = computeDailyStats(lastDailyList, from, to);
+  lastDailyStats = computeDailyStats(lastDailyList, from, to, filtered);
   const inHours = new Array(24).fill(0), outHours = new Array(24).fill(0);
   filtered.forEach(e => {
     if (e.timeIn) inHours[new Date(e.timeIn).getHours()]++;
