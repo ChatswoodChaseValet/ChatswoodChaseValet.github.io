@@ -1763,7 +1763,11 @@ body.dark-mode .scan-banner {
         </button>
       </div>
     </div>
+    <div id="rep-daily-summary"></div>
     <div id="rep-daily-list"><div class="empty">No cars in this range</div></div>
+
+    <div class="section-title" style="margin-top:26px;margin-bottom:10px">Average by Day of Week</div>
+    <div id="rep-daily-weekday"><div class="empty">No cars in this range</div></div>
 
     <div class="section-title" style="margin-top:26px;margin-bottom:10px">Peak Times — check-ins &amp; check-outs by hour</div>
     <div id="rep-daily-peak"><div class="empty">No cars in this range</div></div>
@@ -6362,8 +6366,9 @@ function reportData() {
   const completed = list.filter(e => e.timeOut);
   const revenue = list.reduce((s, e) => s + (e.totalFee || 0), 0);
   const days = Math.max(1, Math.round((new Date(to) - new Date(from)) / 86400000) + 1);
-  const byDay = {}; list.forEach(e => { const d = e.timeIn.slice(0, 10); byDay[d] = (byDay[d] || 0) + 1; });
-  const daily = Object.keys(byDay).sort().map(d => [d, byDay[d]]);
+  const byDay = {}, byDayRev = {};
+  list.forEach(e => { const d = e.timeIn.slice(0, 10); byDay[d] = (byDay[d] || 0) + 1; byDayRev[d] = (byDayRev[d] || 0) + (e.totalFee || 0); });
+  const daily = Object.keys(byDay).sort().map(d => [d, byDay[d], byDayRev[d] || 0]);
   const byBrand = {}; list.forEach(e => { const b = e.brand || '—'; byBrand[b] = (byBrand[b] || 0) + 1; });
   const brands = Object.entries(byBrand).sort((a, b) => b[1] - a[1]);
   // Peak times + average customer stay (shared insights engine).
@@ -6402,7 +6407,7 @@ function downloadReportSpreadsheet() {
   row('Average customer stay', r.avgStayMs ? fmtDuration(r.avgStayMs) : '—');
   row('Median customer stay', r.medStayMs ? fmtDuration(r.medStayMs) : '—');
   row('');
-  row('Daily Volume'); row('Date', 'Cars'); r.daily.forEach(d => row(d[0], d[1]));
+  row('Daily Volume'); row('Date', 'Cars', 'Revenue'); r.daily.forEach(d => row(d[0], d[1], fmtMoney(d[2])));
   row('');
   row('Brand Breakdown'); row('Brand', 'Cars'); r.brands.forEach(b => row(b[0], b[1]));
   const blob = new Blob([L.join('\n')], { type: 'text/csv' });
@@ -6417,7 +6422,7 @@ function downloadReportPDF() {
   const r = reportData();
   if (!r.list.length) { alert('No data in this date range to download.'); return; }
   const tbl = (head, rows) => `<table><thead><tr>${head.map(h => `<th${h !== head[0] ? ' style="text-align:right"' : ''}>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
-  const dailyRows = r.daily.map(d => `<tr><td>${fmtDate(new Date(d[0]))}</td><td style="text-align:right">${d[1]}</td></tr>`).join('');
+  const dailyRows = r.daily.map(d => `<tr><td>${fmtDate(new Date(d[0]))}</td><td style="text-align:right">${d[1]}</td><td style="text-align:right">${fmtMoney(d[2])}</td></tr>`).join('');
   const brandRows = r.brands.map(b => `<tr><td>${b[0]}</td><td style="text-align:right">${b[1]}</td></tr>`).join('');
   const peakRows =
     `<tr><td>Busiest arrival hour</td><td style="text-align:right">${r.peakIn ? hourLabel(r.peakIn.hour) + ' (' + r.peakIn.count + ' cars)' : '—'}</td></tr>`
@@ -6448,7 +6453,7 @@ function downloadReportPDF() {
       <div class="sc"><span>Bag jobs</span><b>${r.bagJobs}</b></div>
     </div>
     <h2>Peak Times &amp; Customer Stay</h2>${tbl(['Measure', 'Value'], peakRows)}
-    <h2>Daily Volume</h2>${tbl(['Date', 'Cars'], dailyRows)}
+    <h2>Daily Volume</h2>${tbl(['Date', 'Cars', 'Revenue'], dailyRows)}
     <h2>Brand Breakdown</h2>${tbl(['Brand', 'Cars'], brandRows)}
     <button onclick="window.print()" style="margin-top:22px;padding:10px 20px;background:#531620;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print / Save as PDF</button>
     </body></html>`);
@@ -6456,8 +6461,47 @@ function downloadReportPDF() {
 }
 
 // Daily Volume chart orientation (per-device preference).
+// lastDailyList rows are [dateISO, carCount, revenue].
 let lastDailyList = [];
+let lastDailyStats = null;
 let lastPeakIn = [], lastPeakOut = [];
+const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Derive busiest/slowest day, weekday averages and the trend vs the previous
+// equal-length period — everything the Daily Volume summary needs.
+function computeDailyStats(list, from, to) {
+  if (!list.length) return null;
+  let busiest = list[0], slowest = list[0];
+  list.forEach(row => {
+    if (row[1] > busiest[1]) busiest = row;
+    if (row[1] < slowest[1]) slowest = row;
+  });
+  // Weekday averages: cars on each weekday / number of that weekday in range
+  // (zero-car days still count in the denominator, so quiet days pull it down).
+  const wdTotal = [0, 0, 0, 0, 0, 0, 0], wdDays = [0, 0, 0, 0, 0, 0, 0];
+  const start = new Date(from + 'T00:00:00'), end = new Date(to + 'T00:00:00');
+  for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) wdDays[dt.getDay()]++;
+  list.forEach(([date, n]) => { wdTotal[new Date(date + 'T00:00:00').getDay()] += n; });
+  const weekday = WEEKDAY_NAMES.map((name, i) => ({
+    name, total: wdTotal[i], days: wdDays[i], avg: wdDays[i] ? wdTotal[i] / wdDays[i] : 0,
+  }));
+  // Trend vs the immediately-preceding period of the same length.
+  const days = Math.round((end - start) / 86400000) + 1;
+  const prevTo = new Date(start); prevTo.setDate(prevTo.getDate() - 1);
+  const prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate() - (days - 1));
+  const pf = fmtDateISO(prevFrom), pt = fmtDateISO(prevTo);
+  const curTotal = list.reduce((s, r) => s + r[1], 0);
+  let prevTotal = 0;
+  entries.forEach(e => {
+    const d = e.timeIn.slice(0, 10);
+    if (d >= pf && d <= pt) prevTotal++;
+  });
+  const pct = prevTotal ? Math.round((curTotal - prevTotal) / prevTotal * 100) : null;
+  return { busiest, slowest, weekday, curTotal, prevTotal, pct };
+}
+function isWeekend(dateISO) {
+  const wd = new Date(dateISO + 'T00:00:00').getDay();
+  return wd === 0 || wd === 6;
+}
 // Peak-times chart: check-ins (maroon) and check-outs (bronze) per hour,
 // grouped side by side. Renders vertical columns or horizontal bars.
 function hourChartHTML(inH, outH, dir) {
@@ -6514,29 +6558,39 @@ function renderDailyVolume() {
     vb.classList.toggle('on', dir === 'vertical');
     hb.classList.toggle('on', dir === 'horizontal');
   }
+  renderDailySummary();
+  renderWeekdayAverages(dir);
   const list = lastDailyList;
   if (!list.length) { c.innerHTML = '<div class="empty">No data in this range</div>'; return; }
   const max = Math.max(...list.map(([_, n]) => n));
+  // Weekend bars use the maroon palette so the weekly rhythm is visible at a glance.
+  const WEEKDAY_GRAD_H = 'linear-gradient(90deg,var(--bronze),var(--bronze-light))';
+  const WEEKEND_GRAD_H = 'linear-gradient(90deg,var(--maroon),var(--maroon-light))';
+  const WEEKDAY_GRAD_V = 'linear-gradient(180deg,var(--bronze),var(--bronze-light))';
+  const WEEKEND_GRAD_V = 'linear-gradient(180deg,var(--maroon),var(--maroon-light))';
   if (dir === 'horizontal') {
-    c.innerHTML = list.map(([date, count]) => {
+    c.innerHTML = list.map(([date, count, rev]) => {
       const lbl = `${date.slice(8,10)}/${date.slice(5,7)}/${date.slice(2,4)}`;
+      const wknd = isWeekend(date);
       return `<div class="brand-row">
-        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:14px;font-weight:bold;color:var(--text);min-width:64px">${lbl}</div>
-        <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(count/max)*100}%;background:linear-gradient(90deg,var(--bronze),var(--bronze-light))"></div></div>
-        <div class="brand-count">${count}</div>
+        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:14px;font-weight:bold;color:${wknd ? 'var(--maroon)' : 'var(--text)'};min-width:64px">${lbl}</div>
+        <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(count/max)*100}%;background:${wknd ? WEEKEND_GRAD_H : WEEKDAY_GRAD_H}"></div></div>
+        <div class="brand-count">${count}<span style="display:block;font-size:11px;font-weight:normal;color:var(--text-muted)">${fmtMoney(rev)}</span></div>
       </div>`;
     }).join('');
   } else {
     const BAR_MAX = 150;
     c.innerHTML =
-      `<div style="display:flex;align-items:flex-end;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 2px 2px;min-height:${BAR_MAX + 46}px">`
-      + list.map(([date, count]) => {
+      `<div style="display:flex;align-items:flex-end;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 2px 2px;min-height:${BAR_MAX + 64}px">`
+      + list.map(([date, count, rev]) => {
           const h = Math.max(3, Math.round((count / max) * BAR_MAX));
           const lbl = `${date.slice(8,10)}/${date.slice(5,7)}`;
-          return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:32px">
+          const wknd = isWeekend(date);
+          return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:38px">
             <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${count}</div>
-            <div title="${lbl}: ${count}" style="width:24px;height:${h}px;background:linear-gradient(180deg,var(--bronze),var(--bronze-light));border-radius:3px 3px 0 0"></div>
-            <div style="font-size:12px;font-weight:bold;color:var(--text);white-space:nowrap;font-family:'Courier New',monospace">${lbl}</div>
+            <div title="${lbl}: ${count} cars · ${fmtMoney(rev)}" style="width:24px;height:${h}px;background:${wknd ? WEEKEND_GRAD_V : WEEKDAY_GRAD_V};border-radius:3px 3px 0 0"></div>
+            <div style="font-size:10px;color:var(--text-muted);white-space:nowrap">${fmtMoney(rev)}</div>
+            <div style="font-size:12px;font-weight:bold;color:${wknd ? 'var(--maroon)' : 'var(--text)'};white-space:nowrap;font-family:'Courier New',monospace">${lbl}</div>
           </div>`;
         }).join('')
       + `</div>`;
@@ -6544,6 +6598,73 @@ function renderDailyVolume() {
   // Peak Times chart (check-ins by hour) — same orientation as the toggle.
   const pk = document.getElementById('rep-daily-peak');
   if (pk) pk.innerHTML = (lastPeakIn.length || lastPeakOut.length) ? hourChartHTML(lastPeakIn, lastPeakOut, dir) : '<div class="empty">No cars in this range</div>';
+}
+
+// Summary callout: busiest day, slowest day and trend vs the previous period.
+function renderDailySummary() {
+  const el = document.getElementById('rep-daily-summary');
+  if (!el) return;
+  const s = lastDailyStats;
+  if (!s) { el.innerHTML = ''; return; }
+  const fmtDay = row => {
+    const wd = WEEKDAY_NAMES[new Date(row[0] + 'T00:00:00').getDay()];
+    return `${wd} ${row[0].slice(8,10)}/${row[0].slice(5,7)}`;
+  };
+  let trend;
+  if (s.pct === null) {
+    trend = `<span style="color:var(--text-muted)">no prior period</span>`;
+  } else {
+    const up = s.pct >= 0;
+    const col = up ? 'var(--green)' : 'var(--red)';
+    trend = `<span style="color:${col};font-weight:bold">${up ? '↑' : '↓'} ${Math.abs(s.pct)}%</span> vs previous (${s.prevTotal})`;
+  }
+  const card = (label, value, sub) => `
+    <div style="background:var(--sandstone);padding:12px 14px;border-radius:6px;border-left:3px solid var(--bronze)">
+      <div style="font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:5px">${label}</div>
+      <div style="font-size:15px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif">${value}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${sub}</div>
+    </div>`;
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
+    ${card('Busiest day', fmtDay(s.busiest), `${s.busiest[1]} cars · ${fmtMoney(s.busiest[2])}`)}
+    ${card('Slowest day', fmtDay(s.slowest), `${s.slowest[1]} cars · ${fmtMoney(s.slowest[2])}`)}
+    ${card('Trend', `${s.curTotal} cars`, trend)}
+  </div>`;
+}
+
+// Average cars per weekday (Mon→Sun) — the rhythm that drives rostering.
+function renderWeekdayAverages(dir) {
+  const el = document.getElementById('rep-daily-weekday');
+  if (!el) return;
+  const s = lastDailyStats;
+  if (!s) { el.innerHTML = '<div class="empty">No cars in this range</div>'; return; }
+  // Reorder to Mon-first; weekends (Sat/Sun) get the maroon palette.
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const wd = order.map(i => s.weekday[i]);
+  const max = Math.max(1, ...wd.map(d => d.avg));
+  const isWknd = name => name === 'Sat' || name === 'Sun';
+  if (dir === 'horizontal') {
+    el.innerHTML = wd.map(d => {
+      const w = isWknd(d.name);
+      return `<div class="brand-row">
+        <div class="brand-name" style="min-width:48px;color:${w ? 'var(--maroon)' : 'var(--text)'}">${d.name}</div>
+        <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(d.avg/max)*100}%;background:${w ? 'linear-gradient(90deg,var(--maroon),var(--maroon-light))' : 'linear-gradient(90deg,var(--bronze),var(--bronze-light))'}"></div></div>
+        <div class="brand-count" title="${d.total} cars over ${d.days} ${d.name}${d.days===1?'':'s'}">${d.avg.toFixed(1)}</div>
+      </div>`;
+    }).join('');
+    return;
+  }
+  const BAR_MAX = 130;
+  el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:10px;overflow-x:auto;padding:8px 2px 2px;min-height:${BAR_MAX + 44}px">`
+    + wd.map(d => {
+        const h = Math.max(2, Math.round((d.avg / max) * BAR_MAX));
+        const w = isWknd(d.name);
+        return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:40px" title="${d.total} cars over ${d.days} ${d.name}${d.days===1?'':'s'}">
+          <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${d.avg.toFixed(1)}</div>
+          <div style="width:26px;height:${h}px;background:${w ? 'linear-gradient(180deg,var(--maroon),var(--maroon-light))' : 'linear-gradient(180deg,var(--bronze),var(--bronze-light))'};border-radius:3px 3px 0 0"></div>
+          <div style="font-size:12px;font-weight:bold;color:${w ? 'var(--maroon)' : 'var(--text)'};font-family:'Courier New',monospace">${d.name}</div>
+        </div>`;
+      }).join('')
+    + `</div>`;
 }
 
 function renderReports() {
@@ -6612,13 +6733,17 @@ function renderReports() {
   // Brand breakdown
   renderBrandList(filtered, 'rep-brand-list');
 
-  // Daily volume
-  const dailyMap = {};
+  // Daily volume — cars and revenue per calendar day
+  const dailyMap = {}, dailyRev = {};
   filtered.forEach(e => {
     const d = e.timeIn.slice(0, 10);
     dailyMap[d] = (dailyMap[d] || 0) + 1;
+    dailyRev[d] = (dailyRev[d] || 0) + (e.totalFee || 0);
   });
-  lastDailyList = Object.entries(dailyMap).sort((a,b) => a[0].localeCompare(b[0]));
+  lastDailyList = Object.entries(dailyMap)
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .map(([d, n]) => [d, n, dailyRev[d] || 0]);
+  lastDailyStats = computeDailyStats(lastDailyList, from, to);
   const inHours = new Array(24).fill(0), outHours = new Array(24).fill(0);
   filtered.forEach(e => {
     if (e.timeIn) inHours[new Date(e.timeIn).getHours()]++;
