@@ -7080,30 +7080,47 @@ function renderPayments(filtered) {
       byMethod[m].total += (e.totalFee || 0);
     }
   });
-  const cash = (byMethod.cash && byMethod.cash.total) || 0;
   const paidTotal = (byStatus.paid && byStatus.paid.total) || 0;
-  const electronic = paidTotal - cash;
+  const paidCount = (byStatus.paid && byStatus.paid.count) || 0;
   const unpaid = byStatus.unpaid || { count: 0, total: 0 };
   const tipRate = completed.length ? Math.round(tipped / completed.length * 100) : 0;
+  // Card is the normal tender (card + EFTPOS); cash and "other" are exceptions.
+  const cardLike = ((byMethod.card && byMethod.card.total) || 0) + ((byMethod.eftpos && byMethod.eftpos.total) || 0);
+  const cardCount = ((byMethod.card && byMethod.card.count) || 0) + ((byMethod.eftpos && byMethod.eftpos.count) || 0);
+  const nonCard = paidTotal - cardLike;
+  const nonCardCount = paidCount - cardCount;
 
   const cards = [
-    ['Collected (paid)', fmtMoney(paidTotal), `${(byStatus.paid && byStatus.paid.count) || 0} transactions`, 'var(--green)'],
-    ['Cash in drawer', fmtMoney(cash), 'fees paid in cash', 'var(--maroon)'],
-    ['Card / EFTPOS', fmtMoney(electronic), 'electronic payments', 'var(--bronze)'],
+    ['Card / EFTPOS', fmtMoney(cardLike), `${cardCount} of ${paidCount} paid trips`, 'var(--maroon)'],
+    ['Collected (paid)', fmtMoney(paidTotal), `${paidCount} transaction${paidCount !== 1 ? 's' : ''}`, 'var(--green)'],
+    ['Non-card', fmtMoney(nonCard), nonCardCount ? `${nonCardCount} exception${nonCardCount !== 1 ? 's' : ''} — see below` : 'all paid by card', nonCardCount ? '#a83838' : 'var(--bronze)'],
     ['Tips', fmtMoney(tips), `${tipRate}% of trips tipped`, 'var(--green)'],
   ];
   if (unpaid.count) cards.push(['Outstanding', fmtMoney(unpaid.total), `${unpaid.count} unpaid`, '#a83838']);
 
-  // Method breakdown (paid only)
-  const methods = ['cash', 'card', 'eftpos', 'other'].filter(m => byMethod[m]);
-  const methodMax = Math.max(1, ...methods.map(m => byMethod[m].total));
-  const methodBars = methods.length
-    ? repHeading('Paid revenue by method')
-      + methods.map(m => repBar(PAY_METHOD_LABELS[m] || m,
-          `${fmtMoney(byMethod[m].total)} · ${byMethod[m].count}x`,
-          byMethod[m].total / methodMax,
-          m === 'cash' ? 'linear-gradient(90deg,var(--maroon),var(--maroon-light))' : 'linear-gradient(90deg,var(--bronze),var(--bronze-light))')).join('')
-    : '';
+  // Non-card payments — cash / other paid trips, flagged individually so the
+  // unusual ones are easy to spot (card is the norm here).
+  const exceptions = completed
+    .filter(e => (e.paymentStatus || 'paid') === 'paid' && e.paymentMethod && e.paymentMethod !== 'card' && e.paymentMethod !== 'eftpos')
+    .sort((a, b) => new Date(b.timeOut) - new Date(a.timeOut));
+  let exceptionBlock = repHeading('Non-card payments');
+  if (!exceptions.length) {
+    exceptionBlock += `<div style="padding:10px 12px;background:var(--sandstone);border-radius:5px;border-left:3px solid var(--green);font-size:12px;color:var(--text-muted)">All paid trips in this range were Card / EFTPOS.</div>`;
+  } else {
+    exceptionBlock += exceptions.map(e => {
+      const id = e.rego || e.ticket || '—';
+      const att = e.attendantOut ? ' · ' + e.attendantOut : '';
+      const when = e.timeOut ? fmtDate(new Date(e.timeOut)) : '';
+      const method = PAY_METHOD_LABELS[e.paymentMethod] || e.paymentMethod;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:var(--sandstone);border-radius:5px;margin-bottom:6px;border-left:3px solid #a83838">
+        <div style="font-size:12px">
+          <span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${id}</span>
+          <span style="color:var(--text-muted)"> · ${when}${att}</span>
+        </div>
+        <div style="font-family:'Courier New',monospace;font-weight:bold;white-space:nowrap">${method} · ${fmtMoney(e.totalFee || 0)}</div>
+      </div>`;
+    }).join('');
+  }
 
   // Status breakdown (all completed)
   const statuses = Object.keys(byStatus).sort((a, b) => byStatus[b].total - byStatus[a].total);
@@ -7114,7 +7131,7 @@ function renderPayments(filtered) {
         byStatus[s].total / statusMax,
         s === 'unpaid' ? 'linear-gradient(90deg,#a83838,#c45a5a)' : 'linear-gradient(90deg,var(--green),#6fae73)')).join('');
 
-  c.innerHTML = repCards(cards) + methodBars + statusBars;
+  c.innerHTML = repCards(cards) + exceptionBlock + statusBars;
 }
 
 // Staff Performance: cars parked per check-in attendant, plus checkouts,
