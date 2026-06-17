@@ -17,7 +17,7 @@
 <!-- Inter — matches the official chatswoodchase.com.au typeface -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -7994,11 +7994,34 @@ let cameraStream = null;
 let cameraFacingMode = 'environment'; // start with rear camera
 let cameraScanLoop = null;
 
+// Scanner libraries load on demand — not on every page load. jsQR (~45 KB) for
+// QR decoding and Tesseract.js (the heavy OCR engine) for offline plate reading
+// are only fetched the first time you open the relevant scanner. Each loads once
+// and is cached for the session.
+const JSQR_SRC = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+const TESSERACT_SRC = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js';
+const _loadedScripts = {};
+function ensureScript(src) {
+  if (_loadedScripts[src]) return _loadedScripts[src];
+  _loadedScripts[src] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => { delete _loadedScripts[src]; reject(new Error('Failed to load ' + src)); };
+    document.head.appendChild(s);
+  });
+  return _loadedScripts[src];
+}
+
 async function openCameraScan() {
   const modal = document.getElementById('camera-modal');
   modal.classList.add('show');
   document.getElementById('camera-status').textContent = 'Initialising camera…';
   document.getElementById('camera-status').className = 'camera-status';
+  // Fetch the QR decoder in the background; the scan loop tolerates it not being
+  // ready for the first few frames, so no need to block camera startup on it.
+  ensureScript(JSQR_SRC).catch(() => {});
   await startCamera();
 }
 
@@ -8259,8 +8282,13 @@ async function capturePlateFallback(canvas) {
 
   try {
     if (typeof Tesseract === 'undefined') {
-      throw new Error('OCR library not loaded yet — please wait and try again');
+      document.getElementById('plate-status').textContent = 'Loading OCR engine (first use)…';
+      await ensureScript(TESSERACT_SRC);
     }
+    if (typeof Tesseract === 'undefined') {
+      throw new Error('OCR library failed to load — check your connection and try again');
+    }
+    document.getElementById('plate-status').textContent = 'Reading plate (offline OCR, 2-4s)…';
     const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
       tessedit_pageseg_mode: '7',
@@ -10501,9 +10529,14 @@ function initializeUI() {
     enableWakeLock().then(updateWakeLockUI);
   }
 
-  // Auto-refresh
+  // Auto-refresh — only the view you're actually looking at, and skip entirely
+  // while the tab/app is backgrounded. showView() re-renders a view when you
+  // switch to it, so other views are never left stale. Saves steady-state CPU
+  // and battery on the always-on counter tablet (was re-rendering every screen,
+  // including the full log, every 10s).
   setInterval(() => {
-    refreshActiveViews();
+    if (document.hidden) return;
+    refreshActiveViewOnly();
   }, 10000);
 
   // Load pending writes queue
@@ -11232,9 +11265,11 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- Third-party libraries. Previously these pointed at ./index_v2_files/*
      paths from a "Save complete webpage" export that was never committed —
      fresh browsers got 404s and the app froze at "Connecting to cloud
-     database...". Pinned CDN versions for stability. -->
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+     database...". Pinned CDN versions for stability.
+     The QR (jsQR) and OCR (tesseract.js) scanner libraries are NOT loaded here
+     anymore — they load on demand the first time a scanner is opened (see
+     ensureScript / JSQR_SRC / TESSERACT_SRC). Only supabase-js, which is needed
+     at startup for cloud sync, loads eagerly. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 
 
