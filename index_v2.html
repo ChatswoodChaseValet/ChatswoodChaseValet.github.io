@@ -420,6 +420,17 @@ tr:hover td{background:var(--bg)}
 .acard-meta .acard-fee{margin-left:auto;font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)}
 .acard-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .acard-actions .btn{flex:0 0 auto}
+/* Active-cars row actions: the occasional actions (call/QR/print/edit/bag) are
+   grouped into one compact segmented control so the row reads cleanly, while
+   Request and Mark Out stay as the prominent labelled buttons. */
+.car-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ico-group{display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:5px;overflow:hidden;background:var(--bone)}
+.ico-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;padding:0;border:none;border-right:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;text-decoration:none;transition:background .12s}
+.ico-btn:last-child{border-right:none}
+.ico-btn:hover{background:var(--sandstone)}
+.ico-btn svg{width:15px;height:15px;display:block}
+.ico-btn.on{background:var(--maroon);color:#fff}
+body.dark-mode .ico-group{background:transparent}
 @media (max-width:700px){
   #view-active .table-wrap{display:none}
   #view-active .active-cards{display:flex}
@@ -4898,6 +4909,15 @@ function renderBrandList(list, containerId) {
 // ═══════════════════════════════════════════════════
 // ACTIVE CARS RENDER
 // ═══════════════════════════════════════════════════
+// Compact stroke icons for the grouped Active-cars row actions.
+const ACT_ICONS = {
+  call: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+  qr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="17.5" x2="17.5" y2="17.5"/></svg>',
+  print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+};
+
 function renderActive() {
   const active = entries.filter(e => !e.timeOut);
   document.getElementById('active-count').textContent =
@@ -4966,13 +4986,20 @@ function renderActive() {
     })();
 
     // Action buttons — identical for the desktop table cell and the phone card.
-    const actions = `${e.phone ? `<a href="tel:${e.phone}" class="btn btn-secondary btn-sm" style="text-decoration:none" onclick="event.stopPropagation()" title="Call ${e.phone}">Call</a>` : ''}`
-      + `<button class="btn btn-secondary btn-sm" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">QR</button>`
-      + `<button class="btn btn-secondary btn-sm" onclick="printKeyTag('${e.id}')" title="Print key tag">Print</button>`
-      + `<button class="btn btn-secondary btn-sm" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">Edit</button>`
+    // The five occasional actions are grouped into one segmented icon control;
+    // Request (pickup) and Mark Out stay as prominent labelled buttons.
+    const bagOn = e.bagStatus && e.bagStatus !== 'done';
+    const actions = `<div class="car-actions">`
+      + `<span class="ico-group">`
+      + `${e.phone ? `<a href="tel:${e.phone}" class="ico-btn" onclick="event.stopPropagation()" title="Call ${e.phone}">${ACT_ICONS.call}</a>` : ''}`
+      + `<button class="ico-btn" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">${ACT_ICONS.qr}</button>`
+      + `<button class="ico-btn" onclick="printKeyTag('${e.id}')" title="Print key tag">${ACT_ICONS.print}</button>`
+      + `<button class="ico-btn" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">${ACT_ICONS.edit}</button>`
+      + `<button class="ico-btn${bagOn ? ' on' : ''}" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup">${ACT_ICONS.bag}</button>`
+      + `</span>`
       + pickupBtn
-      + `<button class="btn btn-secondary btn-sm" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup" style="${e.bagStatus && e.bagStatus!=='done' ? 'background:#531620;color:#fff' : ''}">${e.bagStatus && e.bagStatus!=='done' ? '•' : ''}</button>`
-      + `<button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')" style="margin-left:4px">✓ Mark Out</button>`;
+      + `<button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')">✓ Mark Out</button>`
+      + `</div>`;
 
     const row = `<tr class="active" style="${rowStyle}">
       <td class="ticket-num">${e.ticket}</td>
