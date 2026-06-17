@@ -1024,6 +1024,10 @@ body.dark-mode .scan-banner {
   <div class="nav-flyout-title">Reports</div>
   <button class="flyout-item" data-group="volume" onclick="goReport('volume')">Daily Volume</button>
   <button class="flyout-item" data-group="peak" onclick="goReport('peak')">Peak Times</button>
+  <button class="flyout-item" data-group="payments" onclick="goReport('payments')">Payments &amp; Cash-Up</button>
+  <button class="flyout-item" data-group="staff" onclick="goReport('staff')">Staff Performance</button>
+  <button class="flyout-item" data-group="stay" onclick="goReport('stay')">Customer Stay &amp; Tiers</button>
+  <button class="flyout-item" data-group="repeat" onclick="goReport('repeat')">Repeat Customers</button>
   <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
   <button class="flyout-item" data-group="discounts" onclick="goReport('discounts')">Discounts</button>
   <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
@@ -1777,6 +1781,36 @@ body.dark-mode .scan-banner {
 
     <div class="section-title" style="margin-top:26px;margin-bottom:10px">Brand Breakdown</div>
     <div id="rep-brand-list"><div class="empty">No cars in this range</div></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="payments">
+    <div class="section-header">
+      <div class="section-title">Payments &amp; Cash-Up</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic">Reconcile the drawer at end of day</div>
+    </div>
+    <div id="rep-payments"><div class="empty">No completed trips in this range</div></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="staff">
+    <div class="section-header">
+      <div class="section-title">Staff Performance</div>
+    </div>
+    <div id="rep-staff"><div class="empty">No cars in this range</div></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="stay">
+    <div class="section-header">
+      <div class="section-title">Customer Stay &amp; Pricing Tiers</div>
+    </div>
+    <div id="rep-stay"><div class="empty">No completed trips in this range</div></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="repeat">
+    <div class="section-header">
+      <div class="section-title">Repeat Customers</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic">Grouped by phone, then number plate</div>
+    </div>
+    <div id="rep-repeat"><div class="empty">No customers in this range</div></div>
   </div>
 
   <div class="section rep-section" data-repgroup="discounts">
@@ -6756,6 +6790,10 @@ function renderReports() {
   renderSpend(filtered);
   renderComparison();
   renderDiscountSummary(filtered);
+  renderPayments(filtered);
+  renderStaff(filtered);
+  renderStayTiers(filtered);
+  renderRepeatCustomers(filtered);
 }
 
 // ═══════════════════════════════════════════════════
@@ -6995,6 +7033,204 @@ function renderDiscountSummary(filtered) {
       </div>
     `).join('')}
   `;
+}
+
+// Shared card grid for the report sections below.
+function repCards(cards) {
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px">
+    ${cards.map(([label, value, sub, col]) => `
+      <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid ${col || 'var(--bronze)'}">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">${label}</div>
+        <div style="font-size:21px;font-weight:bold;color:${col || 'var(--maroon)'};font-family:'Inter',sans-serif;line-height:1.1;margin-top:4px">${value}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${sub || ''}</div>
+      </div>`).join('')}
+  </div>`;
+}
+function repBar(name, valueLabel, frac, color, nameCol) {
+  return `<div class="brand-row">
+    <div class="brand-name" style="font-size:13px;min-width:90px${nameCol ? ';color:' + nameCol : ''}">${name}</div>
+    <div class="brand-bar-wrap"><div class="brand-bar" style="width:${Math.max(0, Math.min(100, frac * 100))}%;background:${color}"></div></div>
+    <div class="brand-count" style="text-align:right;min-width:150px;white-space:nowrap;font-family:'Courier New',monospace">${valueLabel}</div>
+  </div>`;
+}
+function repHeading(text) {
+  return `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin:18px 0 8px">${text}</div>`;
+}
+
+// Payments & Cash-Up: split paid revenue by method (cash vs card/EFTPOS),
+// surface tips, and break down by payment status for the nightly drawer count.
+const PAY_METHOD_LABELS = { cash: 'Cash', card: 'Card', eftpos: 'EFTPOS', other: 'Other' };
+const PAY_STATUS_LABELS = { paid: 'Paid', unpaid: 'Unpaid', comp: 'Complimentary', shop: 'Shop account', charged: 'Charged to account/room' };
+function renderPayments(filtered) {
+  const c = document.getElementById('rep-payments');
+  if (!c) return;
+  const completed = filtered.filter(e => e.timeOut);
+  if (!completed.length) { c.innerHTML = '<div class="empty">No completed trips in this range</div>'; return; }
+  const byMethod = {}, byStatus = {};
+  let tips = 0, tipped = 0;
+  completed.forEach(e => {
+    tips += (e.tip || 0);
+    if ((e.tip || 0) > 0) tipped++;
+    const st = e.paymentStatus || 'paid';
+    (byStatus[st] = byStatus[st] || { count: 0, total: 0 }).count++;
+    byStatus[st].total += (e.totalFee || 0);
+    if (st === 'paid') {
+      const m = e.paymentMethod || 'other';
+      (byMethod[m] = byMethod[m] || { count: 0, total: 0 }).count++;
+      byMethod[m].total += (e.totalFee || 0);
+    }
+  });
+  const cash = (byMethod.cash && byMethod.cash.total) || 0;
+  const paidTotal = (byStatus.paid && byStatus.paid.total) || 0;
+  const electronic = paidTotal - cash;
+  const unpaid = byStatus.unpaid || { count: 0, total: 0 };
+  const tipRate = completed.length ? Math.round(tipped / completed.length * 100) : 0;
+
+  const cards = [
+    ['Collected (paid)', fmtMoney(paidTotal), `${(byStatus.paid && byStatus.paid.count) || 0} transactions`, 'var(--green)'],
+    ['Cash in drawer', fmtMoney(cash), 'fees paid in cash', 'var(--maroon)'],
+    ['Card / EFTPOS', fmtMoney(electronic), 'electronic payments', 'var(--bronze)'],
+    ['Tips', fmtMoney(tips), `${tipRate}% of trips tipped`, 'var(--green)'],
+  ];
+  if (unpaid.count) cards.push(['Outstanding', fmtMoney(unpaid.total), `${unpaid.count} unpaid`, '#a83838']);
+
+  // Method breakdown (paid only)
+  const methods = ['cash', 'card', 'eftpos', 'other'].filter(m => byMethod[m]);
+  const methodMax = Math.max(1, ...methods.map(m => byMethod[m].total));
+  const methodBars = methods.length
+    ? repHeading('Paid revenue by method')
+      + methods.map(m => repBar(PAY_METHOD_LABELS[m] || m,
+          `${fmtMoney(byMethod[m].total)} · ${byMethod[m].count}x`,
+          byMethod[m].total / methodMax,
+          m === 'cash' ? 'linear-gradient(90deg,var(--maroon),var(--maroon-light))' : 'linear-gradient(90deg,var(--bronze),var(--bronze-light))')).join('')
+    : '';
+
+  // Status breakdown (all completed)
+  const statuses = Object.keys(byStatus).sort((a, b) => byStatus[b].total - byStatus[a].total);
+  const statusMax = Math.max(1, ...statuses.map(s => byStatus[s].total));
+  const statusBars = repHeading('By payment status')
+    + statuses.map(s => repBar(PAY_STATUS_LABELS[s] || s,
+        `${fmtMoney(byStatus[s].total)} · ${byStatus[s].count}x`,
+        byStatus[s].total / statusMax,
+        s === 'unpaid' ? 'linear-gradient(90deg,#a83838,#c45a5a)' : 'linear-gradient(90deg,var(--green),#6fae73)')).join('');
+
+  c.innerHTML = repCards(cards) + methodBars + statusBars;
+}
+
+// Staff Performance: cars parked per check-in attendant, plus checkouts,
+// revenue collected and tips per returning attendant.
+function renderStaff(filtered) {
+  const c = document.getElementById('rep-staff');
+  if (!c) return;
+  if (!filtered.length) { c.innerHTML = '<div class="empty">No cars in this range</div>'; return; }
+  const parked = {};
+  filtered.forEach(e => {
+    const n = e.attendantIn || '—';
+    parked[n] = (parked[n] || 0) + 1;
+  });
+  const out = {};
+  filtered.filter(e => e.timeOut).forEach(e => {
+    const n = e.attendantOut || '—';
+    (out[n] = out[n] || { count: 0, rev: 0, tips: 0 }).count++;
+    out[n].rev += (e.totalFee || 0);
+    out[n].tips += (e.tip || 0);
+  });
+  const parkedSorted = Object.entries(parked).sort((a, b) => b[1] - a[1]);
+  const parkedMax = Math.max(1, ...parkedSorted.map(r => r[1]));
+  const outSorted = Object.entries(out).sort((a, b) => b[1].rev - a[1].rev);
+  const outMax = Math.max(1, ...outSorted.map(r => r[1].rev));
+
+  const parkedBars = repHeading('Cars parked (check-in)')
+    + parkedSorted.map(([n, count]) => repBar(n, `${count} car${count !== 1 ? 's' : ''}`, count / parkedMax,
+        'linear-gradient(90deg,var(--bronze),var(--bronze-light))')).join('');
+  const outBars = outSorted.length
+    ? repHeading('Checkouts &amp; revenue (returning car)')
+      + outSorted.map(([n, d]) => repBar(n,
+          `${fmtMoney(d.rev)} · ${d.count}x${d.tips ? ' · ' + fmtMoney(d.tips) + ' tips' : ''}`,
+          d.rev / outMax, 'linear-gradient(90deg,var(--green),#6fae73)')).join('')
+    : '';
+  c.innerHTML = parkedBars + outBars;
+}
+
+// Customer Stay & Pricing Tiers: bucket completed stays by the fee tiers so you
+// can see how many cars park free vs paid, and the revenue each tier brings.
+const STAY_TIERS = [
+  { label: '0–2 hr (free)', min: 0, max: 2, col: 'var(--bronze)' },
+  { label: '2–4 hr', min: 2, max: 4, col: 'var(--green)' },
+  { label: '4–7 hr', min: 4, max: 7, col: 'var(--maroon)' },
+  { label: '7+ hr (daily max)', min: 7, max: Infinity, col: 'var(--maroon-dark)' },
+];
+function renderStayTiers(filtered) {
+  const c = document.getElementById('rep-stay');
+  if (!c) return;
+  const completed = filtered.filter(e => e.timeOut);
+  const stays = completed
+    .map(e => ({ hrs: (new Date(e.timeOut) - new Date(e.timeIn)) / 3600000, fee: e.totalFee || 0 }))
+    .filter(s => s.hrs > 0);
+  if (!stays.length) { c.innerHTML = '<div class="empty">No completed trips in this range</div>'; return; }
+  const buckets = STAY_TIERS.map(t => ({ ...t, count: 0, rev: 0 }));
+  stays.forEach(s => {
+    const b = buckets.find(t => s.hrs > t.min && s.hrs <= t.max) || buckets[buckets.length - 1];
+    b.count++; b.rev += s.fee;
+  });
+  const total = stays.length;
+  const avgHrs = stays.reduce((a, s) => a + s.hrs, 0) / total;
+  const freeCount = buckets[0].count;
+  const paidCount = total - freeCount;
+  const cards = [
+    ['Completed trips', String(total), `avg ${fmtDuration(avgHrs * 3600000)} stay`, 'var(--maroon)'],
+    ['Free (≤2 hr)', String(freeCount), `${Math.round(freeCount / total * 100)}% parked free`, 'var(--bronze)'],
+    ['Paid parking', String(paidCount), `${Math.round(paidCount / total * 100)}% over 2 hr`, 'var(--green)'],
+  ];
+  const max = Math.max(1, ...buckets.map(b => b.count));
+  const bars = repHeading('Stays by pricing tier')
+    + buckets.map(b => repBar(b.label,
+        `${b.count} car${b.count !== 1 ? 's' : ''} · ${fmtMoney(b.rev)}`,
+        b.count / max, `linear-gradient(90deg,${b.col},${b.col})`)).join('');
+  c.innerHTML = repCards(cards) + bars;
+}
+
+// Repeat Customers: group visits by phone (else number plate) and surface the
+// ones who came back, with visit count and total spend.
+function renderRepeatCustomers(filtered) {
+  const c = document.getElementById('rep-repeat');
+  if (!c) return;
+  if (!filtered.length) { c.innerHTML = '<div class="empty">No customers in this range</div>'; return; }
+  const groups = {};
+  filtered.forEach(e => {
+    const phone = e.phone && e.phone.replace(/\D/g, '');
+    const rego = e.rego && e.rego.toUpperCase().replace(/\s/g, '');
+    const key = phone || rego;
+    if (!key) return;
+    const g = groups[key] || (groups[key] = { visits: 0, spend: 0, name: '', label: phone ? e.phone : e.rego, last: '' });
+    g.visits++;
+    g.spend += (e.totalFee || 0);
+    if (e.name && !g.name) g.name = e.name;
+    if (!g.last || e.timeIn > g.last) g.last = e.timeIn;
+  });
+  const all = Object.values(groups);
+  const distinct = all.length;
+  const returning = all.filter(g => g.visits > 1).sort((a, b) => b.visits - a.visits || b.spend - a.spend);
+  if (!distinct) { c.innerHTML = '<div class="empty">No customers with contact details in this range</div>'; return; }
+  const repeatPct = distinct ? Math.round(returning.length / distinct * 100) : 0;
+  const cards = [
+    ['Distinct customers', String(distinct), 'with phone or plate', 'var(--maroon)'],
+    ['Returning', String(returning.length), `${repeatPct}% came back`, 'var(--green)'],
+    ['Repeat visits', String(returning.reduce((a, g) => a + g.visits, 0)), 'by returning customers', 'var(--bronze)'],
+  ];
+  let body;
+  if (!returning.length) {
+    body = '<div class="empty">No repeat customers in this range yet</div>';
+  } else {
+    const max = Math.max(...returning.map(g => g.visits));
+    body = repHeading('Returning customers')
+      + returning.slice(0, 50).map(g => repBar(
+          `${g.name ? g.name + ' · ' : ''}${g.label}`,
+          `${g.visits} visits · ${fmtMoney(g.spend)}`,
+          g.visits / max, 'linear-gradient(90deg,var(--maroon),var(--maroon-light))')).join('');
+    if (returning.length > 50) body += `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Showing top 50 of ${returning.length} returning customers.</div>`;
+  }
+  c.innerHTML = repCards(cards) + body;
 }
 
 // ═══════════════════════════════════════════════════
