@@ -1023,14 +1023,11 @@ body.dark-mode .scan-banner {
 <div id="reports-flyout" class="nav-flyout">
   <div class="nav-flyout-title">Reports</div>
   <button class="flyout-item" data-group="volume" onclick="goReport('volume')">Daily Volume</button>
-  <button class="flyout-item" data-group="payments" onclick="goReport('payments')">Payments &amp; Cash-Up</button>
+  <button class="flyout-item" data-group="payments" onclick="goReport('payments')">Payments</button>
   <button class="flyout-item" data-group="staff" onclick="goReport('staff')">Staff Performance</button>
-  <button class="flyout-item" data-group="stay" onclick="goReport('stay')">Customer Stay &amp; Tiers</button>
-  <button class="flyout-item" data-group="repeat" onclick="goReport('repeat')">Repeat Customers</button>
+  <button class="flyout-item" data-group="customers" onclick="goReport('customers')">Customers</button>
   <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
-  <button class="flyout-item" data-group="discounts" onclick="goReport('discounts')">Discounts</button>
   <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
-  <button class="flyout-item" data-group="shopaccounts" onclick="goReport('shopaccounts')">Shop Accounts</button>
   <button class="flyout-item" data-group="log" onclick="goReport('log')">Full Log</button>
 </div>
 
@@ -1791,14 +1788,14 @@ body.dark-mode .scan-banner {
     <div id="rep-staff"><div class="empty">No cars in this range</div></div>
   </div>
 
-  <div class="section rep-section" data-repgroup="stay">
+  <div class="section rep-section" data-repgroup="customers">
     <div class="section-header">
       <div class="section-title">Customer Stay &amp; Pricing Tiers</div>
     </div>
     <div id="rep-stay"><div class="empty">No completed trips in this range</div></div>
   </div>
 
-  <div class="section rep-section" data-repgroup="repeat">
+  <div class="section rep-section" data-repgroup="customers">
     <div class="section-header">
       <div class="section-title">Repeat Customers</div>
       <div style="font-size:11px;color:var(--text-muted);font-style:italic">Grouped by phone, then number plate</div>
@@ -1806,7 +1803,7 @@ body.dark-mode .scan-banner {
     <div id="rep-repeat"><div class="empty">No customers in this range</div></div>
   </div>
 
-  <div class="section rep-section" data-repgroup="discounts">
+  <div class="section rep-section" data-repgroup="payments">
     <div class="section-header">
       <div class="section-title">Discounts &amp; Validations Summary</div>
     </div>
@@ -1884,7 +1881,7 @@ body.dark-mode .scan-banner {
   </div>
   </div>
 
-  <div class="section rep-section" data-repgroup="shopaccounts">
+  <div class="section rep-section" data-repgroup="payments">
     <div class="section-header">
       <div class="section-title">Shop Accounts</div>
       <div style="font-size:11px;color:var(--text-muted);font-style:italic">Parking billed to shops · settle at end of day/week</div>
@@ -7601,7 +7598,7 @@ function goReport(g) {
   const rv = document.getElementById('view-reports');
   if (rv && !rv.classList.contains('active')) showView('reports');
   showReportsGroup(g);
-  if (g === 'shopaccounts') renderShopAccounts();
+  if (g === 'payments') renderShopAccounts();
 }
 
 function renderSettings() {
