@@ -109,6 +109,7 @@ Tap **✓ Mark Out**. The window shows duration and the fee (parking + the $20 v
 - **Discounts & validations** — add a store validation or a %/$ discount; each is recorded for the manager (Reports → Payments → Discounts).
 - **Payment status:** **Paid** (choose method — Card is the norm here, Cash, EFTPOS or Other), **Unpaid** (shows as outstanding), **Complimentary** (free parking; a car wash is still charged), **Charged to account/shop** (settle later).
 - Optionally add a **tip** or override the fee. The **Attendant (returning car)** field credits who fetched it.
+- **Return condition:** every checkout has a **Return condition** step — leave it on *✓ No new damage*, or tap *⚠ New damage / incident* to describe damage found on return and tick that the customer acknowledged it. Logged incidents appear in *Reports → Incidents*.
 - **Square Terminal:** tap *Charge on Square Terminal* to send the amount to the card machine; a successful charge checks the car out automatically.
 
 > **Car still at the wash?** Checkout warns you if a car is marked "At car wash" — don't hand it back until it's returned and marked "Washed — back".
@@ -160,6 +161,7 @@ Pick a date range at the top; every panel updates. Menu groups related panels:
 | **Customers** | Stay-length tiers (free <2h vs paid) and repeat customers. |
 | **Bag Jobs by Staff** | Hands-free shopping jobs credited to staff. |
 | **Period Comparison** | This week/month/year vs the last. |
+| **Incidents** | Cars where new damage was logged at handover, with notes and acknowledgement. |
 | **Full Log** | Every entry, searchable. |
 
 Export any report to **CSV** or a print-ready **PDF**.

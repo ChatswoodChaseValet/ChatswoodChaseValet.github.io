@@ -1041,6 +1041,7 @@ body.dark-mode .scan-banner {
   <button class="flyout-item" data-group="customers" onclick="goReport('customers')">Customers</button>
   <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
   <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
+  <button class="flyout-item" data-group="incidents" onclick="goReport('incidents')">Incidents</button>
   <button class="flyout-item" data-group="log" onclick="goReport('log')">Full Log</button>
 </div>
 
@@ -1863,6 +1864,14 @@ body.dark-mode .scan-banner {
       <div class="section-title">Discounts &amp; Validations Summary</div>
     </div>
     <div id="rep-discount-summary"><div class="empty">No discounts in this range</div></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="incidents">
+    <div class="section-header">
+      <div class="section-title">Incidents — new damage at handover</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic">Logged at checkout when damage is found on return</div>
+    </div>
+    <div id="rep-incidents"><div class="empty">No incidents in this range</div></div>
   </div>
 
   <div class="section rep-section" data-repgroup="comparison">
@@ -3733,6 +3742,10 @@ function checkout(id) {
   document.getElementById('checkout-pay-status').value = 'paid';
   document.getElementById('checkout-pay-method').value = 'card';
   document.getElementById('checkout-attendant-out').value = settings.lastAttendant || '';
+  // Return condition: default to "no new damage" (prefill if one was already logged).
+  document.getElementById('checkout-incident-notes').value = (e.incident && e.incident.notes) || '';
+  document.getElementById('checkout-incident-ack').checked = !!(e.incident && e.incident.ack);
+  setReturnCondition(e.incident && e.incident.condition === 'damage' ? 'damage' : 'ok');
   // Charge-to-shop: populate the shop list and pre-select if it was set at check-in.
   const shopSel = document.getElementById('checkout-shop');
   if (shopSel) {
@@ -4115,6 +4128,18 @@ function pollSquareCheckout(checkoutId, tries) {
   }, 2000);
 }
 
+// Return-condition toggle in the checkout modal (No new damage / new damage).
+let checkoutCondition = 'ok';
+function setReturnCondition(c) {
+  checkoutCondition = c;
+  const ok = document.getElementById('cond-ok-btn');
+  const dmg = document.getElementById('cond-dmg-btn');
+  const fields = document.getElementById('checkout-incident-fields');
+  if (ok) { ok.style.background = c === 'ok' ? 'var(--green)' : ''; ok.style.color = c === 'ok' ? '#fff' : ''; }
+  if (dmg) { dmg.style.background = c === 'damage' ? 'var(--red)' : ''; dmg.style.color = c === 'damage' ? '#fff' : ''; }
+  if (fields) fields.style.display = c === 'damage' ? 'block' : 'none';
+}
+
 function confirmCheckout() {
   const modal = document.getElementById('checkout-modal');
   const id = modal.dataset.entryId;
@@ -4158,7 +4183,20 @@ function confirmCheckout() {
   if (isNaN(total)) { alert('Invalid fee amount'); return; }
   if (isNaN(tip)) { alert('Invalid tip amount'); return; }
 
+  // Return-condition record. Damage must be described; validate before mutating.
+  let incidentRec;
+  if (checkoutCondition === 'damage') {
+    const incNotes = document.getElementById('checkout-incident-notes').value.trim();
+    if (!incNotes) { alert('Describe the new damage found, or switch to “No new damage”.'); return; }
+    incidentRec = { condition: 'damage', notes: incNotes, ack: document.getElementById('checkout-incident-ack').checked, by: attOut };
+  } else {
+    incidentRec = { condition: 'ok', by: attOut };
+  }
+
   e.timeOut = new Date().toISOString();
+  incidentRec.at = e.timeOut;
+  e.incident = incidentRec;
+  if (incidentRec.condition === 'damage') cloudAudit('return_damage', 'entry', e.id, { ticket: e.ticket, ack: incidentRec.ack });
   // Car wash is charged on top of the parking/valet fee and paid on this same
   // bill; record when it was collected (kept separate from totalFee so parking
   // revenue stays clean and the Xtream settlement is easy to total).
@@ -7104,6 +7142,7 @@ function renderReports() {
   renderStayTiers(filtered);
   renderRepeatCustomers(filtered);
   renderCarWash(filtered);
+  renderIncidents(filtered);
 }
 
 // ═══════════════════════════════════════════════════
@@ -7639,6 +7678,34 @@ function renderCarWash(filtered) {
   if (unknownCost > 0) note += ` <b>${unknownCost} collected wash${unknownCost !== 1 ? 'es have' : ' has'} no cost set</b> (marked *) — add them in Settings → Car Wash.`;
   note += '</div>';
   c.innerHTML = repCards(cards) + table + note;
+}
+
+// Incidents: cars where new damage was logged at handover in the range.
+function renderIncidents(filtered) {
+  const c = document.getElementById('rep-incidents');
+  if (!c) return;
+  const incidents = filtered.filter(e => e.incident && e.incident.condition === 'damage')
+    .sort((a, b) => new Date(b.incident.at || b.timeOut || 0) - new Date(a.incident.at || a.timeOut || 0));
+  if (!incidents.length) { c.innerHTML = '<div class="empty">No incidents in this range — no new damage logged at handover</div>'; return; }
+  const acked = incidents.filter(e => e.incident.ack).length;
+  const cards = [
+    ['Incidents', String(incidents.length), 'new damage logged', '#a83838'],
+    ['Customer acknowledged', `${acked} / ${incidents.length}`, acked === incidents.length ? 'all signed off' : 'some not acknowledged', acked === incidents.length ? 'var(--green)' : '#a83838'],
+  ];
+  const rows = incidents.map(e => {
+    const when = e.incident.at ? fmtDate(new Date(e.incident.at)) + ' ' + fmtTime(new Date(e.incident.at)) : '—';
+    const ackBadge = e.incident.ack
+      ? '<span style="color:var(--green);font-weight:600">✓ acknowledged</span>'
+      : '<span style="color:#a83838;font-weight:600">not acknowledged</span>';
+    return `<div style="padding:10px 12px;background:var(--sandstone);border-left:3px solid #a83838;border-radius:5px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;margin-bottom:4px">
+        <div><span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span> · ${e.brand}${e.model ? ' ' + e.model : ''} · <span style="font-family:'Courier New',monospace">${e.rego}</span></div>
+        <div style="color:var(--text-muted)">${when}${e.incident.by ? ' · ' + e.incident.by : ''} · ${ackBadge}</div>
+      </div>
+      <div style="font-size:13px">${(e.incident.notes || '').replace(/</g, '&lt;')}</div>
+    </div>`;
+  }).join('');
+  c.innerHTML = repCards(cards) + repHeading('Logged incidents') + rows;
 }
 
 // ═══════════════════════════════════════════════════
@@ -9828,6 +9895,7 @@ function jsToDb(e) {
     shop_account: e.shopAccount, shop_cover: e.shopCover,
     shop_settled_at: e.shopSettledAt, shop_settled_by: e.shopSettledBy,
     car_wash: e.carWash || null,
+    incident: e.incident || null,
     vip: e.vip ? true : null,
     square_payment: e.squarePayment || null,
     updated_by: currentUser?.username,
@@ -9859,6 +9927,7 @@ function dbToJs(d) {
     shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
     shopSettledAt: d.shop_settled_at, shopSettledBy: d.shop_settled_by,
     carWash: d.car_wash || null,
+    incident: d.incident || null,
     vip: !!d.vip,
     squarePayment: d.square_payment,
   };
@@ -11161,6 +11230,21 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px" id="checkout-info">—</div>
 
     <div id="checkout-damage" style="display:none;margin-bottom:16px"></div>
+
+    <!-- Return condition check — log any new damage found at handover -->
+    <div style="border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px">Return condition</div>
+      <div style="display:flex;gap:8px">
+        <button type="button" id="cond-ok-btn" class="btn btn-secondary btn-sm" onclick="setReturnCondition('ok')" style="flex:1">✓ No new damage</button>
+        <button type="button" id="cond-dmg-btn" class="btn btn-secondary btn-sm" onclick="setReturnCondition('damage')" style="flex:1">⚠ New damage / incident</button>
+      </div>
+      <div id="checkout-incident-fields" style="display:none;margin-top:12px">
+        <textarea id="checkout-incident-notes" class="form-input" rows="2" placeholder="Describe the new damage — where on the car, what it is" style="width:100%;resize:vertical"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:8px;cursor:pointer">
+          <input type="checkbox" id="checkout-incident-ack"> Customer was shown and acknowledged the damage
+        </label>
+      </div>
+    </div>
 
     <div style="background:var(--sandstone);padding:14px;border-radius:4px;margin-bottom:16px" id="checkout-summary-box">
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
