@@ -125,7 +125,7 @@ Valet customers can add a car wash from **Xtream Car Care** in the centre. Valet
 3. **Bring it back** — tap **✓ Back from wash** (chip turns green "Washed — back").
 4. **Customer pays once** — at checkout the wash is its own line, added to the parking total.
 
-> **Settling with Xtream:** wash money is tracked separately from parking. *Reports → Payments → Car Wash* shows the total to reconcile with Xtream.
+> **Settling with Xtream:** wash money is tracked separately from parking. Enter your **wholesale cost** per package in *Settings → Car Wash*; the *Reports → Payments → Car Wash* panel then shows, per service, what you charged, what you owe Xtream, and your margin.
 
 Prices are in the [pricing reference](#16-pricing-reference). Tap the chip or droplet to change or remove a wash.
 
@@ -158,6 +158,7 @@ Export any report to **CSV** or a print-ready **PDF**.
 | **Staff & Access** | Staff logins/passwords and security. |
 | **Car Park** | Capacity (open spots). |
 | **Retailers** | Store list for validations and charge-to-shop. |
+| **Car Wash** | Your wholesale cost per Xtream package/size, so the Car Wash report shows your margin. Customer always pays the retail menu price. |
 | **Alerts & Messaging** | Customer SMS (QR ticket via ClickSend) and the end-of-day close reminder. |
 | **Devices** | Key-tag printer (BIXOLON via WebPrint), Square Terminal ID, scanner, keep-screen-awake. |
 | **Data & Backup** | Export/import data; cloud-sync status. |

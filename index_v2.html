@@ -1050,6 +1050,7 @@ body.dark-mode .scan-banner {
   <button class="flyout-item" data-group="access" onclick="showSettingsGroup('access')">Staff &amp; Access</button>
   <button class="flyout-item" data-group="carpark" onclick="showSettingsGroup('carpark')">Car Park</button>
   <button class="flyout-item" data-group="retailers" onclick="showSettingsGroup('retailers')">Retailers</button>
+  <button class="flyout-item" data-group="carwash" onclick="showSettingsGroup('carwash')">Car Wash</button>
   <button class="flyout-item" data-group="alerts" onclick="showSettingsGroup('alerts')">Alerts &amp; Messaging</button>
   <button class="flyout-item" data-group="devices" onclick="showSettingsGroup('devices')">Devices</button>
   <button class="flyout-item" data-group="data" onclick="showSettingsGroup('data')">Data &amp; Backup</button>
@@ -2185,6 +2186,17 @@ body.dark-mode .scan-banner {
     <button class="btn btn-primary" onclick="saveCapacity()">Save Capacity</button>
   </div>
 
+  <div class="section set-section" data-setgroup="carwash">
+    <div class="section-header">
+      <div class="section-title">Car Wash — Xtream Costs</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">
+      The <strong>customer pays the retail price</strong> (shown for reference). Enter <strong>your wholesale cost</strong> — what you owe Xtream per wash — so the Car Wash report can show your margin. Leave a cost blank if it isn't agreed yet. Synced to all devices; applied to new washes from now on.
+    </div>
+    <div id="wash-cost-table"></div>
+    <button class="btn btn-primary" onclick="saveWashCost()" style="margin-top:14px">Save Car Wash Costs</button>
+  </div>
+
   <div class="section set-section" data-setgroup="devices">
     <div class="section-header">
       <div class="section-title">Key-Tag Printer</div>
@@ -2795,6 +2807,21 @@ function washLabel(cw) {
   const p = washPackage(cw.service);
   return (p ? p.name : cw.service) + (cw.size === 'large' ? ' (L)' : ' (S)');
 }
+// Wholesale cost owed to Xtream per package/size, set by the manager in
+// Settings → Car Wash (cloudSettings.washCost = { service: {small, large} }).
+function getWashCost(service, size) {
+  const t = (typeof cloudSettings !== 'undefined' && cloudSettings && cloudSettings.washCost) || null;
+  if (!t || !t[service]) return null;
+  const v = t[service][size === 'large' ? 'large' : 'small'];
+  return (typeof v === 'number' && v >= 0) ? v : null;
+}
+// Cost for a wash record: the snapshot taken when it was booked, else the
+// current rate card (so older washes still show a cost once rates are entered).
+function washCostOf(cw) {
+  if (!cw || !cw.service) return null;
+  if (typeof cw.cost === 'number' && cw.cost >= 0) return cw.cost;
+  return getWashCost(cw.service, cw.size);
+}
 // Live price hint under a wash picker. `prefix` is the field id prefix ('f' for
 // the check-in form, 'cw' for the manage-wash dialog).
 function updateWashPriceHint(prefix) {
@@ -3185,7 +3212,7 @@ function saveEntry() {
       const svc = document.getElementById('f-wash-service').value;
       if (!svc) return null;
       const size = document.getElementById('f-wash-size').value === 'large' ? 'large' : 'small';
-      return { service: svc, size, price: washPriceFor(svc, size), status: 'requested', requestedAt: now.toISOString() };
+      return { service: svc, size, price: washPriceFor(svc, size), cost: getWashCost(svc, size), status: 'requested', requestedAt: now.toISOString() };
     })(),
     vip: document.getElementById('f-vip').checked,
   };
@@ -4505,6 +4532,45 @@ function saveCapacity() {
   if (v && v.classList.contains('active')) { try { renderDashboard(); } catch (e) {} }
   if (typeof quickToast === 'function') quickToast('✓ Capacity set to ' + n + ' open spots');
 }
+// Car wash wholesale (Xtream) cost editor — one row per package, Small + Large.
+function renderWashSettings() {
+  const c = document.getElementById('wash-cost-table');
+  if (!c) return;
+  const t = (cloudSettings && cloudSettings.washCost) || {};
+  const val = v => (typeof v === 'number' ? v : '');
+  const th = 'text-align:right;padding:6px 8px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)';
+  const td = 'padding:6px 8px;border-bottom:1px solid var(--border)';
+  const retail = 'text-align:right;font-family:\'Courier New\',monospace;color:var(--text-muted)';
+  const inp = 'width:88px;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-family:inherit;text-align:right';
+  c.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:480px">'
+    + `<thead><tr><th style="${th};text-align:left">Service</th><th style="${th}">Retail S</th><th style="${th}">Your cost S</th><th style="${th}">Retail L</th><th style="${th}">Your cost L</th></tr></thead><tbody>`
+    + WASH_PACKAGES.map(p => {
+        const cs = t[p.key] ? t[p.key].small : null;
+        const cl = t[p.key] ? t[p.key].large : null;
+        return `<tr>
+          <td style="${td}">${p.name}</td>
+          <td style="${td};${retail}">${fmtMoney(p.small)}</td>
+          <td style="${td};text-align:right"><input type="number" id="wc-${p.key}-small" value="${val(cs)}" min="0" step="0.01" placeholder="—" style="${inp}"></td>
+          <td style="${td};${retail}">${fmtMoney(p.large)}</td>
+          <td style="${td};text-align:right"><input type="number" id="wc-${p.key}-large" value="${val(cl)}" min="0" step="0.01" placeholder="—" style="${inp}"></td>
+        </tr>`;
+      }).join('')
+    + '</tbody></table></div>';
+}
+function saveWashCost() {
+  const t = {};
+  WASH_PACKAGES.forEach(p => {
+    const s = parseFloat(document.getElementById('wc-' + p.key + '-small').value);
+    const l = parseFloat(document.getElementById('wc-' + p.key + '-large').value);
+    t[p.key] = { small: isNaN(s) ? null : s, large: isNaN(l) ? null : l };
+  });
+  cloudSettings.washCost = t;
+  try { cloudSaveSetting('washCost', t); } catch (e) {}
+  cloudAudit('set_wash_cost', 'settings', 'washCost', {});
+  if (typeof quickToast === 'function') quickToast('✓ Car wash costs saved');
+  const rv = document.getElementById('view-reports');
+  if (rv && rv.classList.contains('active')) { try { renderReports(); } catch (e) {} }
+}
 // Each layout entry is an instance: { id, title, span, range, limit, cols }.
 const DASH_WIDGETS = [
   { id:'cars_in',   title:'Today — Cars In',      opts:[], stat:true },
@@ -5105,10 +5171,11 @@ function saveWashFromDialog() {
   if (!svc) { alert('Pick a wash service, or use Remove wash.'); return; }
   const size = document.getElementById('cw-wash-size').value === 'large' ? 'large' : 'small';
   const price = washPriceFor(svc, size);
+  const cost = getWashCost(svc, size);
   if (e.carWash && e.carWash.service) {
-    e.carWash = { ...e.carWash, service: svc, size, price };
+    e.carWash = { ...e.carWash, service: svc, size, price, cost };
   } else {
-    e.carWash = { service: svc, size, price, status: 'requested', requestedAt: new Date().toISOString() };
+    e.carWash = { service: svc, size, price, cost, status: 'requested', requestedAt: new Date().toISOString() };
   }
   saveData(washDialogId, { immediate: true });
   cloudAudit('car_wash', 'entry', washDialogId, { ticket: e.ticket, service: svc, size, price });
@@ -7498,8 +7565,8 @@ function renderRepeatCustomers(filtered) {
   c.innerHTML = repCards(cards) + body;
 }
 
-// Car Wash: washes booked in range, what's been collected (paid on checkout) vs
-// still on site, and a per-service breakdown for settling with Xtream.
+// Car Wash: washes in range — collected vs still on site — with what you owe
+// Xtream (cost) and your margin, plus a per-service settlement table.
 function renderCarWash(filtered) {
   const c = document.getElementById('rep-carwash');
   if (!c) return;
@@ -7509,25 +7576,69 @@ function renderCarWash(filtered) {
   const pending = washes.filter(e => !e.timeOut);
   const collectedTotal = collected.reduce((s, e) => s + (e.carWash.price || 0), 0);
   const pendingTotal = pending.reduce((s, e) => s + (e.carWash.price || 0), 0);
-  const byService = {};
-  washes.forEach(e => {
-    const k = e.carWash.service;
-    (byService[k] = byService[k] || { count: 0, total: 0 }).count++;
-    byService[k].total += (e.carWash.price || 0);
+
+  // Cost / margin on collected washes (those whose cost is known).
+  let costTotal = 0, marginTotal = 0, costKnown = 0, unknownCost = 0;
+  collected.forEach(e => {
+    const cost = washCostOf(e.carWash);
+    if (cost == null) { unknownCost++; return; }
+    costKnown++; costTotal += cost; marginTotal += (e.carWash.price || 0) - cost;
   });
+  const haveCosts = costKnown > 0;
+
+  // Per-service settlement (collected washes only, so charged/cost/margin align).
+  const byService = {};
+  collected.forEach(e => {
+    const k = e.carWash.service;
+    const g = byService[k] = byService[k] || { count: 0, charged: 0, cost: 0, costKnown: 0 };
+    g.count++; g.charged += (e.carWash.price || 0);
+    const cost = washCostOf(e.carWash);
+    if (cost != null) { g.cost += cost; g.costKnown++; }
+  });
+
   const cards = [
     ['Washes', String(washes.length), `${collected.length} collected · ${pending.length} on site`, 'var(--maroon)'],
-    ['Collected', fmtMoney(collectedTotal), 'paid on the valet bill', 'var(--green)'],
-    ['Still on site', fmtMoney(pendingTotal), `${pending.length} not checked out yet`, 'var(--bronze)'],
+    ['Charged (collected)', fmtMoney(collectedTotal), 'paid by customers', 'var(--green)'],
+    ['Owed to Xtream', haveCosts ? fmtMoney(costTotal) : '—', haveCosts ? `cost of ${costKnown} wash${costKnown !== 1 ? 'es' : ''}` : 'set costs in Settings → Car Wash', 'var(--maroon)'],
+    ['Your margin', haveCosts ? fmtMoney(marginTotal) : '—', haveCosts ? 'charged − cost' : 'enter wholesale costs', 'var(--bronze)'],
   ];
-  const order = Object.entries(byService).sort((a, b) => b[1].total - a[1].total);
-  const max = Math.max(1, ...order.map(r => r[1].total));
-  const bars = repHeading('By service')
-    + order.map(([k, d]) => repBar(washPackage(k) ? washPackage(k).name : k,
-        `${fmtMoney(d.total)} · ${d.count}x`, d.total / max,
-        'linear-gradient(90deg,var(--bronze),var(--bronze-light))')).join('');
-  const note = `<div style="margin-top:14px;font-size:12px;color:var(--text-muted)">Customers pay these on the valet bill (on top of parking). Settle the total with Xtream Car Care separately.</div>`;
-  c.innerHTML = repCards(cards) + bars + note;
+  if (pendingTotal) cards.push(['Still on site', fmtMoney(pendingTotal), `${pending.length} not checked out`, 'var(--bronze)']);
+
+  // Settlement table.
+  const th = 'padding:6px 8px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)';
+  const td = "padding:6px 8px;border-bottom:1px solid var(--border);font-family:'Courier New',monospace;text-align:right";
+  const order = Object.entries(byService).sort((a, b) => b[1].charged - a[1].charged);
+  let totCharged = 0, totCost = 0, totMargin = 0, totAllKnown = true;
+  const rows = order.map(([k, g]) => {
+    const allKnown = g.costKnown === g.count;
+    totCharged += g.charged;
+    if (allKnown) { totCost += g.cost; totMargin += (g.charged - g.cost); } else { totAllKnown = false; }
+    return `<tr>
+      <td style="${td};text-align:left;font-family:inherit">${washPackage(k) ? washPackage(k).name : k}${allKnown ? '' : ' <span style="color:var(--text-muted);font-family:inherit">*</span>'}</td>
+      <td style="${td}">${g.count}</td>
+      <td style="${td}">${fmtMoney(g.charged)}</td>
+      <td style="${td}">${allKnown ? fmtMoney(g.cost) : '—'}</td>
+      <td style="${td};color:var(--green)">${allKnown ? fmtMoney(g.charged - g.cost) : '—'}</td>
+    </tr>`;
+  }).join('');
+  const totalRow = `<tr style="font-weight:bold">
+      <td style="${td};text-align:left;font-family:inherit">Total</td>
+      <td style="${td}">${collected.length}</td>
+      <td style="${td}">${fmtMoney(totCharged)}</td>
+      <td style="${td}">${totAllKnown ? fmtMoney(totCost) : fmtMoney(totCost) + '+'}</td>
+      <td style="${td};color:var(--green)">${totAllKnown ? fmtMoney(totMargin) : fmtMoney(totMargin) + '+'}</td>
+    </tr>`;
+  const table = collected.length
+    ? repHeading('Settlement by service (collected washes)')
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:440px">'
+      + `<thead><tr><th style="${th};text-align:left">Service</th><th style="${th};text-align:right">#</th><th style="${th};text-align:right">Charged</th><th style="${th};text-align:right">Cost</th><th style="${th};text-align:right">Margin</th></tr></thead>`
+      + `<tbody>${rows}${totalRow}</tbody></table></div>`
+    : '';
+
+  let note = `<div style="margin-top:14px;font-size:12px;color:var(--text-muted)">Customers pay washes on the valet bill (on top of parking). “Owed to Xtream” is your wholesale cost — settle it with Xtream separately; the margin is yours.`;
+  if (unknownCost > 0) note += ` <b>${unknownCost} collected wash${unknownCost !== 1 ? 'es have' : ' has'} no cost set</b> (marked *) — add them in Settings → Car Wash.`;
+  note += '</div>';
+  c.innerHTML = repCards(cards) + table + note;
 }
 
 // ═══════════════════════════════════════════════════
@@ -7896,6 +8007,7 @@ function renderSettings() {
   updatePushUI();
   const capEl = document.getElementById('s-capacity');
   if (capEl) capEl.value = getCapacity();
+  renderWashSettings();
   // Populate Plate Recognizer settings
   const prKey = document.getElementById('s-pr-key');
   if (prKey) prKey.value = settings.plateRecognizerKey || '';
