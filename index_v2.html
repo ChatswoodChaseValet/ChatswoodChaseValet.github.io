@@ -431,6 +431,8 @@ tr:hover td{background:var(--bg)}
 .ico-btn svg{width:15px;height:15px;display:block}
 .ico-btn.on{background:var(--maroon);color:#fff}
 body.dark-mode .ico-group{background:transparent}
+.wash-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border:1px solid var(--bronze);border-radius:20px;background:transparent;cursor:pointer;white-space:nowrap;font-family:inherit}
+.wash-chip svg{width:12px;height:12px}
 @media (max-width:700px){
   #view-active .table-wrap{display:none}
   #view-active .active-cards{display:flex}
@@ -1283,6 +1285,30 @@ body.dark-mode .scan-banner {
     </div>
 
     <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Car wash (optional)
+          <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">Xtream Car Care · added to bill</span>
+        </label>
+        <select id="f-wash-service" class="form-select" onchange="updateWashPriceHint('f')">
+          <option value="">— No car wash —</option>
+          <option value="xtream">Xtream Wash</option>
+          <option value="hand_polish">Hand Polish</option>
+          <option value="interior">Interior Detailing</option>
+          <option value="semi">Semi Detailing</option>
+          <option value="full">Full Detailing</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Vehicle size</label>
+        <select id="f-wash-size" class="form-select" onchange="updateWashPriceHint('f')">
+          <option value="small">Small (sedan / hatch)</option>
+          <option value="large">Large (SUV / 4WD)</option>
+        </select>
+        <div id="f-wash-hint" style="font-size:11px;color:var(--bronze);font-weight:600;margin-top:5px;min-height:14px"></div>
+      </div>
+    </div>
+
+    <div class="form-grid">
       <div class="form-field" style="grid-column:1/-1">
         <label class="form-label">Notes</label>
         <input type="text" id="f-notes" class="form-input" placeholder="Optional — damage observations, special instructions, etc." autocomplete="off">
@@ -1798,6 +1824,14 @@ body.dark-mode .scan-banner {
       <div style="font-size:11px;color:var(--text-muted);font-style:italic">Parking billed to shops · settle at end of day/week</div>
     </div>
     <div id="rep-shopaccounts"></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="payments">
+    <div class="section-header">
+      <div class="section-title">Car Wash</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic">Xtream Car Care · paid on the valet bill, settle with Xtream separately</div>
+    </div>
+    <div id="rep-carwash"><div class="empty">No car washes in this range</div></div>
   </div>
 
   <div class="section rep-section" data-repgroup="staff">
@@ -2738,6 +2772,41 @@ function fmtMoney(amount) {
 }
 
 // ═══════════════════════════════════════════════════
+// CAR WASH — Xtream Car Care (in-centre)
+// Customer pays the menu price on the valet bill; valet drives the car to/from
+// Xtream and settles with them separately. Small = sedan/hatch, Large = SUV/4WD.
+// An entry's carWash record:
+//   { service, size, price, status, requestedAt, doneAt, settledAt, settledBy }
+// status: 'requested' (booked) → 'at_wash' (with Xtream) → 'ready' (back, clean)
+// ═══════════════════════════════════════════════════
+const WASH_PACKAGES = [
+  { key: 'xtream',      name: 'Xtream Wash',        small: 75,  large: 95  },
+  { key: 'hand_polish', name: 'Hand Polish',        small: 100, large: 130 },
+  { key: 'interior',    name: 'Interior Detailing', small: 195, large: 245 },
+  { key: 'semi',        name: 'Semi Detailing',     small: 250, large: 320 },
+  { key: 'full',        name: 'Full Detailing',     small: 295, large: 420 },
+];
+const WASH_STATUS_LABELS = { requested: 'Wash booked', at_wash: 'At car wash', ready: 'Washed — back' };
+function washPackage(key) { return WASH_PACKAGES.find(p => p.key === key) || null; }
+function washPriceFor(key, size) { const p = washPackage(key); return p ? (size === 'large' ? p.large : p.small) : 0; }
+function washLabel(cw) {
+  if (!cw || !cw.service) return '';
+  const p = washPackage(cw.service);
+  return (p ? p.name : cw.service) + (cw.size === 'large' ? ' (L)' : ' (S)');
+}
+// Live price hint under a wash picker. `prefix` is the field id prefix ('f' for
+// the check-in form, 'cw' for the manage-wash dialog).
+function updateWashPriceHint(prefix) {
+  const svc = document.getElementById(prefix + '-wash-service');
+  const size = document.getElementById(prefix + '-wash-size');
+  const hint = document.getElementById(prefix + '-wash-hint');
+  if (!svc || !size || !hint) return;
+  if (!svc.value) { hint.textContent = ''; return; }
+  const price = washPriceFor(svc.value, size.value);
+  hint.textContent = `${washLabel({ service: svc.value, size: size.value })} — ${fmtMoney(price)} · added to the customer's bill`;
+}
+
+// ═══════════════════════════════════════════════════
 // HEADER CLOCK
 // ═══════════════════════════════════════════════════
 function updateClock() {
@@ -3111,6 +3180,12 @@ function saveEntry() {
     })(),
     shopSettledAt: null,
     shopSettledBy: null,
+    carWash: (() => {
+      const svc = document.getElementById('f-wash-service').value;
+      if (!svc) return null;
+      const size = document.getElementById('f-wash-size').value === 'large' ? 'large' : 'small';
+      return { service: svc, size, price: washPriceFor(svc, size), status: 'requested', requestedAt: now.toISOString() };
+    })(),
     vip: document.getElementById('f-vip').checked,
   };
 
@@ -3507,6 +3582,9 @@ function resetForm() {
   const shopSel = document.getElementById('f-shop'); if (shopSel) shopSel.value = '';
   const shopCov = document.getElementById('f-shop-cover'); if (shopCov) shopCov.value = '';
   const vipBox = document.getElementById('f-vip'); if (vipBox) vipBox.checked = false;
+  const washSvc = document.getElementById('f-wash-service'); if (washSvc) washSvc.value = '';
+  const washSize = document.getElementById('f-wash-size'); if (washSize) washSize.value = 'small';
+  const washHint = document.getElementById('f-wash-hint'); if (washHint) washHint.textContent = '';
   document.getElementById('customer-banner').style.display = 'none';
   const aiHint = document.getElementById('ai-fill-hint');
   if (aiHint) aiHint.style.display = 'none';
@@ -3717,18 +3795,23 @@ function updateCheckoutTotalDisplay() {
   const labelEl = document.getElementById('checkout-total-label');
   const discountLines = document.getElementById('checkout-discount-lines');
 
+  // Car wash, if any, is charged on top of (and never discounted with) parking.
+  const washEntry = entries.find(x => x.id === modal.dataset.entryId);
+  const wash = (washEntry && washEntry.carWash && washEntry.carWash.service) ? (washEntry.carWash.price || 0) : 0;
+  const washLineHtml = wash ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--bronze)"><span>Car wash (${washLabel(washEntry.carWash)}):</span><strong>+${fmtMoney(wash)}</strong></div>` : '';
+
   // Start from subtotal (or override)
   let subtotal = overrideRaw !== '' ? parseFloat(overrideRaw) : calculatedFee;
   if (isNaN(subtotal)) subtotal = calculatedFee;
 
   document.getElementById('checkout-subtotal').textContent = fmtMoney(subtotal);
 
-  // If "Complimentary" status, force comp
+  // If "Complimentary" status, force comp (parking comped; any wash still charged)
   if (payStatus === 'comp') {
-    discountLines.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;color:var(--green)"><span>Complimentary:</span><strong>−' + fmtMoney(subtotal) + '</strong></div>';
-    totalEl.textContent = fmtMoney(0);
-    totalEl.style.color = 'var(--green)';
-    labelEl.innerHTML = '<b>TOTAL (COMPLIMENTARY):</b>';
+    discountLines.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;color:var(--green)"><span>Complimentary:</span><strong>−' + fmtMoney(subtotal) + '</strong></div>' + washLineHtml;
+    totalEl.textContent = fmtMoney(wash);
+    totalEl.style.color = wash ? 'var(--maroon)' : 'var(--green)';
+    labelEl.innerHTML = wash ? '<b>TOTAL (car wash only):</b>' : '<b>TOTAL (COMPLIMENTARY):</b>';
     return;
   }
 
@@ -3746,15 +3829,18 @@ function updateCheckoutTotalDisplay() {
   } else {
     discountLines.innerHTML = '';
   }
+  // Car wash adds to the customer's bill (after discounts, never discounted).
+  discountLines.innerHTML += washLineHtml;
 
-  // Charge-to-shop: the shop covers some/all of the fee; show what the customer pays.
+  // Charge-to-shop: the shop covers some/all of the parking fee; the customer
+  // still pays for their own car wash on top of whatever they owe.
   const shopSel = document.getElementById('checkout-shop');
   const shop = shopSel ? shopSel.value : '';
   if (shop) {
     const coverRaw = document.getElementById('checkout-shop-cover').value.trim();
     const cover = coverRaw === '' ? null : parseFloat(coverRaw);
     const shopPays = (cover == null || isNaN(cover)) ? total : Math.min(cover, total);
-    const custDue = Math.max(0, total - shopPays);
+    const custDue = Math.max(0, total - shopPays) + wash;
     discountLines.innerHTML += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:#7a5a00"><span>Charged to ${shop}:</span><strong>−${fmtMoney(shopPays)}</strong></div>`;
     totalEl.textContent = fmtMoney(custDue);
     totalEl.style.color = custDue === 0 ? 'var(--green)' : 'var(--maroon)';
@@ -3764,13 +3850,14 @@ function updateCheckoutTotalDisplay() {
     return;
   }
 
-  totalEl.textContent = fmtMoney(total);
-  if (total === 0 && breakdown.length > 0) {
+  const grand = total + wash;
+  totalEl.textContent = fmtMoney(grand);
+  if (grand === 0 && breakdown.length > 0) {
     totalEl.style.color = 'var(--green)';
     labelEl.innerHTML = '<b>TOTAL (FREE):</b>';
-  } else if (breakdown.length > 0) {
+  } else if (breakdown.length > 0 || wash > 0) {
     totalEl.style.color = 'var(--maroon)';
-    labelEl.innerHTML = '<b>TOTAL DUE (after discounts):</b>';
+    labelEl.innerHTML = breakdown.length > 0 ? '<b>TOTAL DUE (after discounts):</b>' : '<b>TOTAL DUE:</b>';
   } else {
     totalEl.style.color = 'var(--maroon)';
     labelEl.innerHTML = '<b>TOTAL DUE:</b>';
@@ -4006,6 +4093,11 @@ function confirmCheckout() {
   const e = entries.find(x => x.id === id);
   if (!e) { closeCheckoutModal(); return; }
 
+  // Car still at the wash — don't hand it over by mistake.
+  if (e.carWash && e.carWash.status === 'at_wash') {
+    if (!confirm('This car is still marked “At car wash” — it may not be back yet. Check out anyway?')) return;
+  }
+
   const calculatedFee = parseFloat(modal.dataset.calculatedFee);
   const parkingFee = parseFloat(modal.dataset.parkingFee);
   const valetFee = parseFloat(modal.dataset.valetFee);
@@ -4039,6 +4131,10 @@ function confirmCheckout() {
   if (isNaN(tip)) { alert('Invalid tip amount'); return; }
 
   e.timeOut = new Date().toISOString();
+  // Car wash is charged on top of the parking/valet fee and paid on this same
+  // bill; record when it was collected (kept separate from totalFee so parking
+  // revenue stays clean and the Xtream settlement is easy to total).
+  if (e.carWash && e.carWash.service) e.carWash.paidAt = e.timeOut;
   e.parkingFee = payStatus === 'comp' ? 0 : parkingFee;
   e.valetFee = payStatus === 'comp' ? 0 : valetFee;
   e.totalFee = total;
@@ -4916,7 +5012,130 @@ const ACT_ICONS = {
   print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+  wash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
 };
+
+// Coloured status chip for a car with a wash booked (bronze→maroon→green as it
+// moves booked → at-wash → back). Click to open the manage-wash dialog.
+function washChip(cw, id) {
+  if (!cw || !cw.service) return '';
+  const st = cw.status || 'requested';
+  const color = st === 'ready' ? 'var(--green)' : st === 'at_wash' ? 'var(--maroon)' : 'var(--bronze)';
+  const label = WASH_STATUS_LABELS[st] || st;
+  return `<button class="wash-chip" onclick="openWashDialog('${id}')" title="${washLabel(cw)} — ${fmtMoney(cw.price || 0)}" style="border-color:${color};color:${color}">${ACT_ICONS.wash}<span>${label}</span></button>`;
+}
+
+// ─── Manage-wash dialog (add / change service, advance status) ───
+let washDialogId = null;
+function openWashDialog(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  washDialogId = id;
+  renderWashDialog();
+  document.getElementById('wash-modal').classList.add('show');
+}
+function closeWashModal() {
+  document.getElementById('wash-modal').classList.remove('show');
+  washDialogId = null;
+}
+function renderWashDialog() {
+  const e = entries.find(x => x.id === washDialogId);
+  const body = document.getElementById('wash-modal-body');
+  if (!e || !body) return;
+  const cw = e.carWash;
+  const carLine = `<div style="color:var(--text-muted);margin-bottom:14px"><b style="color:var(--maroon);font-family:'Courier New',monospace">${e.ticket}</b> · ${e.brand}${e.model ? ' ' + e.model : ''} · <span style="font-family:'Courier New',monospace">${e.rego}</span></div>`;
+  const curSvc = cw ? cw.service : '';
+  const curSize = cw ? cw.size : 'small';
+  const optHtml = ['<option value="">— Select a wash —</option>']
+    .concat(WASH_PACKAGES.map(p => `<option value="${p.key}"${p.key === curSvc ? ' selected' : ''}>${p.name}</option>`)).join('');
+
+  let statusBlock = '';
+  if (cw && cw.service) {
+    const st = cw.status || 'requested';
+    const steps = [['requested', 'Booked'], ['at_wash', 'At car wash'], ['ready', 'Washed — back']];
+    const idx = steps.findIndex(s => s[0] === st);
+    const tracker = steps.map((s, i) => {
+      const done = i <= idx;
+      const col = done ? (s[0] === 'ready' ? 'var(--green)' : 'var(--maroon)') : 'var(--border)';
+      return `<span style="display:inline-flex;align-items:center;gap:5px;color:${done ? col : 'var(--text-muted)'};font-weight:${i === idx ? '700' : '500'}"><span style="width:9px;height:9px;border-radius:50%;background:${col}"></span>${s[1]}</span>`;
+    }).join('<span style="color:var(--border)">→</span>');
+    let advanceBtn;
+    if (st === 'requested') advanceBtn = `<button class="btn btn-primary btn-sm" onclick="advanceWash('at_wash')">Taken to car wash →</button>`;
+    else if (st === 'at_wash') advanceBtn = `<button class="btn btn-primary btn-sm" onclick="advanceWash('ready')">✓ Back from wash</button>`;
+    else advanceBtn = `<span style="color:var(--green);font-weight:600">✓ Washed and back on site</span>`;
+    statusBlock = `<div style="background:var(--sandstone);border-radius:6px;padding:12px;margin-bottom:14px">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;margin-bottom:10px">${tracker}</div>
+        <div>${advanceBtn}</div>
+      </div>`;
+  }
+
+  const picker = `<div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Service</label>
+        <select id="cw-wash-service" class="form-select" onchange="updateWashPriceHint('cw')">${optHtml}</select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Vehicle size</label>
+        <select id="cw-wash-size" class="form-select" onchange="updateWashPriceHint('cw')">
+          <option value="small"${curSize !== 'large' ? ' selected' : ''}>Small (sedan / hatch)</option>
+          <option value="large"${curSize === 'large' ? ' selected' : ''}>Large (SUV / 4WD)</option>
+        </select>
+      </div>
+    </div>
+    <div id="cw-wash-hint" style="font-size:12px;color:var(--bronze);font-weight:600;margin:2px 0 14px;min-height:14px"></div>`;
+
+  const removeBtn = (cw && cw.service)
+    ? `<button class="btn btn-secondary btn-sm" onclick="removeWash()" style="color:var(--red)">Remove wash</button>` : '';
+  const saveLabel = (cw && cw.service) ? 'Update wash' : 'Add wash';
+
+  body.innerHTML = carLine + statusBlock + picker + `<div class="btn-row" style="justify-content:space-between;margin-top:6px">
+      <div>${removeBtn}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="closeWashModal()">Close</button>
+        <button class="btn btn-primary btn-sm" onclick="saveWashFromDialog()">${saveLabel}</button>
+      </div>
+    </div>`;
+  updateWashPriceHint('cw');
+}
+function saveWashFromDialog() {
+  const e = entries.find(x => x.id === washDialogId);
+  if (!e) return;
+  const svc = document.getElementById('cw-wash-service').value;
+  if (!svc) { alert('Pick a wash service, or use Remove wash.'); return; }
+  const size = document.getElementById('cw-wash-size').value === 'large' ? 'large' : 'small';
+  const price = washPriceFor(svc, size);
+  if (e.carWash && e.carWash.service) {
+    e.carWash = { ...e.carWash, service: svc, size, price };
+  } else {
+    e.carWash = { service: svc, size, price, status: 'requested', requestedAt: new Date().toISOString() };
+  }
+  saveData(washDialogId, { immediate: true });
+  cloudAudit('car_wash', 'entry', washDialogId, { ticket: e.ticket, service: svc, size, price });
+  renderWashDialog();
+  renderActive();
+  quickToast('✓ Car wash saved');
+}
+function advanceWash(toStatus) {
+  const e = entries.find(x => x.id === washDialogId);
+  if (!e || !e.carWash) return;
+  e.carWash.status = toStatus;
+  if (toStatus === 'ready') e.carWash.doneAt = new Date().toISOString();
+  saveData(washDialogId, { immediate: true });
+  cloudAudit('car_wash_status', 'entry', washDialogId, { ticket: e.ticket, status: toStatus });
+  renderWashDialog();
+  renderActive();
+}
+function removeWash() {
+  const e = entries.find(x => x.id === washDialogId);
+  if (!e) return;
+  if (!confirm('Remove the car wash from this booking?')) return;
+  e.carWash = null;
+  saveData(washDialogId, { immediate: true });
+  cloudAudit('car_wash_remove', 'entry', washDialogId, { ticket: e.ticket });
+  closeWashModal();
+  renderActive();
+  quickToast('Car wash removed');
+}
 
 function renderActive() {
   const active = entries.filter(e => !e.timeOut);
@@ -4989,13 +5208,16 @@ function renderActive() {
     // The five occasional actions are grouped into one segmented icon control;
     // Request (pickup) and Mark Out stay as prominent labelled buttons.
     const bagOn = e.bagStatus && e.bagStatus !== 'done';
+    const washOn = e.carWash && e.carWash.status && e.carWash.status !== 'ready';
     const actions = `<div class="car-actions">`
+      + washChip(e.carWash, e.id)
       + `<span class="ico-group">`
       + `${e.phone ? `<a href="tel:${e.phone}" class="ico-btn" onclick="event.stopPropagation()" title="Call ${e.phone}">${ACT_ICONS.call}</a>` : ''}`
       + `<button class="ico-btn" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">${ACT_ICONS.qr}</button>`
       + `<button class="ico-btn" onclick="printKeyTag('${e.id}')" title="Print key tag">${ACT_ICONS.print}</button>`
       + `<button class="ico-btn" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">${ACT_ICONS.edit}</button>`
       + `<button class="ico-btn${bagOn ? ' on' : ''}" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup">${ACT_ICONS.bag}</button>`
+      + `<button class="ico-btn${washOn ? ' on' : ''}" onclick="openWashDialog('${e.id}')" title="${e.carWash ? 'Manage car wash' : 'Add a car wash'}">${ACT_ICONS.wash}</button>`
       + `</span>`
       + pickupBtn
       + `<button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')">✓ Mark Out</button>`
@@ -6813,6 +7035,7 @@ function renderReports() {
   renderStaff(filtered);
   renderStayTiers(filtered);
   renderRepeatCustomers(filtered);
+  renderCarWash(filtered);
 }
 
 // ═══════════════════════════════════════════════════
@@ -7109,12 +7332,17 @@ function renderPayments(filtered) {
   const nonCard = paidTotal - cardLike;
   const nonCardCount = paidCount - cardCount;
 
+  // Car wash collected on the same bills (separate from parking totalFee).
+  const washCars = completed.filter(e => e.carWash && e.carWash.service);
+  const washTotal = washCars.reduce((s, e) => s + (e.carWash.price || 0), 0);
+
   const cards = [
     ['Card / EFTPOS', fmtMoney(cardLike), `${cardCount} of ${paidCount} paid trips`, 'var(--maroon)'],
-    ['Collected (paid)', fmtMoney(paidTotal), `${paidCount} transaction${paidCount !== 1 ? 's' : ''}`, 'var(--green)'],
+    ['Collected (paid)', fmtMoney(paidTotal), `${paidCount} transaction${paidCount !== 1 ? 's' : ''} · parking`, 'var(--green)'],
     ['Non-card', fmtMoney(nonCard), nonCardCount ? `${nonCardCount} exception${nonCardCount !== 1 ? 's' : ''} — see below` : 'all paid by card', nonCardCount ? '#a83838' : 'var(--bronze)'],
     ['Tips', fmtMoney(tips), `${tipRate}% of trips tipped`, 'var(--green)'],
   ];
+  if (washTotal) cards.push(['Car wash', fmtMoney(washTotal), `${washCars.length} wash${washCars.length !== 1 ? 'es' : ''} · see Car Wash panel`, 'var(--bronze)']);
   if (unpaid.count) cards.push(['Outstanding', fmtMoney(unpaid.total), `${unpaid.count} unpaid`, '#a83838']);
 
   // Non-card payments — cash / other paid trips, flagged individually so the
@@ -7267,6 +7495,38 @@ function renderRepeatCustomers(filtered) {
     if (returning.length > 50) body += `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Showing top 50 of ${returning.length} returning customers.</div>`;
   }
   c.innerHTML = repCards(cards) + body;
+}
+
+// Car Wash: washes booked in range, what's been collected (paid on checkout) vs
+// still on site, and a per-service breakdown for settling with Xtream.
+function renderCarWash(filtered) {
+  const c = document.getElementById('rep-carwash');
+  if (!c) return;
+  const washes = filtered.filter(e => e.carWash && e.carWash.service);
+  if (!washes.length) { c.innerHTML = '<div class="empty">No car washes in this range</div>'; return; }
+  const collected = washes.filter(e => e.timeOut);
+  const pending = washes.filter(e => !e.timeOut);
+  const collectedTotal = collected.reduce((s, e) => s + (e.carWash.price || 0), 0);
+  const pendingTotal = pending.reduce((s, e) => s + (e.carWash.price || 0), 0);
+  const byService = {};
+  washes.forEach(e => {
+    const k = e.carWash.service;
+    (byService[k] = byService[k] || { count: 0, total: 0 }).count++;
+    byService[k].total += (e.carWash.price || 0);
+  });
+  const cards = [
+    ['Washes', String(washes.length), `${collected.length} collected · ${pending.length} on site`, 'var(--maroon)'],
+    ['Collected', fmtMoney(collectedTotal), 'paid on the valet bill', 'var(--green)'],
+    ['Still on site', fmtMoney(pendingTotal), `${pending.length} not checked out yet`, 'var(--bronze)'],
+  ];
+  const order = Object.entries(byService).sort((a, b) => b[1].total - a[1].total);
+  const max = Math.max(1, ...order.map(r => r[1].total));
+  const bars = repHeading('By service')
+    + order.map(([k, d]) => repBar(washPackage(k) ? washPackage(k).name : k,
+        `${fmtMoney(d.total)} · ${d.count}x`, d.total / max,
+        'linear-gradient(90deg,var(--bronze),var(--bronze-light))')).join('');
+  const note = `<div style="margin-top:14px;font-size:12px;color:var(--text-muted)">Customers pay these on the valet bill (on top of parking). Settle the total with Xtream Car Care separately.</div>`;
+  c.innerHTML = repCards(cards) + bars + note;
 }
 
 // ═══════════════════════════════════════════════════
@@ -9454,6 +9714,7 @@ function jsToDb(e) {
     bag_photo: e.bagPhoto, bag_done_at: e.bagDoneAt, bag_in_car_by: e.bagInCarBy,
     shop_account: e.shopAccount, shop_cover: e.shopCover,
     shop_settled_at: e.shopSettledAt, shop_settled_by: e.shopSettledBy,
+    car_wash: e.carWash || null,
     vip: e.vip ? true : null,
     square_payment: e.squarePayment || null,
     updated_by: currentUser?.username,
@@ -9484,6 +9745,7 @@ function dbToJs(d) {
     shopAccount: d.shop_account,
     shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
     shopSettledAt: d.shop_settled_at, shopSettledBy: d.shop_settled_by,
+    carWash: d.car_wash || null,
     vip: !!d.vip,
     squarePayment: d.square_payment,
   };
@@ -10951,6 +11213,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="btn-row" style="justify-content:flex-end;margin-top:16px">
       <button class="btn btn-primary" onclick="closeCustomerModal()">Close</button>
     </div>
+  </div>
+</div>
+
+<!-- CAR WASH MODAL -->
+<div class="modal" id="wash-modal">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-title">Car Wash</div>
+    <div id="wash-modal-body" style="font-size:13px"></div>
   </div>
 </div>
 
