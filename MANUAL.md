@@ -48,6 +48,8 @@ Queue, Bags and Active Cars show a number badge when something's waiting.
 ## 4. Checking a car IN
 Go to **New Entry**. Ticket number and time-in fill automatically. Required fields are marked.
 
+![New Entry / check-in form](screenshots/manual/new-entry.png)
+
 | Field | Notes |
 |---|---|
 | **Customer Name** *(required)* | Who the car belongs to. |
@@ -73,6 +75,8 @@ When a customer returns, use **Quick Pickup**:
 
 The card shows bay, duration and fee due; go straight to checkout. The top-bar search box works from any screen too.
 
+![Quick Pickup](screenshots/manual/quick-pickup.png)
+
 ## 6. The Pickup Queue
 When a customer asks for their car ahead of time, put it in the **Queue**:
 - From Active Cars tap **Request** and enter the ETA (minutes until they want it).
@@ -81,6 +85,8 @@ When a customer asks for their car ahead of time, put it in the **Queue**:
 
 ## 7. Active Cars
 The working list of every car on site: ticket, customer, plate, brand, bay, time in, duration, running fee. Duration is colour-coded: green <2h, amber 2–4h, red 4h+, flashing red 6h+.
+
+![Active Cars](screenshots/manual/active-cars.png)
 
 **Row actions** — grouped icons for occasional actions; two buttons on the right for the common ones:
 
@@ -127,9 +133,13 @@ Valet customers can add a car wash from **Xtream Car Care** in the centre. Valet
 
 > **Settling with Xtream:** wash money is tracked separately from parking. Enter your **wholesale cost** per package in *Settings → Car Wash*; the *Reports → Payments → Car Wash* panel then shows, per service, what you charged, what you owe Xtream, and your margin.
 
+![Settings — Car Wash costs](screenshots/manual/settings-carwash.png)
+
 Prices are in the [pricing reference](#16-pricing-reference). Tap the chip or droplet to change or remove a wash.
 
 ## 11. The Dashboard
+![Dashboard](screenshots/manual/dashboard.png)
+
 - **Stat tiles:** Cars In, Cars Out, Currently On Site, Pickups Pending, Today's Revenue, Average Stay. Tap **Today's Revenue** to see who paid how much.
 - **Today's Notes / Handover:** a shared team notepad; auto-saves and clears the next morning.
 - **Top Brands** and **Recent Activity** for the day.
@@ -139,6 +149,8 @@ Every car builds a database keyed by plate. Search by name, plate or phone for a
 
 ## 13. Reports
 Pick a date range at the top; every panel updates. Menu groups related panels:
+
+![Reports — Payments](screenshots/manual/reports-payments.png)
 
 | Menu item | Inside |
 |---|---|
