@@ -230,7 +230,11 @@ body.mobile-mode .tab.desktop-only{display:none}
 .cfg-opts{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:12px;color:var(--text-muted)}
 .cfg-opt{display:inline-flex;align-items:center;gap:6px}
 .cfg-opt select{font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:#fff}
-.dash-card{cursor:grab;touch-action:none}
+/* pan-y (not none) so a vertical swipe still scrolls the page on touch devices;
+   the long-press-to-arm reorder holds still during the 400ms arm, then drags via
+   preventDefault, so it keeps working. touch-action:none here made the dashboard
+   nearly impossible to scroll on phones. */
+.dash-card{cursor:grab;touch-action:pan-y}
 .dash-card:active{cursor:grabbing}
 .dash-card.drag-over{outline:2px dashed var(--bronze);outline-offset:2px}
 .dash-card.dragging{opacity:.4;cursor:grabbing}
