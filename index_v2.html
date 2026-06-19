@@ -2,7 +2,7 @@
 <!-- saved from url=(0047)file:///C:/Users/Mick/Downloads/index_v2_6.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chatswood Chase Valet Dashboard</title>
 <!-- PWA + push-notification support (lets staff phones get car-request
      alerts even when the dashboard isn't open). -->
@@ -95,6 +95,9 @@ body{
   background:var(--white);
   color:var(--text);
   padding:18px 32px;
+  /* viewport-fit=cover lets content slide under the iOS status bar/notch in
+     installed-PWA mode; push the header down so the logo/clock stay clear. */
+  padding-top:calc(18px + env(safe-area-inset-top, 0px));
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -496,6 +499,7 @@ body.dark-mode .ico-group{background:transparent}
   position:fixed;top:0;left:0;right:0;
   background:#e0a640;color:#531620;
   padding:8px 16px;text-align:center;
+  padding-top:calc(8px + env(safe-area-inset-top, 0px));
   font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
   z-index:80;
   border-bottom:2px solid #531620;
@@ -530,7 +534,7 @@ body.dark-mode .ico-group{background:transparent}
 
 /* ─── MOBILE RESPONSIVE ─── */
 @media (max-width: 900px) {
-  .header{flex-wrap:wrap;padding:10px 14px;gap:10px}
+  .header{flex-wrap:wrap;padding:10px 14px;gap:10px;padding-top:calc(10px + env(safe-area-inset-top, 0px))}
   .header-left{flex:1 1 auto;min-width:200px}
   .header-subtitle{font-size:10px}
   .quick-search{flex:1 1 100%;order:3;max-width:none}
@@ -544,7 +548,7 @@ body.dark-mode .ico-group{background:transparent}
      so it never eats horizontal width. Icons stack over their label. */
   .tabs{flex-direction:row;width:100%;flex:none;align-self:auto;
     position:fixed;left:0;right:0;bottom:0;z-index:500;
-    padding:0;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    padding:0 0 env(safe-area-inset-bottom, 0px);overflow-x:auto;-webkit-overflow-scrolling:touch;
     justify-content:space-around;
     border-top:1px solid rgba(255,255,255,.14);box-shadow:0 -2px 12px rgba(0,0,0,.18)}
   .tab{flex-direction:column;gap:3px;padding:8px 10px 7px;flex-shrink:0;min-width:58px;
@@ -559,7 +563,7 @@ body.dark-mode .ico-group{background:transparent}
      page to be ~2x wide and scroll sideways). Bottom padding clears the
      fixed nav bar so the last content/footer isn't hidden behind it. */
   .main{padding:14px;margin:0;max-width:100%;min-width:0}
-  body{padding-bottom:62px}
+  body{padding-bottom:calc(62px + env(safe-area-inset-bottom, 0px))}
 
   .stats-row{grid-template-columns:1fr 1fr;gap:10px}
   .stat-value{font-size:24px}
