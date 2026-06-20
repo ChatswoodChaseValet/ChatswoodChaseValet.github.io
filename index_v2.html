@@ -7404,7 +7404,11 @@ async function fetchPublicHolidays(year) {
     const r = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/AU`);
     if (r.ok) {
       (await r.json()).forEach(h => {
-        if (h.global || (h.counties && h.counties.includes('AU-NSW'))) map[h.date] = h.localName || h.name;
+        if (h.global || (h.counties && h.counties.includes('AU-NSW'))) {
+          let label = h.localName || h.name;
+          if (label === 'Easter Eve') label = 'Easter Saturday'; // AU-familiar wording
+          map[h.date] = label;
+        }
       });
     }
   } catch (e) { /* fall through to fallback */ }
