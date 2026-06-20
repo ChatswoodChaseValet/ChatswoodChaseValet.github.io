@@ -9707,12 +9707,13 @@ function lookupCustomerByRego(rego) {
     banner.style.display = 'none';
     // Pre-registered (manually-added) customer? Fill the blank fields — but no
     // "returning customer" banner/popup, since they've never actually visited.
-    const mc = getManualCustomers().find(c => normaliseRego(c.rego) === normaliseRego(rego));
+    const mc = getManualCustomers().find(c => (c.cars || []).some(car => normaliseRego(car.rego) === normaliseRego(rego)));
     if (mc) {
+      const car = (mc.cars || []).find(c => normaliseRego(c.rego) === normaliseRego(rego)) || {};
       const fill = (id, val) => { const el = document.getElementById(id); if (el && !el.value && val) el.value = val; };
-      fill('f-name', mc.name); fill('f-phone', mc.phone); fill('f-brand', mc.brand);
+      fill('f-name', mc.name); fill('f-phone', mc.phone); fill('f-brand', car.brand);
       if (typeof updateModelOptions === 'function') updateModelOptions();
-      fill('f-model', mc.model);
+      fill('f-model', car.model);
       const vipBox = document.getElementById('f-vip'); if (vipBox && mc.vip) vipBox.checked = true;
     }
     return;
@@ -10156,8 +10157,8 @@ function showCustomerDetail(regoArg) {
   const matches = findCustomerByRego(rego);
   if (!matches) {
     // No real visits yet — if it's a manually-added customer, open its editor.
-    const mc = getManualCustomers().find(c => normaliseRego(c.rego) === normaliseRego(rego));
-    if (mc) editManualCustomer(mc.rego);
+    const mc = getManualCustomers().find(c => (c.cars || []).some(car => normaliseRego(car.rego) === normaliseRego(rego)));
+    if (mc) openManualCustomerModal(mc);
     return;
   }
 
@@ -10396,48 +10397,81 @@ function buildCustomerList() {
       vip: visits.some(e => e.vip),
     };
   });
-  // Merge in manually-added customers whose plate hasn't checked a car in yet.
+  // Merge in manually-added customers — one row per car that hasn't checked in.
   const seen = new Set(list.map(c => normaliseRego(c.rego)));
   getManualCustomers().forEach(mc => {
-    const k = normaliseRego(mc.rego);
-    if (!k || seen.has(k)) return;
-    seen.add(k);
-    list.push({
-      rego: mc.rego, name: mc.name || '', phone: mc.phone || '', brand: mc.brand || '',
-      model: mc.model || '', visitCount: 0, lifetime: 0, lastVisit: mc.addedAt || null,
-      vip: !!mc.vip, manual: true,
+    (mc.cars || []).forEach(car => {
+      const k = normaliseRego(car.rego);
+      if (!k || seen.has(k)) return;
+      seen.add(k);
+      list.push({
+        rego: car.rego, name: mc.name || '', phone: mc.phone || '', brand: car.brand || '',
+        model: car.model || '', visitCount: 0, lifetime: 0, lastVisit: mc.addedAt || null,
+        vip: !!mc.vip, manual: true, manualId: mc.id,
+      });
     });
   });
   return list.sort((a, b) => new Date(b.lastVisit) - new Date(a.lastVisit));
 }
 
-// ── Manually-added customers ───────────────────────────────────────────
+// ── Manually-added customers (one record, many cars) ───────────────────
 // Stored in the synced app_settings key 'manual_customers' (a JSON array) so
-// they appear on every device. They show in the Customer Database and auto-
-// fill the check-in form when their plate is typed. Once they actually check a
-// car in, their real entries take over (we de-dupe by plate in buildCustomerList).
+// they appear on every device. Each record is { id, name, phone, vip, notes,
+// cars:[{rego,brand,model}], addedAt }. Every car shows in the Customer
+// Database and auto-fills the check-in form when its plate is typed. Once a car
+// actually checks in, its real entries take over (de-duped by plate).
 function getManualCustomers() {
   const v = (typeof cloudSettings !== 'undefined' && cloudSettings) ? cloudSettings['manual_customers'] : null;
-  return Array.isArray(v) ? v : [];
+  if (!Array.isArray(v)) return [];
+  // Migrate the old one-car-per-record shape to the new multi-car shape.
+  return v.map(c => {
+    if (c && Array.isArray(c.cars)) return c;
+    return {
+      id: (c && c.id) || ('mc-' + normaliseRego((c && c.rego) || '') || 'mc-x'),
+      name: (c && c.name) || '', phone: (c && c.phone) || '', vip: !!(c && c.vip),
+      notes: (c && c.notes) || '',
+      cars: (c && c.rego) ? [{ rego: c.rego, brand: c.brand || '', model: c.model || '' }] : [],
+      addedAt: (c && c.addedAt) || null,
+    };
+  });
 }
 function persistManualCustomers(list) {
   if (typeof cloudSettings !== 'undefined' && cloudSettings) cloudSettings['manual_customers'] = list;
   cloudSaveSetting('manual_customers', list);
 }
-function openAddCustomer() { openManualCustomerModal(null); }
-function editManualCustomer(rego) {
-  const mc = getManualCustomers().find(c => normaliseRego(c.rego) === normaliseRego(rego));
-  openManualCustomerModal(mc || null);
+function genManualId() { return 'mc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7); }
+
+let mcCarRows = [];   // working copy of the car list while the modal is open
+function mcRenderCars() {
+  const wrap = document.getElementById('mc-cars-list');
+  wrap.innerHTML = mcCarRows.map((c, i) => `
+    <div class="mc-car-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+      <input class="form-input" data-i="${i}" data-f="rego" value="${escAttr(c.rego || '')}" placeholder="Rego *" style="flex:1.1;text-transform:uppercase">
+      <input class="form-input" data-i="${i}" data-f="brand" value="${escAttr(c.brand || '')}" placeholder="Brand" style="flex:1">
+      <input class="form-input" data-i="${i}" data-f="model" value="${escAttr(c.model || '')}" placeholder="Model" style="flex:1">
+      <button class="btn btn-secondary btn-sm" onclick="mcRemoveCar(${i})" title="Remove car"${mcCarRows.length <= 1 ? ' style="visibility:hidden"' : ''}>✕</button>
+    </div>`).join('');
 }
+function mcSyncFromDom() {
+  document.querySelectorAll('#mc-cars-list .mc-car-row').forEach((row, i) => {
+    mcCarRows[i] = mcCarRows[i] || {};
+    row.querySelectorAll('input').forEach(inp => { mcCarRows[i][inp.dataset.f] = inp.value; });
+  });
+}
+function mcAddCar() { mcSyncFromDom(); mcCarRows.push({ rego: '', brand: '', model: '' }); mcRenderCars(); }
+function mcRemoveCar(i) { mcSyncFromDom(); mcCarRows.splice(i, 1); if (!mcCarRows.length) mcCarRows.push({ rego: '', brand: '', model: '' }); mcRenderCars(); }
+
+function openAddCustomer() { openManualCustomerModal(null); }
 function openManualCustomerModal(mc) {
-  document.getElementById('mc-orig-rego').value = mc ? (mc.rego || '') : '';
+  document.getElementById('mc-id').value = mc ? (mc.id || '') : '';
   document.getElementById('mc-name').value = mc ? (mc.name || '') : '';
   document.getElementById('mc-phone').value = mc ? (mc.phone || '') : '';
-  document.getElementById('mc-rego').value = mc ? (mc.rego || '') : '';
-  document.getElementById('mc-brand').value = mc ? (mc.brand || '') : '';
-  document.getElementById('mc-model').value = mc ? (mc.model || '') : '';
   document.getElementById('mc-vip').checked = mc ? !!mc.vip : false;
   document.getElementById('mc-notes').value = mc ? (mc.notes || '') : '';
+  mcCarRows = (mc && mc.cars && mc.cars.length)
+    ? mc.cars.map(c => ({ rego: c.rego || '', brand: c.brand || '', model: c.model || '' }))
+    : [{ rego: '', brand: '', model: '' }];
+  mcRenderCars();
   document.getElementById('mc-error').textContent = '';
   document.getElementById('mc-title').textContent = mc ? 'Edit customer' : 'Add customer';
   document.getElementById('mc-delete-btn').style.display = mc ? '' : 'none';
@@ -10445,37 +10479,42 @@ function openManualCustomerModal(mc) {
 }
 function closeManualCustomerModal() { document.getElementById('manual-customer-modal').classList.remove('show'); }
 function saveManualCustomer() {
+  mcSyncFromDom();
   const err = document.getElementById('mc-error');
   const name = document.getElementById('mc-name').value.trim();
   const phone = document.getElementById('mc-phone').value.trim();
-  const rego = document.getElementById('mc-rego').value.trim().toUpperCase();
-  const brand = document.getElementById('mc-brand').value.trim();
-  const model = document.getElementById('mc-model').value.trim();
   const vip = document.getElementById('mc-vip').checked;
   const notes = document.getElementById('mc-notes').value.trim();
-  const origRego = document.getElementById('mc-orig-rego').value;
+  const id = document.getElementById('mc-id').value;
+  const cars = mcCarRows
+    .map(c => ({ rego: (c.rego || '').trim().toUpperCase(), brand: (c.brand || '').trim(), model: (c.model || '').trim() }))
+    .filter(c => c.rego);
   if (!name) { err.textContent = 'Customer name is required.'; return; }
-  if (!rego) { err.textContent = 'Rego is required.'; return; }
+  if (!cars.length) { err.textContent = 'Add at least one car (rego is required).'; return; }
   if (phone && !isValidAUMobile(phone)) { err.textContent = 'Enter a valid Australian mobile, or leave it blank.'; return; }
-  const k = normaliseRego(rego);
-  if (normaliseRego(origRego) !== k && entries.some(e => normaliseRego(e.rego) === k)) {
-    err.textContent = 'A customer with this rego already exists from a check-in.'; return;
+  const keys = cars.map(c => normaliseRego(c.rego));
+  if (new Set(keys).size !== keys.length) { err.textContent = 'The same rego is listed twice for this customer.'; return; }
+  const others = getManualCustomers();
+  for (const c of cars) {
+    const k = normaliseRego(c.rego);
+    if (entries.some(e => normaliseRego(e.rego) === k)) { err.textContent = `Rego ${c.rego} already exists from a check-in.`; return; }
+    if (others.some(m => m.id !== id && (m.cars || []).some(cc => normaliseRego(cc.rego) === k))) { err.textContent = `Rego ${c.rego} is already on another customer.`; return; }
   }
-  const list = getManualCustomers().slice();
-  const idx = list.findIndex(c => normaliseRego(c.rego) === (origRego ? normaliseRego(origRego) : k));
-  const rec = { rego, name, phone, brand, model, vip, notes,
+  const list = others.slice();
+  const idx = list.findIndex(c => c.id === id);
+  const rec = { id: id || genManualId(), name, phone, vip, notes, cars,
     addedAt: (idx >= 0 && list[idx].addedAt) ? list[idx].addedAt : new Date().toISOString() };
   if (idx >= 0) list[idx] = rec; else list.push(rec);
   persistManualCustomers(list);
   closeManualCustomerModal();
   renderCustomers();
-  quickToast('✓ Customer saved');
+  quickToast('✓ Customer saved · ' + cars.length + ' car' + (cars.length !== 1 ? 's' : ''));
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 function deleteManualCustomer() {
-  const origRego = document.getElementById('mc-orig-rego').value;
-  if (!origRego || !confirm('Remove this manually-added customer?')) return;
-  persistManualCustomers(getManualCustomers().filter(c => normaliseRego(c.rego) !== normaliseRego(origRego)));
+  const id = document.getElementById('mc-id').value;
+  if (!id || !confirm('Remove this manually-added customer and all their cars?')) return;
+  persistManualCustomers(getManualCustomers().filter(c => c.id !== id));
   closeManualCustomerModal();
   renderCustomers();
   quickToast('Customer removed');
@@ -12190,23 +12229,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ADD / EDIT MANUAL CUSTOMER MODAL -->
 <div class="modal" id="manual-customer-modal">
-  <div class="modal-box" style="max-width:480px">
+  <div class="modal-box" style="max-width:600px">
     <div class="modal-title" id="mc-title">Add customer</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Pre-register a customer so their details auto-fill when their plate is entered at check-in.</div>
-    <input type="hidden" id="mc-orig-rego">
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Pre-register a customer and all their cars — details auto-fill when any of their plates is entered at check-in.</div>
+    <input type="hidden" id="mc-id">
     <div class="form-grid">
       <div class="form-field"><label class="form-label">Customer name *</label><input type="text" id="mc-name" class="form-input" placeholder="Full name"></div>
       <div class="form-field"><label class="form-label">Mobile</label><input type="tel" id="mc-phone" class="form-input" placeholder="0412 345 678"></div>
     </div>
     <div class="form-grid">
-      <div class="form-field"><label class="form-label">Rego *</label><input type="text" id="mc-rego" class="form-input" placeholder="ABC123" style="text-transform:uppercase"></div>
-      <div class="form-field"><label class="form-label">Brand</label><input type="text" id="mc-brand" class="form-input" placeholder="e.g. Tesla"></div>
-    </div>
-    <div class="form-grid">
-      <div class="form-field"><label class="form-label">Model</label><input type="text" id="mc-model" class="form-input" placeholder="e.g. Model Y"></div>
       <div class="form-field"><label class="form-label">VIP</label><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding-top:7px"><input type="checkbox" id="mc-vip"> Mark as VIP</label></div>
+      <div class="form-field"><label class="form-label">Notes</label><input type="text" id="mc-notes" class="form-input" placeholder="Optional"></div>
     </div>
-    <div class="form-field" style="margin-top:4px"><label class="form-label">Notes</label><input type="text" id="mc-notes" class="form-input" placeholder="Optional"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px">
+      <label class="form-label" style="margin:0">Cars</label>
+      <button class="btn btn-secondary btn-sm" onclick="mcAddCar()">+ Add another car</button>
+    </div>
+    <div id="mc-cars-list"></div>
     <div id="mc-error" style="color:var(--red);font-size:13px;margin-top:10px;min-height:16px"></div>
     <div class="btn-row" style="margin-top:8px">
       <button class="btn btn-danger btn-sm" id="mc-delete-btn" onclick="deleteManualCustomer()" style="display:none">Delete</button>
