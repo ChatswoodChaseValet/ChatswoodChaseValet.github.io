@@ -46,6 +46,11 @@ body{
   background:var(--maroon);
   color:var(--text);
   min-height:100vh;
+  /* Sticky footer: stack content above the credits bar and let the content
+     area grow so the Vicinity/Lexus bar always sits at the very bottom —
+     no maroon strip showing beneath it on short pages. */
+  display:flex;
+  flex-direction:column;
   line-height:1.5;
   -webkit-font-smoothing:antialiased;   /* crisper Inter on macOS / iOS */
   -moz-osx-font-smoothing:grayscale;
@@ -137,7 +142,7 @@ body{
 }
 
 /* ─── SIDEBAR NAV (icon rail) ─── */
-.layout{display:flex;align-items:stretch}
+.layout{display:flex;align-items:stretch;flex:1 0 auto}
 .tabs{
   background:var(--maroon);
   display:flex;
