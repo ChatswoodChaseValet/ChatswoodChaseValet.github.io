@@ -468,7 +468,9 @@ body.dark-mode .ico-group{background:transparent}
   position:fixed;
   inset:0;
   background:rgba(42,38,32,.6);
-  z-index:100;
+  /* Above the mobile fixed bottom nav (z-index:500) so a dialog's buttons
+     (e.g. Close / Confirm) are never hidden behind the nav bar on phones. */
+  z-index:1000;
   align-items:center;
   justify-content:center;
   padding:20px;
