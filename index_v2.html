@@ -7409,37 +7409,46 @@ async function fetchPublicHolidays(year) {
   return map;
 }
 
-// Daily weather for a 'YYYY-MM' month near Sydney. Past months use the archive
-// API (cached, never changes); the current month uses the forecast API because
-// the archive lags ~5 days.
+// ACTUAL daily weather for a 'YYYY-MM' month near Sydney — never a forecast.
+// We only fetch days that have already happened (up to today) so each row
+// shows the day's real end-of-day weather; future days stay blank. For best
+// accuracy we use the measured archive (ERA5) for settled days and only fall
+// back to the recent-days endpoint for the last ~5 days the archive hasn't
+// caught up on yet.
 async function fetchMonthWeather(ym) {
   if (_wxCache[ym]) return _wxCache[ym];
   const [y, m] = ym.split('-').map(Number);
   const start = `${ym}-01`;
-  const end = `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
-  const archiveCutoff = isoAddDays(isoToday(), -6);
+  const lastDay = `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+  const today = isoToday();
+  const map = {};
+  if (start > today) return map;                 // whole month is in the future
+  const end = lastDay > today ? today : lastDay; // never request future days
+  const archiveCutoff = isoAddDays(today, -6);   // archive (ERA5) lags ~5 days
   const geo = `latitude=${VALET_GEO.lat}&longitude=${VALET_GEO.lon}`;
   const daily = 'daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Australia%2FSydney';
-  let url;
-  if (end <= archiveCutoff) {
-    url = `https://archive-api.open-meteo.com/v1/archive?${geo}&start_date=${start}&end_date=${end}&${daily}`;
-  } else {
-    const fStart = start < isoAddDays(isoToday(), -90) ? isoAddDays(isoToday(), -90) : start;
-    const fEnd = end > isoAddDays(isoToday(), 14) ? isoAddDays(isoToday(), 14) : end;
-    url = `https://api.open-meteo.com/v1/forecast?${geo}&start_date=${fStart}&end_date=${fEnd}&${daily}`;
+
+  const urls = [];
+  // Settled days → measured archive (most accurate).
+  if (start <= archiveCutoff) {
+    const aEnd = end < archiveCutoff ? end : archiveCutoff;
+    urls.push(`https://archive-api.open-meteo.com/v1/archive?${geo}&start_date=${start}&end_date=${aEnd}&${daily}`);
   }
-  const map = {};
+  // Recent completed days the archive hasn't reached yet → recent-days endpoint.
+  if (end > archiveCutoff) {
+    const rStart = isoAddDays(archiveCutoff, 1) > start ? isoAddDays(archiveCutoff, 1) : start;
+    urls.push(`https://api.open-meteo.com/v1/forecast?${geo}&start_date=${rStart}&end_date=${end}&${daily}`);
+  }
   try {
-    const r = await fetch(url);
-    if (r.ok) {
-      const d = await r.json();
-      const t = (d.daily && d.daily.time) || [];
-      t.forEach((iso, i) => {
+    const results = await Promise.all(urls.map(u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null)));
+    results.forEach(d => {
+      if (!d || !d.daily || !d.daily.time) return;
+      d.daily.time.forEach((iso, i) => {
         map[iso] = { code: d.daily.weather_code[i], max: d.daily.temperature_2m_max[i], min: d.daily.temperature_2m_min[i], rain: d.daily.precipitation_sum[i] };
       });
-    }
+    });
   } catch (e) { /* leave empty; the report still renders with em-dashes */ }
-  if (end <= archiveCutoff) _wxCache[ym] = map;   // only cache settled (past) months
+  if (lastDay <= archiveCutoff) _wxCache[ym] = map; // cache only fully-settled past months
   return map;
 }
 
