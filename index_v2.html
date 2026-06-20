@@ -5094,7 +5094,9 @@ function openWidgetDetail(id) {
   // Stat numbers, the notes box and the recent-activity table have no extra
   // detail to drill into (the pickups stat jumps to the queue instead).
   if (id === 'pickups') { showView('pickup-queue'); return; }
-  if (['cars_in','cars_out','on_site','avg_stay','handover','recent'].includes(id)) return;
+  // The notes box is free text and Recent Activity already lists its rows on
+  // the card itself — everything else drills into its underlying cars below.
+  if (['handover','recent'].includes(id)) return;
   const inst = getDashLayout().find(x => x.id === id) || dashNormalize(id);
   const def = dashWidgetDef(id);
   if (!inst || !def) return;
@@ -5109,6 +5111,25 @@ function openWidgetDetail(id) {
   const dcol = r !== 'today' ? ['when'] : [];
   let data = [], cols = [], note = '';
   switch (id) {
+    case 'cars_in':
+      data = todayIn.slice().sort((a,b) => new Date(b.timeIn) - new Date(a.timeIn));
+      cols = ['name','rego','brand','bay','timein']; note = todayIn.length + ' checked in'; break;
+    case 'cars_out': {
+      const outToday = entries.filter(e => e.timeOut && isSameDay(e.timeOut, today))
+        .sort((a,b) => new Date(b.timeOut) - new Date(a.timeOut));
+      data = outToday; cols = ['name','rego','brand','timein','timeout','fee','pay'];
+      note = outToday.length + ' checked out'; break;
+    }
+    case 'on_site':
+      data = active.slice().sort((a,b) => new Date(a.timeIn) - new Date(b.timeIn));
+      cols = ['name','rego','bay','brand','timein']; note = active.length + ' on site now'; break;
+    case 'avg_stay': {
+      const doneToday = entries.filter(e => e.timeOut && isSameDay(e.timeOut, today))
+        .sort((a,b) => (new Date(b.timeOut)-new Date(b.timeIn)) - (new Date(a.timeOut)-new Date(a.timeIn)));
+      data = doneToday; cols = ['name','rego','brand','timein','timeout','duration'];
+      const avgMs = doneToday.length ? doneToday.reduce((s,e) => s + (new Date(e.timeOut)-new Date(e.timeIn)), 0) / doneToday.length : 0;
+      note = doneToday.length + ' completed · avg ' + (avgMs ? fmtDuration(avgMs) : '—'); break;
+    }
     case 'turnover': case 'occupancy':
       data = active; cols = ['name','rego','bay','brand','timein']; note = active.length + ' on site now'; break;
     case 'onsite':
