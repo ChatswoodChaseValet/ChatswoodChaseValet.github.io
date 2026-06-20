@@ -1055,6 +1055,7 @@ body.dark-mode .scan-banner {
   <div class="nav-flyout-title">Reports</div>
   <button class="flyout-item" data-group="management" onclick="goReport('management')">Management Summary</button>
   <button class="flyout-item" data-group="volume" onclick="goReport('volume')">Daily Volume</button>
+  <button class="flyout-item" data-group="monthly" onclick="goReport('monthly')">Monthly Calendar</button>
   <button class="flyout-item" data-group="payments" onclick="goReport('payments')">Payments</button>
   <button class="flyout-item" data-group="staff" onclick="goReport('staff')">Staff Performance</button>
   <button class="flyout-item" data-group="customers" onclick="goReport('customers')">Customers</button>
@@ -1858,6 +1859,20 @@ body.dark-mode .scan-banner {
 
     <div class="section-title" style="margin-top:26px;margin-bottom:10px">Brand Breakdown</div>
     <div id="rep-brand-list"><div class="empty">No cars in this range</div></div>
+  </div>
+
+  <div class="section rep-section" data-repgroup="monthly">
+    <div class="section-header">
+      <div class="section-title">Monthly Calendar — volume vs weather &amp; holidays</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="month" id="monthly-month" class="form-input" style="width:auto" onchange="renderMonthlyReport()">
+        <button class="btn btn-secondary btn-sm" onclick="downloadMonthlyCSV()" title="Download this month as CSV">CSV</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);font-style:italic;margin-bottom:10px">
+      Daily car counts beside Sydney weather and NSW public &amp; school holidays — to see what drives demand. Weather is live (Open-Meteo); holidays auto-update (Nager.Date) with an offline fallback.
+    </div>
+    <div id="rep-monthly"><div class="empty">Pick a month to load.</div></div>
   </div>
 
   <div class="section rep-section" data-repgroup="payments">
@@ -7308,6 +7323,230 @@ function renderReports() {
 }
 
 // ═══════════════════════════════════════════════════
+// MONTHLY CALENDAR REPORT — daily volume vs weather + holidays
+// Why: weather, public holidays and NSW school holidays all move foot
+// traffic, so the operator wants them next to the daily car counts.
+//   • Weather   — Open-Meteo (free, no key). Archive API for past months,
+//                 forecast API for the current month (archive lags ~5 days).
+//   • Public holidays — Nager.Date, filtered to NSW, with an offline fallback.
+//   • School holidays — NSW Eastern-division term breaks (edit the list yearly).
+// ═══════════════════════════════════════════════════
+const VALET_GEO = { lat: -33.797, lon: 151.180 }; // Chatswood Chase, Sydney
+
+// NSW Eastern-division school holidays (kids off → centre traffic shifts).
+// Ranges are INCLUSIVE. Refresh once a year from education.nsw.gov.au/schooling/calendars
+const NSW_SCHOOL_HOLIDAYS = [
+  { name: 'Summer holidays', start: '2025-12-20', end: '2026-01-26' },
+  { name: 'Autumn holidays', start: '2026-04-03', end: '2026-04-19' },
+  { name: 'Winter holidays', start: '2026-07-04', end: '2026-07-19' },
+  { name: 'Spring holidays', start: '2026-09-26', end: '2026-10-11' },
+  { name: 'Summer holidays', start: '2026-12-18', end: '2027-01-27' },
+];
+
+// Offline fallback for NSW public holidays (used only if Nager.Date is unreachable).
+const NSW_PUBLIC_HOLIDAYS_FALLBACK = {
+  '2026-01-01': "New Year's Day", '2026-01-26': 'Australia Day',
+  '2026-04-03': 'Good Friday', '2026-04-04': 'Easter Saturday',
+  '2026-04-05': 'Easter Sunday', '2026-04-06': 'Easter Monday',
+  '2026-04-27': 'Anzac Day (observed)', '2026-06-08': "King's Birthday",
+  '2026-10-05': 'Labour Day', '2026-12-25': 'Christmas Day',
+  '2026-12-28': 'Boxing Day (observed)',
+};
+
+const _wxCache = {};   // 'YYYY-MM' -> { iso: {code,max,min,rain} }
+const _phCache = {};   // year -> { iso: name }
+let _lastMonthlyRows = [];
+
+// Map a WMO weather code to an icon + short description.
+function wxInfo(code) {
+  const m = {
+    0:['☀️','Clear'],1:['🌤️','Mainly clear'],2:['⛅','Partly cloudy'],3:['☁️','Overcast'],
+    45:['🌫️','Fog'],48:['🌫️','Fog'],
+    51:['🌦️','Light drizzle'],53:['🌦️','Drizzle'],55:['🌦️','Heavy drizzle'],
+    56:['🌧️','Freezing drizzle'],57:['🌧️','Freezing drizzle'],
+    61:['🌧️','Light rain'],63:['🌧️','Rain'],65:['🌧️','Heavy rain'],
+    66:['🌧️','Freezing rain'],67:['🌧️','Freezing rain'],
+    71:['🌨️','Light snow'],73:['🌨️','Snow'],75:['🌨️','Heavy snow'],77:['🌨️','Snow grains'],
+    80:['🌦️','Light showers'],81:['🌦️','Showers'],82:['⛈️','Violent showers'],
+    85:['🌨️','Snow showers'],86:['🌨️','Snow showers'],
+    95:['⛈️','Thunderstorm'],96:['⛈️','Thunderstorm + hail'],99:['⛈️','Thunderstorm + hail'],
+  };
+  return m[code] || ['', '—'];
+}
+
+function isoToday() {
+  const d = new Date();
+  const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return z.toISOString().slice(0, 10);
+}
+function isoAddDays(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function schoolHolidayName(iso) {
+  for (const h of NSW_SCHOOL_HOLIDAYS) if (iso >= h.start && iso <= h.end) return h.name;
+  return null;
+}
+
+// NSW public holidays for a year, from Nager.Date (global AU + AU-NSW regional),
+// cached per-year, with the hardcoded fallback if the request fails (offline).
+async function fetchPublicHolidays(year) {
+  if (_phCache[year]) return _phCache[year];
+  const map = {};
+  try {
+    const r = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/AU`);
+    if (r.ok) {
+      (await r.json()).forEach(h => {
+        if (h.global || (h.counties && h.counties.includes('AU-NSW'))) map[h.date] = h.localName || h.name;
+      });
+    }
+  } catch (e) { /* fall through to fallback */ }
+  if (!Object.keys(map).length) {
+    Object.entries(NSW_PUBLIC_HOLIDAYS_FALLBACK).forEach(([d, n]) => { if (d.slice(0, 4) === String(year)) map[d] = n; });
+  }
+  _phCache[year] = map;
+  return map;
+}
+
+// Daily weather for a 'YYYY-MM' month near Sydney. Past months use the archive
+// API (cached, never changes); the current month uses the forecast API because
+// the archive lags ~5 days.
+async function fetchMonthWeather(ym) {
+  if (_wxCache[ym]) return _wxCache[ym];
+  const [y, m] = ym.split('-').map(Number);
+  const start = `${ym}-01`;
+  const end = `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+  const archiveCutoff = isoAddDays(isoToday(), -6);
+  const geo = `latitude=${VALET_GEO.lat}&longitude=${VALET_GEO.lon}`;
+  const daily = 'daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Australia%2FSydney';
+  let url;
+  if (end <= archiveCutoff) {
+    url = `https://archive-api.open-meteo.com/v1/archive?${geo}&start_date=${start}&end_date=${end}&${daily}`;
+  } else {
+    const fStart = start < isoAddDays(isoToday(), -90) ? isoAddDays(isoToday(), -90) : start;
+    const fEnd = end > isoAddDays(isoToday(), 14) ? isoAddDays(isoToday(), 14) : end;
+    url = `https://api.open-meteo.com/v1/forecast?${geo}&start_date=${fStart}&end_date=${fEnd}&${daily}`;
+  }
+  const map = {};
+  try {
+    const r = await fetch(url);
+    if (r.ok) {
+      const d = await r.json();
+      const t = (d.daily && d.daily.time) || [];
+      t.forEach((iso, i) => {
+        map[iso] = { code: d.daily.weather_code[i], max: d.daily.temperature_2m_max[i], min: d.daily.temperature_2m_min[i], rain: d.daily.precipitation_sum[i] };
+      });
+    }
+  } catch (e) { /* leave empty; the report still renders with em-dashes */ }
+  if (end <= archiveCutoff) _wxCache[ym] = map;   // only cache settled (past) months
+  return map;
+}
+
+function insightCard(label, val, sub) {
+  return `<div style="flex:1;min-width:120px;background:var(--card,#fff);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">${label}</div>
+    <div style="font-size:22px;font-weight:700;color:var(--maroon)">${val}</div>
+    <div style="font-size:11px;color:var(--text-muted)">${sub}</div></div>`;
+}
+
+async function renderMonthlyReport() {
+  const inp = document.getElementById('monthly-month');
+  if (!inp) return;
+  if (!inp.value) inp.value = isoToday().slice(0, 7);
+  const ym = inp.value;
+  const [y, m] = ym.split('-').map(Number);
+  const el = document.getElementById('rep-monthly');
+  if (!el) return;
+  el.innerHTML = '<div class="empty">Loading weather &amp; holidays…</div>';
+
+  // Per-day car counts + revenue (same day-key convention as Daily Volume).
+  const counts = {}, rev = {};
+  entries.forEach(e => {
+    if (!e.timeIn) return;
+    const d = e.timeIn.slice(0, 10);
+    if (d.slice(0, 7) === ym) { counts[d] = (counts[d] || 0) + 1; rev[d] = (rev[d] || 0) + (e.totalFee || 0); }
+  });
+
+  const [wx, ph] = await Promise.all([fetchMonthWeather(ym), fetchPublicHolidays(y)]);
+  if (inp.value !== ym) return; // user switched months while awaiting
+
+  const days = new Date(y, m, 0).getDate();
+  const todayISOv = isoToday();
+  const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const rows = [];
+  let totalCars = 0, totalRev = 0;
+  for (let dd = 1; dd <= days; dd++) {
+    const iso = `${ym}-${String(dd).padStart(2, '0')}`;
+    rows.push({ iso, dd, wkd: new Date(iso + 'T00:00:00').getDay(), w: wx[iso], phName: ph[iso] || null, shName: schoolHolidayName(iso), cars: counts[iso] || 0, r: rev[iso] || 0 });
+    totalCars += counts[iso] || 0; totalRev += rev[iso] || 0;
+  }
+  _lastMonthlyRows = rows;
+
+  const monthName = new Date(y, m - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+  const maxCars = Math.max(1, ...rows.map(r => r.cars));
+  let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="text-align:left;border-bottom:2px solid var(--border)">
+      <th style="padding:6px 8px">Date</th><th style="padding:6px 8px">Day</th>
+      <th style="padding:6px 8px;text-align:right">Cars</th><th style="padding:6px 8px;text-align:right">Revenue</th>
+      <th style="padding:6px 8px">Weather</th><th style="padding:6px 8px;text-align:right">Max/Min</th>
+      <th style="padding:6px 8px;text-align:right">Rain</th><th style="padding:6px 8px">Public holiday</th>
+      <th style="padding:6px 8px">School holiday</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    const wknd = (r.wkd === 0 || r.wkd === 6);
+    const [icon, desc] = r.w ? wxInfo(r.w.code) : ['', ''];
+    const bg = r.phName ? 'background:rgba(122,31,31,.06);' : (r.shName ? 'background:rgba(180,140,40,.07);' : (wknd ? 'background:rgba(0,0,0,.02);' : ''));
+    const barW = (r.cars / maxCars) * 100;
+    html += `<tr style="border-bottom:1px solid var(--border);${bg}${r.iso === todayISOv ? 'outline:2px solid var(--maroon);outline-offset:-2px;' : ''}">
+      <td style="padding:5px 8px;white-space:nowrap">${r.dd} ${new Date(r.iso + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short' })}</td>
+      <td style="padding:5px 8px;${wknd ? 'font-weight:700;color:var(--maroon)' : ''}">${dow[r.wkd]}</td>
+      <td style="padding:5px 8px;text-align:right"><span style="display:inline-block;min-width:22px">${r.cars || ''}</span><span style="display:inline-block;width:44px;height:7px;background:var(--border);border-radius:4px;vertical-align:middle;margin-left:6px;overflow:hidden"><span style="display:block;height:100%;width:${barW}%;background:var(--maroon)"></span></span></td>
+      <td style="padding:5px 8px;text-align:right">${r.r ? fmtMoney(r.r) : ''}</td>
+      <td style="padding:5px 8px;white-space:nowrap">${icon} <span style="color:var(--text-muted)">${desc}</span></td>
+      <td style="padding:5px 8px;text-align:right;white-space:nowrap">${r.w ? Math.round(r.w.max) + '° / ' + Math.round(r.w.min) + '°' : '—'}</td>
+      <td style="padding:5px 8px;text-align:right;white-space:nowrap">${r.w && r.w.rain != null ? (r.w.rain > 0 ? r.w.rain.toFixed(1) + 'mm' : '–') : '—'}</td>
+      <td style="padding:5px 8px;color:var(--maroon);font-weight:${r.phName ? '700' : '400'}">${r.phName || ''}</td>
+      <td style="padding:5px 8px;color:#9a7b1e">${r.shName || ''}</td></tr>`;
+  });
+  html += `</tbody><tfoot><tr style="border-top:2px solid var(--border);font-weight:700">
+      <td style="padding:6px 8px" colspan="2">${monthName}</td>
+      <td style="padding:6px 8px;text-align:right">${totalCars}</td>
+      <td style="padding:6px 8px;text-align:right">${fmtMoney(totalRev)}</td>
+      <td style="padding:6px 8px" colspan="5">Avg ${(totalCars / days).toFixed(1)} cars/day · ${rows.filter(r => r.cars).length} active days</td>
+    </tr></tfoot></table></div>`;
+
+  // Insight strip — average cars/day by day type, so holiday impact is obvious.
+  const avgOf = a => a.length ? (a.reduce((s, r) => s + r.cars, 0) / a.length).toFixed(1) : '—';
+  const phDays = rows.filter(r => r.phName);
+  html += `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px">
+    ${insightCard('Weekday avg', avgOf(rows.filter(r => !r.phName && !r.shName && r.wkd !== 0 && r.wkd !== 6)), 'normal weekdays')}
+    ${insightCard('Weekend avg', avgOf(rows.filter(r => (r.wkd === 0 || r.wkd === 6) && !r.phName)), 'Sat/Sun')}
+    ${insightCard('School-holiday avg', avgOf(rows.filter(r => r.shName && !r.phName)), 'NSW school breaks')}
+    ${insightCard('Public-holiday avg', avgOf(phDays), phDays.length ? 'public holidays' : 'none this month')}
+  </div>`;
+  el.innerHTML = html;
+}
+
+// Export the loaded month (incl. weather + holidays) as CSV for Excel/Sheets.
+function downloadMonthlyCSV() {
+  if (!_lastMonthlyRows.length) { alert('Open a month first.'); return; }
+  const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const esc = v => { v = (v == null ? '' : String(v)); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const lines = [['Date', 'Day', 'Cars', 'Revenue', 'Weather', 'Max C', 'Min C', 'Rain mm', 'Public Holiday', 'School Holiday'].join(',')];
+  _lastMonthlyRows.forEach(r => {
+    lines.push([
+      r.iso, dow[r.wkd], r.cars, (r.r || 0).toFixed(2), r.w ? wxInfo(r.w.code)[1] : '',
+      r.w ? Math.round(r.w.max) : '', r.w ? Math.round(r.w.min) : '',
+      r.w && r.w.rain != null ? r.w.rain.toFixed(1) : '', r.phName || '', r.shName || ''
+    ].map(esc).join(','));
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+  a.download = `valet-monthly-${_lastMonthlyRows[0].iso.slice(0, 7)}.csv`;
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════
 // OPERATIONS INSIGHTS — peak times, stay patterns, loyalty
 // Shared by the Reports view and the printable daily summary.
 // ═══════════════════════════════════════════════════
@@ -8396,6 +8635,7 @@ function goReport(g) {
   if (rv && !rv.classList.contains('active')) showView('reports');
   showReportsGroup(g);
   if (g === 'payments') renderShopAccounts();
+  if (g === 'monthly') renderMonthlyReport();
 }
 
 function renderSettings() {
