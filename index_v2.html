@@ -46,6 +46,9 @@ body{
   color:var(--text);
   min-height:100vh;
   line-height:1.5;
+  -webkit-font-smoothing:antialiased;   /* crisper Inter on macOS / iOS */
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
 }
 
 /* ─── QUICK SEARCH (header) ─── */
@@ -86,7 +89,7 @@ body{
 }
 .quick-result-item:hover, .quick-result-item.highlighted{background:var(--sandstone)}
 .quick-result-item:last-child{border-bottom:none}
-.qr-ticket{font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);min-width:60px}
+.qr-ticket{font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon);min-width:60px}
 .qr-info{flex:1;color:var(--text)}
 .qr-action{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--bronze);font-weight:600}
 
@@ -375,7 +378,7 @@ td{
 }
 tr.active td{background:#faf9f7}
 tr:hover td{background:var(--bg)}
-.ticket-num{font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);letter-spacing:.5px}
+.ticket-num{font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon);letter-spacing:.5px}
 /* Currently On Site + dashboard Recent Activity — larger, easier-to-read rows */
 #view-active table, #view-dashboard table{font-size:15px}
 #view-active td, #view-dashboard td{font-size:15px;padding:13px 12px}
@@ -405,7 +408,7 @@ tr:hover td{background:var(--bg)}
 .brand-name{flex:0 0 130px;font-size:13px;font-weight:600;color:var(--text)}
 .brand-bar-wrap{flex:1;background:var(--sandstone);border-radius:3px;height:18px;overflow:hidden;position:relative}
 .brand-bar{height:100%;background:linear-gradient(90deg,var(--maroon),var(--maroon-light));border-radius:3px;transition:width .4s}
-.brand-count{flex:0 0 50px;text-align:right;font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon);font-size:13px}
+.brand-count{flex:0 0 50px;text-align:right;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon);font-size:13px}
 
 /* ─── REPORT FILTERS ─── */
 .filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end}
@@ -427,7 +430,7 @@ tr:hover td{background:var(--bg)}
 .acard-car{font-size:15px;color:var(--text)}
 .acard-car .mono{font-weight:bold}
 .acard-meta{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--text-muted)}
-.acard-meta .acard-fee{margin-left:auto;font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)}
+.acard-meta .acard-fee{margin-left:auto;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)}
 .acard-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .acard-actions .btn{flex:0 0 auto}
 /* Active-cars row actions: the occasional actions (call/QR/print/edit/bag) are
@@ -1133,7 +1136,7 @@ body.dark-mode .scan-banner {
           </span>
         </label>
         <div style="display:flex;gap:6px">
-          <input type="text" id="f-ticket" class="form-input" readonly="" style="background:var(--sandstone);font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon);flex:1">
+          <input type="text" id="f-ticket" class="form-input" readonly="" style="background:var(--sandstone);font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon);flex:1">
           <button type="button" class="btn btn-secondary btn-sm" onclick="useAutoTicket()" id="auto-ticket-btn" style="white-space:nowrap;display:none">⟳ Auto</button>
         </div>
       </div>
@@ -1383,25 +1386,25 @@ body.dark-mode .scan-banner {
       <div>
         <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:10px">Parking Time Charges</div>
         <table style="width:100%;font-size:12px">
-          <tbody><tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">0 — 2 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--green)">FREE</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">2 — 2.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$3</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">2.5 — 3 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$5</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">3 — 3.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$7</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">3.5 — 4 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$10</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">4 — 4.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$20</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">4.5 — 5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$25</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">5 — 5.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$30</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">5.5 — 6 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$35</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">6 — 6.5 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$40</td></tr>
-          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">6.5 — 7 hrs</td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold">$45</td></tr>
-          <tr><td style="padding:4px 0"><b>7+ hrs (daily max)</b></td><td style="text-align:right;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$80</td></tr>
+          <tbody><tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">0 — 2 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold;color:var(--green)">FREE</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">2 — 2.5 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$3</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">2.5 — 3 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$5</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">3 — 3.5 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$7</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">3.5 — 4 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$10</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">4 — 4.5 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$20</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">4.5 — 5 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$25</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">5 — 5.5 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$30</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">5.5 — 6 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$35</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">6 — 6.5 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$40</td></tr>
+          <tr><td style="padding:4px 0;border-bottom:1px solid #ebebe9">6.5 — 7 hrs</td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold">$45</td></tr>
+          <tr><td style="padding:4px 0"><b>7+ hrs (daily max)</b></td><td style="text-align:right;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">$80</td></tr>
         </tbody></table>
       </div>
       <div>
         <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:10px">Valet Service</div>
         <div style="background:var(--sandstone);padding:14px;border-radius:4px;border-left:3px solid var(--maroon);margin-bottom:14px">
           <div style="font-size:13px;line-height:1.7">
-            <strong>Valet fee:</strong> <span style="font-family:&#39;Courier New&#39;,monospace;color:var(--maroon);font-weight:bold">$20 per day</span><br>
+            <strong>Valet fee:</strong> <span style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;color:var(--maroon);font-weight:bold">$20 per day</span><br>
             <strong>First 2 hours:</strong> <span style="color:var(--green);font-weight:bold">Complimentary parking</span><br>
             <strong>After 2 hours:</strong> Standard parking rates apply <em style="color:var(--text-muted)">in addition to $20 valet fee</em>
           </div>
@@ -1432,7 +1435,7 @@ body.dark-mode .scan-banner {
       
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
         <div style="flex:1;min-width:0">
-          <div style="font-family:&#39;Courier New&#39;,monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">A-002</div>
+          <div style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">A-002</div>
           <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Mick</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -1442,7 +1445,7 @@ body.dark-mode .scan-banner {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:10px">
         <div><span style="color:var(--text-muted);font-size:11px">BRAND</span><br><b>Tesla</b></div>
-        <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:&#39;Courier New&#39;,monospace">FSN10T</b></div>
+        <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">FSN10T</b></div>
         <div><span style="color:var(--text-muted);font-size:11px">IN AT</span><br>08:54</div>
         <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:#e0a640">2h 38m</b></div>
       </div>
@@ -1456,7 +1459,7 @@ body.dark-mode .scan-banner {
       
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
         <div style="flex:1;min-width:0">
-          <div style="font-family:&#39;Courier New&#39;,monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">A-004</div>
+          <div style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">A-004</div>
           <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Kowit</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -1466,7 +1469,7 @@ body.dark-mode .scan-banner {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:10px">
         <div><span style="color:var(--text-muted);font-size:11px">BRAND</span><br><b>Subaru</b></div>
-        <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:&#39;Courier New&#39;,monospace">BGR25T</b></div>
+        <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">BGR25T</b></div>
         <div><span style="color:var(--text-muted);font-size:11px">IN AT</span><br>09:57</div>
         <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:var(--green)">1h 35m</b></div>
       </div>
@@ -1535,9 +1538,9 @@ body.dark-mode .scan-banner {
       <td><span style="color:#7a5a00;background:#fff3d4;font-weight:bold;padding:3px 8px;border-radius:3px;border:1px solid #e0a640">2h 38m</span></td>
       <td><b>Tesla</b></td>
       <td>Y</td>
-      <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
+      <td style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">FSN10T</td>
       <td><b>12</b></td>
-      <td style="font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$25.00</td>
+      <td style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">$25.00</td>
       <td>
         <button class="btn btn-secondary btn-sm" type="button">Call</button>
         <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780440912814-jpdl0f&#39;)" title="Customer asked for car">Request</button>
@@ -1549,9 +1552,9 @@ body.dark-mode .scan-banner {
       <td><span style="color:var(--green);font-weight:bold">1h 35m</span></td>
       <td><b>Subaru</b></td>
       <td>—</td>
-      <td style="font-family:&#39;Courier New&#39;,monospace">BGR25T</td>
+      <td style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">BGR25T</td>
       <td><b>B4</b></td>
-      <td style="font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon)">$20.00</td>
+      <td style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">$20.00</td>
       <td>
         <button class="btn btn-secondary btn-sm" type="button">Call</button>
         <button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(&#39;1780444884018-mefkxu&#39;)" title="Customer asked for car">Request</button>
@@ -1640,7 +1643,7 @@ body.dark-mode .scan-banner {
       <td><b>Subaru</b></td>
       <td>—</td>
       <td>Gold</td>
-      <td style="font-family:&#39;Courier New&#39;,monospace">BGR25T</td>
+      <td style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">BGR25T</td>
       <td>B4</td>
       <td><span class="status-pill status-active">On Site</span></td>
       <td>
@@ -1659,7 +1662,7 @@ body.dark-mode .scan-banner {
       <td><b>Toyota</b></td>
       <td>Rav4</td>
       <td>Silver</td>
-      <td style="font-family:&#39;Courier New&#39;,monospace">ECC67N</td>
+      <td style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">ECC67N</td>
       <td>10</td>
       <td><span class="status-pill status-completed">Completed</span></td>
       <td>
@@ -1678,7 +1681,7 @@ body.dark-mode .scan-banner {
       <td><b>Tesla</b></td>
       <td>Y</td>
       <td>White</td>
-      <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
+      <td style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">FSN10T</td>
       <td>12</td>
       <td><span class="status-pill status-active">On Site</span></td>
       <td>
@@ -1697,7 +1700,7 @@ body.dark-mode .scan-banner {
       <td><b>Tesla</b></td>
       <td>Y</td>
       <td>White</td>
-      <td style="font-family:&#39;Courier New&#39;,monospace">FSN10T</td>
+      <td style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">FSN10T</td>
       <td>12</td>
       <td><span class="status-pill status-completed">Completed</span></td>
       <td>
@@ -2094,7 +2097,7 @@ body.dark-mode .scan-banner {
     </p>
 
     <div style="background:var(--sandstone);padding:14px;border-radius:4px;border-left:3px solid var(--maroon);margin-bottom:14px">
-      <div id="auto-save-status" style="font-size: 14px; font-weight: 600; font-family: &quot;Courier New&quot;, monospace; color: var(--text-muted);">○ Auto-save off — using browser storage only</div>
+      <div id="auto-save-status" style="font-size: 14px; font-weight: 600; font-family: ui-monospace, &quot;Cascadia Code&quot;, &quot;Segoe UI Mono&quot;, Menlo, Consolas, monospace; color: var(--text-muted);">○ Auto-save off — using browser storage only</div>
     </div>
 
     <div class="btn-row">
@@ -2139,7 +2142,7 @@ body.dark-mode .scan-banner {
     </p>
     <div class="form-field" style="margin-bottom:14px">
       <label class="form-label">API Token</label>
-      <input type="text" id="s-pr-key" class="form-input" placeholder="Paste your Plate Recognizer token here" style="font-family:&#39;Courier New&#39;,monospace;font-size:12px">
+      <input type="text" id="s-pr-key" class="form-input" placeholder="Paste your Plate Recognizer token here" style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-size:12px">
     </div>
     <div style="background:var(--sandstone);padding:12px;border-radius:4px;margin-bottom:14px;font-size:12px;line-height:1.6">
       <strong>Usage this month:</strong> <span id="pr-usage-display">0 scans</span> · Resets monthly<br>
@@ -2188,7 +2191,7 @@ body.dark-mode .scan-banner {
     </p>
     <div class="form-field" style="margin-bottom:14px">
       <label class="form-label">Terminal Device ID</label>
-      <input type="text" id="s-square-device" class="form-input" placeholder="Paste the paired terminal's Device ID" style="font-family:'Courier New',monospace;font-size:12px">
+      <input type="text" id="s-square-device" class="form-input" placeholder="Paste the paired terminal's Device ID" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:12px">
     </div>
     <div class="btn-row" style="margin-bottom:14px">
       <button class="btn btn-primary" onclick="saveSquareSettings()">Save</button>
@@ -2238,7 +2241,7 @@ body.dark-mode .scan-banner {
     <div style="font-size:13px;color:var(--text-muted);line-height:1.6">
       Tickets are generated automatically as a random 6-character code with
       <strong>3 capital letters and 3 numbers</strong> (for example
-      <span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">K7M2QX</span>).
+      <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">K7M2QX</span>).
       The letter <strong>O</strong> and the digit <strong>0</strong> are never
       used, so codes can't be misread on a key tag or over the phone. Every
       code is checked to make sure it hasn't been handed out already.
@@ -2334,7 +2337,7 @@ body.dark-mode .scan-banner {
       </div>
       <div class="form-field">
         <label class="form-label">Bridge address (advanced)</label>
-        <input type="text" id="s-printer-server" class="form-input" placeholder="127.0.0.1:18080" style="font-family:'Courier New',monospace;font-size:12px">
+        <input type="text" id="s-printer-server" class="form-input" placeholder="127.0.0.1:18080" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:12px">
       </div>
     </div>
     <div style="font-size:11px;color:var(--text-muted);margin:4px 0 12px;line-height:1.6">
@@ -3365,9 +3368,9 @@ function showSaveToast(entry) {
     <div class="save-toast-content">
       <div class="save-toast-title">Entry Saved Successfully</div>
       <div class="save-toast-details">
-        <div><strong style="font-family:'Courier New',monospace;color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
+        <div><strong style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
         <div style="margin-top:2px">${vehicle || 'Vehicle logged'} in Bay <strong>${entry.bay}</strong> at <strong>${timeStr}</strong></div>
-        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">Write on key tag: <strong style="font-family:'Courier New',monospace;font-size:16px;color:#e0a640">${entry.ticket} · ${entry.bay}</strong></div>
+        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">Write on key tag: <strong style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:16px;color:#e0a640">${entry.ticket} · ${entry.bay}</strong></div>
         <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="printKeyTag('${entry.id}')">Print Key Tag</button>
       </div>
       <div class="save-toast-meta">${cloudIcon} ${cloudText}</div>
@@ -4339,8 +4342,8 @@ function showCheckoutToast(entry, total) {
     <div class="save-toast-content">
       <div class="save-toast-title" style="color:#e0a640">Checkout Complete</div>
       <div class="save-toast-details">
-        <div><strong style="font-family:'Courier New',monospace;color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
-        <div style="margin-top:2px">${vehicle || 'Vehicle'} · Out at <strong>${timeStr}</strong> · Total <strong style="font-family:'Courier New',monospace">${fmtMoney(total)}</strong></div>
+        <div><strong style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
+        <div style="margin-top:2px">${vehicle || 'Vehicle'} · Out at <strong>${timeStr}</strong> · Total <strong style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${fmtMoney(total)}</strong></div>
       </div>
       <div class="save-toast-meta">${cloudIcon} Synced</div>
     </div>
@@ -4670,7 +4673,7 @@ function renderWashSettings() {
   const val = v => (typeof v === 'number' ? v : '');
   const th = 'text-align:right;padding:6px 8px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)';
   const td = 'padding:6px 8px;border-bottom:1px solid var(--border)';
-  const retail = 'text-align:right;font-family:\'Courier New\',monospace;color:var(--text-muted)';
+  const retail = 'text-align:right;font-family:ui-monospace,\'Cascadia Code\',\'Segoe UI Mono\',Menlo,Consolas,monospace;color:var(--text-muted)';
   const inp = 'width:88px;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-family:inherit;text-align:right';
   c.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:480px">'
     + `<thead><tr><th style="${th};text-align:left">Service</th><th style="${th}">Retail S</th><th style="${th}">Your cost S</th><th style="${th}">Retail L</th><th style="${th}">Your cost L</th></tr></thead><tbody>`
@@ -4815,7 +4818,7 @@ function renderDashInfographics() {
         if (!list.length) return '<div class="dash-empty">No entries yet — use New Entry to start</div>';
         return `<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">
           <tr style="text-align:left;color:var(--text-muted)"><th style="padding:4px 8px 4px 0">Rego</th><th style="padding:4px 8px 4px 0">Vehicle</th><th style="padding:4px 8px 4px 0">Spot</th><th style="padding:4px 8px 4px 0">In</th><th style="padding:4px 8px 4px 0">Status</th></tr>
-          ${list.map(e => `<tr style="border-top:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-family:'Courier New',monospace;font-weight:bold">${escAttr(e.rego||'—')}</td><td style="padding:5px 8px 5px 0">${escAttr((e.brand||'')+(e.model?' '+e.model:''))}</td><td style="padding:5px 8px 5px 0">${escAttr(e.bay||'—')}</td><td style="padding:5px 8px 5px 0">${e.timeIn?fmtTime(new Date(e.timeIn)):'—'}</td><td style="padding:5px 8px 5px 0">${e.timeOut?'<span class="status-pill status-completed">Out</span>':'<span class="status-pill status-active">On Site</span>'}</td></tr>`).join('')}
+          ${list.map(e => `<tr style="border-top:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold">${escAttr(e.rego||'—')}</td><td style="padding:5px 8px 5px 0">${escAttr((e.brand||'')+(e.model?' '+e.model:''))}</td><td style="padding:5px 8px 5px 0">${escAttr(e.bay||'—')}</td><td style="padding:5px 8px 5px 0">${e.timeIn?fmtTime(new Date(e.timeIn)):'—'}</td><td style="padding:5px 8px 5px 0">${e.timeOut?'<span class="status-pill status-completed">Out</span>':'<span class="status-pill status-active">On Site</span>'}</td></tr>`).join('')}
         </table></div>`;
       }
       case 'turnover':
@@ -5240,7 +5243,7 @@ function renderWashDialog() {
   const body = document.getElementById('wash-modal-body');
   if (!e || !body) return;
   const cw = e.carWash;
-  const carLine = `<div style="color:var(--text-muted);margin-bottom:14px"><b style="color:var(--maroon);font-family:'Courier New',monospace">${e.ticket}</b> · ${e.brand}${e.model ? ' ' + e.model : ''} · <span style="font-family:'Courier New',monospace">${e.rego}</span></div>`;
+  const carLine = `<div style="color:var(--text-muted);margin-bottom:14px"><b style="color:var(--maroon);font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${e.ticket}</b> · ${e.brand}${e.model ? ' ' + e.model : ''} · <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${e.rego}</span></div>`;
   const curSvc = cw ? cw.service : '';
   const curSize = cw ? cw.size : 'small';
   const optHtml = ['<option value="">— Select a wash —</option>']
@@ -5368,7 +5371,7 @@ function renderOverstayBanner() {
   const chip = (e, urgent) => {
     const dur = fmtDuration(now - new Date(e.timeIn));
     return `<button onclick="checkout('${e.id}')" title="Check out ${e.ticket}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid ${urgent ? '#a83838' : '#e0a640'};background:#fff;border-radius:20px;padding:3px 10px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit">
-      <span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span>
+      <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span>
       <span style="color:var(--text-muted)">Bay ${e.bay} · ${dur}${e.name ? ' · ' + e.name : ''}</span></button>`;
   };
   let html = '';
@@ -5479,7 +5482,7 @@ function renderActive() {
       <td><b>${e.bay}</b></td>
       <td>${fmtTime(new Date(e.timeIn))}</td>
       <td><span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span></td>
-      <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(fees.total)}</td>
+      <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(fees.total)}</td>
       <td>${actions}</td>
     </tr>`;
 
@@ -5542,7 +5545,7 @@ function renderCheckedOutToday() {
       <td>${fmtTime(new Date(e.timeIn))}</td>
       <td>${fmtTime(new Date(e.timeOut))}</td>
       <td>${fmtDuration(dur)}</td>
-      <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(e.totalFee || 0)}</td>
+      <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(e.totalFee || 0)}</td>
       <td>${payLabel(e)}</td>
       <td>${undo}</td>
     </tr>`);
@@ -5819,7 +5822,7 @@ function renderLostTicketResults() {
   c.innerHTML = list.slice(0, 8).map(e => `
     <div style="border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px">
       <div style="font-size:13px;margin-bottom:8px">
-        <span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span> · <b>${e.brand}</b>${e.model ? ' ' + e.model : ''}
+        <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span> · <b>${e.brand}</b>${e.model ? ' ' + e.model : ''}
         <div style="color:var(--text-muted);margin-top:2px">${e.name || '—'} · ${e.rego || '—'} · ${e.phone || 'no phone'} · Bay ${e.bay}</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="releaseLostTicket('${e.id}')">✓ Identity verified — checkout</button>
@@ -5941,7 +5944,7 @@ function renderQuickPickup() {
       ${requestedBadge}
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
         <div style="flex:1;min-width:0">
-          <div style="font-family:'Courier New',monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">${e.ticket}</div>
+          <div style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:20px;font-weight:bold;color:var(--maroon);letter-spacing:1px">${e.ticket}</div>
           <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${e.name || 'No name'}${vipTag(e.vip)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -5951,7 +5954,7 @@ function renderQuickPickup() {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:10px">
         <div><span style="color:var(--text-muted);font-size:11px">BRAND</span><br><b>${e.brand}</b></div>
-        <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:'Courier New',monospace">${e.rego}</b></div>
+        <div><span style="color:var(--text-muted);font-size:11px">REGO</span><br><b style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${e.rego}</b></div>
         <div><span style="color:var(--text-muted);font-size:11px">IN AT</span><br>${fmtTime(new Date(e.timeIn))}</div>
         <div><span style="color:var(--text-muted);font-size:11px">DURATION</span><br><b style="color:${borderColor}">${fmtDuration(dur)}</b></div>
       </div>
@@ -6236,7 +6239,7 @@ function customerDueAfterShop(total, shopCover) {
 
 // Small gold "★ VIP" pill — shown next to a VIP customer's name across the app.
 function vipTag(on) {
-  return on ? ' <span style="display:inline-block;background:var(--bronze);color:#fff;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 5px;border-radius:9px;vertical-align:middle">★ VIP</span>' : '';
+  return on ? ' <span style="display:inline-block;background:var(--bronze);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 5px;border-radius:9px;vertical-align:middle">★ VIP</span>' : '';
 }
 
 // Outstanding (unsettled) shop-billed cars for a given shop.
@@ -6262,7 +6265,7 @@ function renderShopAccounts() {
 
   let html = `<div style="background:var(--maroon);color:#fff;border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div><div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--champagne)">Total outstanding</div>
-      <div style="font-size:26px;font-weight:bold;font-family:'Courier New',monospace">${fmtMoney(grand)}</div></div>
+      <div style="font-size:26px;font-weight:bold;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${fmtMoney(grand)}</div></div>
       <div style="font-size:12px;color:var(--champagne)">${names.length} shop${names.length !== 1 ? 's' : ''} with open charges</div></div>`;
 
   names.forEach(shop => {
@@ -6276,7 +6279,7 @@ function renderShopAccounts() {
         <div style="background:var(--sandstone);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
           <div style="font-size:16px;font-weight:bold;color:var(--maroon)">${shop}</div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:18px;color:var(--maroon)">${fmtMoney(bal)}</div>
+            <div style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;font-size:18px;color:var(--maroon)">${fmtMoney(bal)}</div>
             <button class="btn btn-secondary btn-sm" onclick="printShopStatement('${enc}')">Statement</button>
             <button class="btn btn-secondary btn-sm" onclick="exportShopStatementCSV('${enc}')">CSV</button>
             <button class="btn btn-primary btn-sm" onclick="settleShop('${enc}')"${disabled}>Settle ${fmtMoney(bal)}</button>
@@ -6290,7 +6293,7 @@ function renderShopAccounts() {
           <td>${fmtDate(new Date(e.timeIn))}</td>
           <td><b>${e.brand || ''}</b> ${e.model || ''}${e.rego ? ' · ' + e.rego : ''}</td>
           <td>${e.name || '—'}</td>
-          <td style="font-family:'Courier New',monospace;font-weight:bold">${fmtMoney(shopChargeFor(e))} <span style="font-weight:400;color:var(--text-muted);font-size:11px">${e.shopCover == null ? '(full)' : '(part)'}</span></td>
+          <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold">${fmtMoney(shopChargeFor(e))} <span style="font-weight:400;color:var(--text-muted);font-size:11px">${e.shopCover == null ? '(full)' : '(part)'}</span></td>
           <td>${billable ? '<span class="status-pill status-completed">Billable</span>' : '<span class="status-pill status-active">Still parked</span>'}</td>
         </tr>`;
     });
@@ -6671,7 +6674,7 @@ function printDailySummary() {
   .stat-box{background:#f8f7f5;padding:10px 12px;border-left:3px solid #531620;border-radius:3px}
   .stat-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a48d53;margin-bottom:3px}
   .stat-value{font-size:22px;font-weight:bold;color:#531620}
-  .money{font-family:'Courier New',monospace;color:#531620}
+  .money{font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;color:#531620}
   .green{color:#4a7c4f;font-weight:bold}
   .red{color:#a83838;font-weight:bold}
   .footer{margin-top:30px;padding-top:14px;border-top:1px solid #a48d53;font-size:11px;color:#6f6b66;text-align:center;font-style:italic}
@@ -6848,7 +6851,7 @@ function renderLog() {
       <td><b>${e.brand}</b></td>
       <td>${e.model || '—'}</td>
       <td>${e.colour || '—'}</td>
-      <td style="font-family:'Courier New',monospace;font-weight:bold">${e.rego}</td>
+      <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold">${e.rego}</td>
       <td>${e.bay}</td>
       <td>${e.timeOut
         ? '<span class="status-pill status-completed">Completed</span>'
@@ -7077,7 +7080,7 @@ function hourChartHTML(inH, outH, dir) {
   const slice = []; for (let h = first; h <= last; h++) slice.push([h, inH[h], outH[h]]);
   if (dir === 'horizontal') {
     return legend + slice.map(([h, ci, co]) => `<div class="brand-row" style="align-items:center">
-        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:14px;font-weight:bold;color:var(--text);min-width:56px">${hourLabel(h)}</div>
+        <div class="brand-name" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:14px;font-weight:bold;color:var(--text);min-width:56px">${hourLabel(h)}</div>
         <div style="flex:1;display:flex;flex-direction:column;gap:3px">
           <div title="${hourLabel(h)} in: ${ci}" style="height:9px;border-radius:3px;width:${ci / max * 100}%;min-width:2px;background:${IN}"></div>
           <div title="${hourLabel(h)} out: ${co}" style="height:9px;border-radius:3px;width:${co / max * 100}%;min-width:2px;background:${OUT}"></div>
@@ -7095,7 +7098,7 @@ function hourChartHTML(inH, outH, dir) {
             <div title="${hourLabel(h)} in: ${ci}" style="width:11px;height:${hi}px;background:${IN};border-radius:3px 3px 0 0"></div>
             <div title="${hourLabel(h)} out: ${co}" style="width:11px;height:${ho}px;background:${OUT};border-radius:3px 3px 0 0"></div>
           </div>
-          <div style="font-size:12px;font-weight:bold;color:var(--text);white-space:nowrap;font-family:'Courier New',monospace">${hourLabel(h)}</div>
+          <div style="font-size:12px;font-weight:bold;color:var(--text);white-space:nowrap;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${hourLabel(h)}</div>
         </div>`;
       }).join('')
     + `</div>`;
@@ -7132,7 +7135,7 @@ function renderDailyVolume() {
       const lbl = `${date.slice(8,10)}/${date.slice(5,7)}/${date.slice(2,4)}`;
       const wknd = isWeekend(date);
       return `<div class="brand-row">
-        <div class="brand-name" style="font-family:'Courier New',monospace;font-size:14px;font-weight:bold;color:${wknd ? 'var(--maroon)' : 'var(--text)'};min-width:64px">${lbl}</div>
+        <div class="brand-name" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:14px;font-weight:bold;color:${wknd ? 'var(--maroon)' : 'var(--text)'};min-width:64px">${lbl}</div>
         <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(count/max)*100}%;background:${wknd ? WEEKEND_GRAD_H : WEEKDAY_GRAD_H}"></div></div>
         <div class="brand-count">${count}<span style="display:block;font-size:11px;font-weight:normal;color:var(--text-muted)">${fmtMoney(rev)}</span></div>
       </div>`;
@@ -7149,7 +7152,7 @@ function renderDailyVolume() {
             <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${count}</div>
             <div title="${lbl}: ${count} cars · ${fmtMoney(rev)}" style="width:24px;height:${h}px;background:${wknd ? WEEKEND_GRAD_V : WEEKDAY_GRAD_V};border-radius:3px 3px 0 0"></div>
             <div style="font-size:10px;color:var(--text-muted);white-space:nowrap">${fmtMoney(rev)}</div>
-            <div style="font-size:12px;font-weight:bold;color:${wknd ? 'var(--maroon)' : 'var(--text)'};white-space:nowrap;font-family:'Courier New',monospace">${lbl}</div>
+            <div style="font-size:12px;font-weight:bold;color:${wknd ? 'var(--maroon)' : 'var(--text)'};white-space:nowrap;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${lbl}</div>
           </div>`;
         }).join('')
       + `</div>`;
@@ -7221,7 +7224,7 @@ function renderWeekdayAverages(dir) {
         return `<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:40px" title="${d.total} cars over ${d.days} ${d.name}${d.days===1?'':'s'}">
           <div style="font-size:11px;font-weight:bold;color:var(--maroon)">${d.avg.toFixed(1)}</div>
           <div style="width:26px;height:${h}px;background:${w ? 'linear-gradient(180deg,var(--maroon),var(--maroon-light))' : 'linear-gradient(180deg,var(--bronze),var(--bronze-light))'};border-radius:3px 3px 0 0"></div>
-          <div style="font-size:12px;font-weight:bold;color:${w ? 'var(--maroon)' : 'var(--text)'};font-family:'Courier New',monospace">${d.name}</div>
+          <div style="font-size:12px;font-weight:bold;color:${w ? 'var(--maroon)' : 'var(--text)'};font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${d.name}</div>
         </div>`;
       }).join('')
     + `</div>`;
@@ -7743,7 +7746,7 @@ function renderHourChart(hours, color) {
   let html = '';
   for (let h = first; h <= last; h++) {
     html += `<div class="brand-row">
-      <div class="brand-name" style="font-family:'Courier New',monospace;font-size:12px;min-width:48px">${hourLabel(h)}</div>
+      <div class="brand-name" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:12px;min-width:48px">${hourLabel(h)}</div>
       <div class="brand-bar-wrap"><div class="brand-bar" style="width:${max ? (hours[h] / max * 100) : 0}%;background:${color}"></div></div>
       <div class="brand-count">${hours[h]}</div>
     </div>`;
@@ -7790,7 +7793,7 @@ function renderSpend(filtered) {
     + order.map(d => `<div class="brand-row">
         <div class="brand-name" style="font-size:13px;min-width:54px">${WDshort[d]}</div>
         <div class="brand-bar-wrap"><div class="brand-bar" style="width:${max ? (ins.revByWeekday[d] / max * 100) : 0}%;background:linear-gradient(90deg,var(--green),#6fae73)"></div></div>
-        <div class="brand-count" style="min-width:170px;text-align:right;white-space:nowrap;font-family:'Courier New',monospace">${fmtMoney(ins.revByWeekday[d])}${ins.completedByWeekday[d] ? ' · ' + fmtMoney(ins.revByWeekday[d] / ins.completedByWeekday[d]) + '/car' : ''}</div>
+        <div class="brand-count" style="min-width:170px;text-align:right;white-space:nowrap;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${fmtMoney(ins.revByWeekday[d])}${ins.completedByWeekday[d] ? ' · ' + fmtMoney(ins.revByWeekday[d] / ins.completedByWeekday[d]) + '/car' : ''}</div>
       </div>`).join('');
 
   c.innerHTML = grid + chart;
@@ -7850,12 +7853,12 @@ function renderDiscountSummary(filtered) {
       </div>
       <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid #a83838">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Total Discount Given</div>
-        <div style="font-size:22px;font-weight:bold;color:#a83838;font-family:'Courier New',monospace;line-height:1;margin-top:4px">${fmtMoney(totalDiscount)}</div>
+        <div style="font-size:22px;font-weight:bold;color:#a83838;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;line-height:1;margin-top:4px">${fmtMoney(totalDiscount)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px">across ${allDiscounts.length} discount${allDiscounts.length !== 1 ? 's' : ''}</div>
       </div>
       <div style="padding:12px;background:var(--sandstone);border-radius:6px;border-left:3px solid var(--green)">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Avg per Discount</div>
-        <div style="font-size:22px;font-weight:bold;color:var(--green);font-family:'Courier New',monospace;line-height:1;margin-top:4px">${fmtMoney(totalDiscount / allDiscounts.length)}</div>
+        <div style="font-size:22px;font-weight:bold;color:var(--green);font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;line-height:1;margin-top:4px">${fmtMoney(totalDiscount / allDiscounts.length)}</div>
       </div>
     </div>
     <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:8px">Breakdown by Source</div>
@@ -7865,7 +7868,7 @@ function renderDiscountSummary(filtered) {
         <div class="brand-bar-wrap">
           <div class="brand-bar" style="width:${(data.total/maxTotal)*100}%;background:linear-gradient(90deg,#a83838,#c45a5a)"></div>
         </div>
-        <div class="brand-count" style="text-align:right;min-width:120px;font-family:'Courier New',monospace">${fmtMoney(data.total)} · ${data.count}x</div>
+        <div class="brand-count" style="text-align:right;min-width:120px;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${fmtMoney(data.total)} · ${data.count}x</div>
       </div>
     `).join('')}
   `;
@@ -7886,7 +7889,7 @@ function repBar(name, valueLabel, frac, color, nameCol) {
   return `<div class="brand-row">
     <div class="brand-name" style="font-size:13px;min-width:90px${nameCol ? ';color:' + nameCol : ''}">${name}</div>
     <div class="brand-bar-wrap"><div class="brand-bar" style="width:${Math.max(0, Math.min(100, frac * 100))}%;background:${color}"></div></div>
-    <div class="brand-count" style="text-align:right;min-width:150px;white-space:nowrap;font-family:'Courier New',monospace">${valueLabel}</div>
+    <div class="brand-count" style="text-align:right;min-width:150px;white-space:nowrap;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${valueLabel}</div>
   </div>`;
 }
 function repHeading(text) {
@@ -7955,10 +7958,10 @@ function renderPayments(filtered) {
       const method = PAY_METHOD_LABELS[e.paymentMethod] || e.paymentMethod;
       return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:var(--sandstone);border-radius:5px;margin-bottom:6px;border-left:3px solid #a83838">
         <div style="font-size:12px">
-          <span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${id}</span>
+          <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${id}</span>
           <span style="color:var(--text-muted)"> · ${when}${att}</span>
         </div>
-        <div style="font-family:'Courier New',monospace;font-weight:bold;white-space:nowrap">${method} · ${fmtMoney(e.totalFee || 0)}</div>
+        <div style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;white-space:nowrap">${method} · ${fmtMoney(e.totalFee || 0)}</div>
       </div>`;
     }).join('');
   }
@@ -8132,7 +8135,7 @@ function renderCarWash(filtered) {
 
   // Settlement table.
   const th = 'padding:6px 8px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)';
-  const td = "padding:6px 8px;border-bottom:1px solid var(--border);font-family:'Courier New',monospace;text-align:right";
+  const td = "padding:6px 8px;border-bottom:1px solid var(--border);font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;text-align:right";
   const order = Object.entries(byService).sort((a, b) => b[1].charged - a[1].charged);
   let totCharged = 0, totCost = 0, totMargin = 0, totAllKnown = true;
   const rows = order.map(([k, g]) => {
@@ -8186,7 +8189,7 @@ function renderIncidents(filtered) {
       : '<span style="color:#a83838;font-weight:600">not acknowledged</span>';
     return `<div style="padding:10px 12px;background:var(--sandstone);border-left:3px solid #a83838;border-radius:5px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;margin-bottom:4px">
-        <div><span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span> · ${e.brand}${e.model ? ' ' + e.model : ''} · <span style="font-family:'Courier New',monospace">${e.rego}</span></div>
+        <div><span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span> · ${e.brand}${e.model ? ' ' + e.model : ''} · <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${e.rego}</span></div>
         <div style="color:var(--text-muted)">${when}${e.incident.by ? ' · ' + e.incident.by : ''} · ${ackBadge}</div>
       </div>
       <div style="font-size:13px">${(e.incident.notes || '').replace(/</g, '&lt;')}</div>
@@ -8268,7 +8271,7 @@ function renderTenantValidations(filtered) {
   ];
   const th = 'padding:6px 8px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)';
   const td = "padding:6px 8px;border-bottom:1px solid var(--border)";
-  const tdr = td + ";text-align:right;font-family:'Courier New',monospace";
+  const tdr = td + ";text-align:right;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace";
   const body = rows.map(r => `<tr><td style="${td}">${r.tenant}</td><td style="${tdr}">${r.count}</td><td style="${tdr}">${fmtMoney(r.total)}</td></tr>`).join('')
     + `<tr style="font-weight:bold"><td style="${td}">Total</td><td style="${tdr}">${count}</td><td style="${tdr}">${fmtMoney(total)}</td></tr>`;
   c.innerHTML = repCards(cards) + repHeading('By tenant')
@@ -8332,7 +8335,7 @@ function downloadMgmtPDF() {
     .sub{color:#666;font-size:13px;margin-bottom:16px}
     .sg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     .sc{background:#f1f0ee;border-radius:6px;padding:10px 12px}.sc b{display:block;font-size:19px;color:#531620;margin-top:2px}.sc span{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:1px}.sc i{display:block;font-size:11px;color:#888;font-style:normal;margin-top:2px}
-    table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}.r{text-align:right;font-family:'Courier New',monospace}.tot{font-weight:bold}
+    table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}.r{text-align:right;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace}.tot{font-weight:bold}
     @media print{button{display:none}}</style></head><body>
     <h1>Chatswood Chase Valet — Management Summary</h1>
     <div class="sub">${fmtDate(new Date(from))} &rarr; ${fmtDate(new Date(to))}</div>
@@ -9776,7 +9779,7 @@ function showWelcomePopup(last, visitCount, daysSince, totalSpent, allVisits) {
       </div>
       <div style="padding:10px;background:var(--sandstone);border-radius:6px">
         <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--bronze);font-weight:600">Lifetime</div>
-        <div style="font-size:24px;font-weight:bold;color:var(--green);font-family:'Courier New',monospace;line-height:1;margin-top:3px">${fmtMoney(totalSpent)}</div>
+        <div style="font-size:24px;font-weight:bold;color:var(--green);font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;line-height:1;margin-top:3px">${fmtMoney(totalSpent)}</div>
         <div style="font-size:10px;color:var(--text-muted);margin-top:2px">spent here</div>
       </div>
       <div style="padding:10px;background:var(--sandstone);border-radius:6px">
@@ -9787,8 +9790,8 @@ function showWelcomePopup(last, visitCount, daysSince, totalSpent, allVisits) {
   `;
 
   document.getElementById('welcome-vehicle').innerHTML = last.brand
-    ? `<strong>${last.brand}${last.model ? ' ' + last.model : ''}</strong>${last.colour ? ' · ' + last.colour : ''} · <span style="font-family:'Courier New',monospace">${last.rego}</span>`
-    : `<span style="font-family:'Courier New',monospace">${last.rego}</span>`;
+    ? `<strong>${last.brand}${last.model ? ' ' + last.model : ''}</strong>${last.colour ? ' · ' + last.colour : ''} · <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${last.rego}</span>`
+    : `<span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${last.rego}</span>`;
 
   document.getElementById('welcome-prompts').innerHTML = prompts.map(p =>
     `<div style="padding:8px 12px;background:var(--bg);border-left:3px solid var(--bronze);margin-bottom:6px;border-radius:3px;font-size:13px;line-height:1.4">${p}</div>`
@@ -10105,7 +10108,7 @@ function showCustomerDetail(regoArg) {
           ${others.map(o => {
             const veh = (o.brand + (o.model ? ' ' + o.model : '') + (o.colour ? ' · ' + o.colour : '')).trim() || '—';
             return `<div onclick="showCustomerDetail('${o.rego.replace(/'/g, "\\'")}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:var(--sandstone);border-radius:4px;margin-bottom:6px;cursor:pointer">
-              <div><span style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${o.rego}</span><span style="color:var(--text-muted);font-size:12px"> · ${veh}</span></div>
+              <div><span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${o.rego}</span><span style="color:var(--text-muted);font-size:12px"> · ${veh}</span></div>
               <div style="font-size:12px;color:var(--text-muted);white-space:nowrap">${o.count} visit${o.count !== 1 ? 's' : ''} · ${fmtDate(new Date(o.last))}</div>
             </div>`;
           }).join('')}
@@ -10124,11 +10127,11 @@ function showCustomerDetail(regoArg) {
       </div>
       <div style="background:var(--sandstone);padding:12px;border-radius:4px;border-left:3px solid var(--green)">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Lifetime Value</div>
-        <div style="font-size:22px;color:var(--green);font-weight:bold;font-family:'Courier New',monospace">${fmtMoney(totalSpent)}</div>
+        <div style="font-size:22px;color:var(--green);font-weight:bold;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${fmtMoney(totalSpent)}</div>
       </div>
       <div style="background:var(--sandstone);padding:12px;border-radius:4px;border-left:3px solid var(--bronze)">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Tips Given</div>
-        <div style="font-size:18px;color:var(--text);font-weight:bold;font-family:'Courier New',monospace">${fmtMoney(totalTip)}</div>
+        <div style="font-size:18px;color:var(--text);font-weight:bold;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${fmtMoney(totalTip)}</div>
       </div>
       <div style="background:var(--sandstone);padding:12px;border-radius:4px;border-left:3px solid var(--bronze)">
         <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600">Avg Stay</div>
@@ -10145,7 +10148,7 @@ function showCustomerDetail(regoArg) {
         ${last.name ? '<strong>Name:</strong> ' + last.name + '<br>' : ''}
         ${last.phone ? '<strong>Phone:</strong> ' + last.phone + '<br>' : ''}
         <strong>Vehicle:</strong> ${last.brand} ${last.model || ''} ${last.colour ? '· ' + last.colour : ''}<br>
-        <strong>Plate:</strong> <span style="font-family:'Courier New',monospace">${last.rego}</span><br>
+        <strong>Plate:</strong> <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${last.rego}</span><br>
         <strong>First visit:</strong> ${fmtDate(new Date(first.timeIn))}<br>
         <strong>Last visit:</strong> ${fmtDate(new Date(last.timeIn))}<br>
         ${baysUsed.length > 1 ? '<strong>Bays used:</strong> ' + baysUsed.join(', ') + '<br>' : ''}
@@ -10170,10 +10173,10 @@ function showCustomerDetail(regoArg) {
           const dur = tOut ? fmtDuration(tOut - tIn) : 'On site';
           return `<tr>
             <td style="padding:5px;border-bottom:1px solid #ebebe9">${fmtDate(tIn)}</td>
-            <td style="padding:5px;border-bottom:1px solid #ebebe9;font-family:'Courier New',monospace">${e.ticket}</td>
+            <td style="padding:5px;border-bottom:1px solid #ebebe9;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${e.ticket}</td>
             <td style="padding:5px;border-bottom:1px solid #ebebe9">${dur}</td>
-            <td style="padding:5px;border-bottom:1px solid #ebebe9;text-align:right;font-family:'Courier New',monospace">${e.totalFee ? fmtMoney(e.totalFee) : '—'}</td>
-            <td style="padding:5px;border-bottom:1px solid #ebebe9;text-align:right;font-family:'Courier New',monospace">${e.tip ? fmtMoney(e.tip) : '—'}</td>
+            <td style="padding:5px;border-bottom:1px solid #ebebe9;text-align:right;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${e.totalFee ? fmtMoney(e.totalFee) : '—'}</td>
+            <td style="padding:5px;border-bottom:1px solid #ebebe9;text-align:right;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace">${e.tip ? fmtMoney(e.tip) : '—'}</td>
           </tr>`;
         }).join('')}
       </table>
@@ -10231,7 +10234,7 @@ function editCustomerByRego(rego) {
       </div>
       <div class="form-field">
         <label class="form-label">Plate</label>
-        <input type="text" id="cust-edit-rego" class="form-input" maxlength="12" autocomplete="off" style="text-transform:uppercase;font-family:'Courier New',monospace" value="${escAttr(c.rego)}">
+        <input type="text" id="cust-edit-rego" class="form-input" maxlength="12" autocomplete="off" style="text-transform:uppercase;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace" value="${escAttr(c.rego)}">
       </div>
     </div>
     <div id="cust-edit-error" style="color:var(--red);font-size:12px;margin-top:10px;min-height:16px"></div>
@@ -10376,9 +10379,9 @@ function renderCustomers() {
       <td><b>${c.name || '—'}</b></td>
       <td>${c.phone ? `<a href="tel:${c.phone}" onclick="event.stopPropagation()">${c.phone}</a>` : '—'}</td>
       <td>${vehicle}</td>
-      <td style="font-family:'Courier New',monospace;font-weight:bold">${c.rego}</td>
+      <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold">${c.rego}</td>
       <td><b>${c.visitCount}</b></td>
-      <td style="font-family:'Courier New',monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(c.lifetime)}</td>
+      <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(c.lifetime)}</td>
       <td>${lastText}</td>
     </tr>`;
   }).join('');
@@ -11891,7 +11894,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- CHECKOUT MODAL -->
 <div class="modal" id="checkout-modal">
   <div class="modal-box" style="max-width:560px">
-    <div class="modal-title">Checkout — <span id="checkout-ticket" style="font-family:&#39;Courier New&#39;,monospace"></span></div>
+    <div class="modal-title">Checkout — <span id="checkout-ticket" style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace"></span></div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px" id="checkout-info">—</div>
 
     <div id="checkout-damage" style="display:none;margin-bottom:16px"></div>
@@ -11927,7 +11930,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="checkout-discount-lines"></div>
       <div style="display:flex;justify-content:space-between;font-size:16px;color:var(--maroon);padding-top:6px;border-top:1px solid #ebebe9">
         <span id="checkout-total-label"><b>TOTAL DUE:</b></span>
-        <strong id="checkout-total" style="font-family:&#39;Courier New&#39;,monospace">—</strong>
+        <strong id="checkout-total" style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">—</strong>
       </div>
     </div>
 
@@ -12031,7 +12034,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="camera-status" id="plate-status">Initialising camera…</div>
     <div id="plate-result" style="display:none;background:var(--sandstone);padding:12px;border-radius:4px;text-align:center;margin-bottom:12px;width:100%">
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:6px">Detected plate — edit if wrong</div>
-      <input type="text" id="plate-detected" style="font-size:24px;font-family:&#39;Courier New&#39;,monospace;font-weight:bold;color:var(--maroon);letter-spacing:3px;text-align:center;text-transform:uppercase;background:#fff;border:2px solid var(--bronze);border-radius:4px;padding:6px 10px;width:90%;max-width:280px" oninput="this.value=this.value.toUpperCase()">
+      <input type="text" id="plate-detected" style="font-size:24px;font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon);letter-spacing:3px;text-align:center;text-transform:uppercase;background:#fff;border:2px solid var(--bronze);border-radius:4px;padding:6px 10px;width:90%;max-width:280px" oninput="this.value=this.value.toUpperCase()">
       <div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-style:italic">Common OCR mix-ups: E↔F · O↔0 · 1↔I · 8↔B · 5↔S</div>
     </div>
     <div class="btn-row">
@@ -12224,10 +12227,10 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- EDIT CAR MODAL — fix bay / time in / customer details if staff made a mistake -->
 <div class="modal" id="edit-car-modal">
   <div class="modal-box" style="max-width:460px">
-    <div class="modal-title">Edit — <span id="edit-car-ticket" style="font-family:&#39;Courier New&#39;,monospace"></span></div>
+    <div class="modal-title">Edit — <span id="edit-car-ticket" style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace"></span></div>
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Ticket Number</label>
-      <input type="text" id="edit-car-ticketno" class="form-input" maxlength="20" autocomplete="off" style="font-family:&#39;Courier New&#39;,monospace">
+      <input type="text" id="edit-car-ticketno" class="form-input" maxlength="20" autocomplete="off" style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace">
     </div>
     <div class="form-field" style="margin-bottom:12px">
       <label class="form-label">Customer Name</label>
@@ -12309,7 +12312,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="modal-box" style="max-width:420px">
     <div class="modal-title">Pickup Requested</div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
-      Ticket <strong id="eta-ticket" style="font-family:&#39;Courier New&#39;,monospace;color:var(--maroon)">—</strong><br>
+      Ticket <strong id="eta-ticket" style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace;color:var(--maroon)">—</strong><br>
       <span id="eta-info">—</span>
     </div>
     <div style="font-size:13px;margin-bottom:10px">When is the customer arriving?</div>
@@ -12346,7 +12349,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <div id="pickup-alarm-car" style="font-size:17px;color:#333333;margin-bottom:4px">—</div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Ticket <strong id="pickup-alarm-ticket" style="font-family:'Courier New',monospace;color:var(--maroon)">—</strong></div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Ticket <strong id="pickup-alarm-ticket" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;color:var(--maroon)">—</strong></div>
     <div id="pickup-alarm-more" style="font-size:12px;color:#a83838;font-weight:bold;min-height:16px;margin-bottom:12px"></div>
 
     <div style="display:flex;gap:10px">
@@ -12370,7 +12373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <div id="bag-alarm-car" style="font-size:17px;color:#333333;margin-bottom:4px">—</div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Ticket <strong id="bag-alarm-ticket" style="font-family:'Courier New',monospace;color:var(--maroon)">—</strong></div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Ticket <strong id="bag-alarm-ticket" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;color:var(--maroon)">—</strong></div>
     <div id="bag-alarm-more" style="font-size:12px;color:#a48d53;font-weight:bold;min-height:16px;margin-bottom:12px"></div>
 
     <div style="display:flex;gap:10px">
@@ -12408,7 +12411,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="modal" id="scan-result-modal">
   <div class="modal-box" style="max-width:520px;text-align:center">
     <div style="font-size:11px;letter-spacing:3px;color:#a48d53;text-transform:uppercase;margin-bottom:6px">Vehicle Located</div>
-    <div id="scan-result-ticket" style="font-family:'Courier New',monospace;font-size:22px;color:var(--maroon);font-weight:bold;letter-spacing:3px;margin-bottom:14px">—</div>
+    <div id="scan-result-ticket" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:22px;color:var(--maroon);font-weight:bold;letter-spacing:3px;margin-bottom:14px">—</div>
 
     <div style="display:flex;gap:12px;margin-bottom:16px">
       <div style="flex:1;min-width:0;background:var(--sandstone);border-radius:10px;padding:18px 10px">
@@ -12417,7 +12420,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div style="flex:1;min-width:0;background:var(--sandstone);border-radius:10px;padding:18px 10px;display:flex;flex-direction:column;justify-content:center">
         <div style="font-size:11px;letter-spacing:2px;color:#a48d53;text-transform:uppercase">Number Plate</div>
-        <div id="scan-result-rego" style="font-family:'Courier New',monospace;font-size:40px;font-weight:bold;color:var(--maroon);letter-spacing:1px;line-height:1.1;margin:6px 0;white-space:nowrap;overflow:hidden">—</div>
+        <div id="scan-result-rego" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:40px;font-weight:bold;color:var(--maroon);letter-spacing:1px;line-height:1.1;margin:6px 0;white-space:nowrap;overflow:hidden">—</div>
       </div>
     </div>
 
