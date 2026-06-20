@@ -444,6 +444,8 @@ tr:hover td{background:var(--bg)}
 .ico-btn:hover{background:var(--sandstone)}
 .ico-btn svg{width:15px;height:15px;display:block}
 .ico-btn.on{background:var(--maroon);color:#fff}
+.ico-btn.ico-danger{color:#a83838}
+.ico-btn.ico-danger:hover{background:#a83838;color:#fff}
 body.dark-mode .ico-group{background:transparent}
 .wash-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border:1px solid var(--bronze);border-radius:20px;background:transparent;cursor:pointer;white-space:nowrap;font-family:inherit}
 .wash-chip svg{width:12px;height:12px}
@@ -5265,6 +5267,7 @@ const ACT_ICONS = {
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
   wash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
 };
 
 // Coloured status chip for a car with a wash booked (bronze→maroon→green as it
@@ -5520,6 +5523,7 @@ function renderActive() {
       + `<button class="ico-btn" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">${ACT_ICONS.edit}</button>`
       + `<button class="ico-btn${bagOn ? ' on' : ''}" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup">${ACT_ICONS.bag}</button>`
       + `<button class="ico-btn${washOn ? ' on' : ''}" onclick="openWashDialog('${e.id}')" title="${e.carWash ? 'Manage car wash' : 'Add a car wash'}">${ACT_ICONS.wash}</button>`
+      + `<button class="ico-btn ico-danger" onclick="deleteEntry('${e.id}')" title="Delete this entry (mistaken/duplicate)">${ACT_ICONS.trash}</button>`
       + `</span>`
       + pickupBtn
       + `<button class="btn btn-primary btn-sm" onclick="checkout('${e.id}')">✓ Mark Out</button>`
