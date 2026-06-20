@@ -313,7 +313,7 @@ body.mobile-mode .tab.desktop-only{display:none}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:14px}
 .form-field{display:flex;flex-direction:column;gap:5px}
 .form-label{
-  font-size:10px;
+  font-size:11px;
   letter-spacing:1.5px;
   text-transform:uppercase;
   color:var(--bronze);
@@ -321,7 +321,7 @@ body.mobile-mode .tab.desktop-only{display:none}
 }
 .form-input,.form-select{
   padding:9px 11px;
-  font-size:14px;
+  font-size:16px;   /* 16px: readable + stops iOS auto-zoom on focus */
   border:1px solid var(--border);
   border-radius:4px;
   background:var(--white);
