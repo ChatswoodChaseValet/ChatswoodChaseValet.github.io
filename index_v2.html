@@ -380,6 +380,9 @@ tr:hover td{background:var(--bg)}
 #view-active table, #view-dashboard table{font-size:15px}
 #view-active td, #view-dashboard td{font-size:15px;padding:13px 12px}
 #view-active th, #view-dashboard th{font-size:11px}
+/* Active Cars: render Ticket in the app font (matching the Brand column), not
+   Courier monospace, so it reads more clearly. Keeps bold + maroon. */
+#view-active .ticket-num{font-family:inherit}
 .status-pill{
   display:inline-block;
   padding:3px 9px;
@@ -5470,7 +5473,7 @@ function renderActive() {
     const row = `<tr class="active" style="${rowStyle}">
       <td class="ticket-num">${e.ticket}</td>
       <td>${e.name || '—'}${vipTag(e.vip)}</td>
-      <td style="font-family:'Courier New',monospace;font-weight:bold">${e.rego}</td>
+      <td style="font-weight:bold">${e.rego}</td>
       <td><b>${e.brand}</b></td>
       <td>${e.model || '—'}</td>
       <td><b>${e.bay}</b></td>
@@ -5533,7 +5536,7 @@ function renderCheckedOutToday() {
     rows.push(`<tr>
       <td class="ticket-num">${e.ticket}</td>
       <td>${e.name || '—'}${vipTag(e.vip)}</td>
-      <td style="font-family:'Courier New',monospace;font-weight:bold">${e.rego}</td>
+      <td style="font-weight:bold">${e.rego}</td>
       <td><b>${e.brand || ''}</b></td>
       <td><b>${e.bay || '—'}</b></td>
       <td>${fmtTime(new Date(e.timeIn))}</td>
