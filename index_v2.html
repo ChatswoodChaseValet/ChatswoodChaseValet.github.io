@@ -1866,6 +1866,7 @@ body.dark-mode .scan-banner {
       <div class="section-title">Monthly Calendar — volume vs weather &amp; holidays</div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="month" id="monthly-month" class="form-input" style="width:auto" onchange="renderMonthlyReport()">
+        <button class="btn btn-secondary btn-sm" onclick="downloadMonthlyPDF()" title="Print / Save this month as PDF">PDF</button>
         <button class="btn btn-secondary btn-sm" onclick="downloadMonthlyCSV()" title="Download this month as CSV">CSV</button>
       </div>
     </div>
@@ -7558,6 +7559,70 @@ function downloadMonthlyCSV() {
   a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
   a.download = `valet-monthly-${_lastMonthlyRows[0].iso.slice(0, 7)}.csv`;
   a.click();
+}
+
+// Print-ready PDF of the loaded month incl. weather + public/school holidays.
+// Reuses the rows already rendered on screen (_lastMonthlyRows) so the PDF
+// matches the table and CSV exactly.
+function downloadMonthlyPDF() {
+  const rows = _lastMonthlyRows;
+  if (!rows.length) { alert('Open a month first.'); return; }
+  const ym = rows[0].iso.slice(0, 7);
+  const [y, m] = ym.split('-').map(Number);
+  const monthName = new Date(y, m - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+  const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  let totalCars = 0, totalRev = 0;
+  const bodyRows = rows.map(r => {
+    totalCars += r.cars; totalRev += r.r;
+    const wknd = (r.wkd === 0 || r.wkd === 6);
+    const desc = r.w ? wxInfo(r.w.code).join(' ') : '—';
+    const mm = r.w ? Math.round(r.w.max) + '° / ' + Math.round(r.w.min) + '°' : '—';
+    const rain = r.w && r.w.rain != null ? (r.w.rain > 0 ? r.w.rain.toFixed(1) + 'mm' : '–') : '—';
+    const shade = r.phName ? ' style="background:#f7ecec"' : (r.shName ? ' style="background:#faf4e6"' : (wknd ? ' style="background:#f6f6f6"' : ''));
+    return `<tr${shade}>
+      <td>${r.dd} ${new Date(r.iso + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short' })}</td>
+      <td>${dow[r.wkd]}</td>
+      <td style="text-align:right">${r.cars || ''}</td>
+      <td style="text-align:right">${r.r ? fmtMoney(r.r) : ''}</td>
+      <td>${desc}</td>
+      <td style="text-align:right">${mm}</td>
+      <td style="text-align:right">${rain}</td>
+      <td>${r.phName || ''}</td>
+      <td>${r.shName || ''}</td></tr>`;
+  }).join('');
+  const avgOf = a => a.length ? (a.reduce((s, r) => s + r.cars, 0) / a.length).toFixed(1) : '—';
+  const phDays = rows.filter(r => r.phName);
+  const wkdayAvg = avgOf(rows.filter(r => !r.phName && !r.shName && r.wkd !== 0 && r.wkd !== 6));
+  const wkendAvg = avgOf(rows.filter(r => (r.wkd === 0 || r.wkd === 6) && !r.phName));
+  const shAvg = avgOf(rows.filter(r => r.shName && !r.phName));
+  const phAvg = avgOf(phDays);
+  const w = window.open('', '_blank', 'width=900,height=900');
+  w.document.write(`<!DOCTYPE html><html><head><title>Valet Monthly — ${monthName}</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;color:#222;padding:24px;max-width:900px;margin:0 auto}
+    h1{font-size:20px;color:#531620;margin:0 0 2px}h2{font-size:14px;color:#531620;margin:20px 0 8px;border-bottom:2px solid #e0a640;padding-bottom:4px}
+    .sub{color:#666;font-size:13px;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:5px 7px;border-bottom:1px solid #ddd;text-align:left}
+    th{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#888}
+    tfoot td{font-weight:bold;border-top:2px solid #999}
+    .sg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px}
+    .sc{background:#f1f0ee;border-radius:6px;padding:10px 12px}.sc b{display:block;font-size:20px;color:#531620}.sc span{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:1px}
+    @media print{button{display:none}}</style></head><body>
+    <h1>Chatswood Chase Valet — Monthly Report</h1>
+    <div class="sub">${monthName} · Sydney weather &amp; NSW public/school holidays vs daily car volume</div>
+    <h2>Demand by Day Type — avg cars/day</h2>
+    <div class="sg">
+      <div class="sc"><span>Weekday</span><b>${wkdayAvg}</b></div>
+      <div class="sc"><span>Weekend</span><b>${wkendAvg}</b></div>
+      <div class="sc"><span>School holiday</span><b>${shAvg}</b></div>
+      <div class="sc"><span>Public holiday</span><b>${phAvg}</b></div>
+    </div>
+    <h2>Daily Detail</h2>
+    <table><thead><tr><th>Date</th><th>Day</th><th style="text-align:right">Cars</th><th style="text-align:right">Revenue</th><th>Weather</th><th style="text-align:right">Max/Min</th><th style="text-align:right">Rain</th><th>Public holiday</th><th>School holiday</th></tr></thead>
+    <tbody>${bodyRows}</tbody>
+    <tfoot><tr><td colspan="2">Total</td><td style="text-align:right">${totalCars}</td><td style="text-align:right">${fmtMoney(totalRev)}</td><td colspan="5">Avg ${(totalCars / rows.length).toFixed(1)} cars/day · ${rows.filter(r => r.cars).length} active days</td></tr></tfoot></table>
+    <button onclick="window.print()" style="margin-top:22px;padding:10px 20px;background:#531620;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print / Save as PDF</button>
+    </body></html>`);
+  w.document.close();
 }
 
 // ═══════════════════════════════════════════════════
