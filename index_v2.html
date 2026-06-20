@@ -1740,7 +1740,10 @@ body.dark-mode .scan-banner {
   <div class="section">
     <div class="section-header">
       <div class="section-title">Customer Database</div>
-      <div style="font-size:11px;color:var(--text-muted);font-style:italic" id="customers-count">0 customers</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:11px;color:var(--text-muted);font-style:italic" id="customers-count">0 customers</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddCustomer()">+ Add Customer</button>
+      </div>
     </div>
     <div class="filters">
       <div class="filter-field" style="flex:1;min-width:200px">
@@ -9702,6 +9705,16 @@ function lookupCustomerByRego(rego) {
 
   if (!matches || matches.length === 0) {
     banner.style.display = 'none';
+    // Pre-registered (manually-added) customer? Fill the blank fields — but no
+    // "returning customer" banner/popup, since they've never actually visited.
+    const mc = getManualCustomers().find(c => normaliseRego(c.rego) === normaliseRego(rego));
+    if (mc) {
+      const fill = (id, val) => { const el = document.getElementById(id); if (el && !el.value && val) el.value = val; };
+      fill('f-name', mc.name); fill('f-phone', mc.phone); fill('f-brand', mc.brand);
+      if (typeof updateModelOptions === 'function') updateModelOptions();
+      fill('f-model', mc.model);
+      const vipBox = document.getElementById('f-vip'); if (vipBox && mc.vip) vipBox.checked = true;
+    }
     return;
   }
 
@@ -10141,7 +10154,12 @@ function showCustomerDetail(regoArg) {
   const rego = regoArg || document.getElementById('customer-banner').dataset.rego;
   if (!rego) return;
   const matches = findCustomerByRego(rego);
-  if (!matches) return;
+  if (!matches) {
+    // No real visits yet — if it's a manually-added customer, open its editor.
+    const mc = getManualCustomers().find(c => normaliseRego(c.rego) === normaliseRego(rego));
+    if (mc) editManualCustomer(mc.rego);
+    return;
+  }
 
   const last = matches[0];
   const first = matches[matches.length - 1];
@@ -10363,7 +10381,7 @@ function buildCustomerList() {
     if (!key) return;
     (groups[key] = groups[key] || []).push(e);
   });
-  return Object.keys(groups).map(key => {
+  const list = Object.keys(groups).map(key => {
     const visits = groups[key].sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
     const last = visits[0];
     return {
@@ -10377,7 +10395,90 @@ function buildCustomerList() {
       lastVisit: last.timeIn,
       vip: visits.some(e => e.vip),
     };
-  }).sort((a, b) => new Date(b.lastVisit) - new Date(a.lastVisit));
+  });
+  // Merge in manually-added customers whose plate hasn't checked a car in yet.
+  const seen = new Set(list.map(c => normaliseRego(c.rego)));
+  getManualCustomers().forEach(mc => {
+    const k = normaliseRego(mc.rego);
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    list.push({
+      rego: mc.rego, name: mc.name || '', phone: mc.phone || '', brand: mc.brand || '',
+      model: mc.model || '', visitCount: 0, lifetime: 0, lastVisit: mc.addedAt || null,
+      vip: !!mc.vip, manual: true,
+    });
+  });
+  return list.sort((a, b) => new Date(b.lastVisit) - new Date(a.lastVisit));
+}
+
+// ── Manually-added customers ───────────────────────────────────────────
+// Stored in the synced app_settings key 'manual_customers' (a JSON array) so
+// they appear on every device. They show in the Customer Database and auto-
+// fill the check-in form when their plate is typed. Once they actually check a
+// car in, their real entries take over (we de-dupe by plate in buildCustomerList).
+function getManualCustomers() {
+  const v = (typeof cloudSettings !== 'undefined' && cloudSettings) ? cloudSettings['manual_customers'] : null;
+  return Array.isArray(v) ? v : [];
+}
+function persistManualCustomers(list) {
+  if (typeof cloudSettings !== 'undefined' && cloudSettings) cloudSettings['manual_customers'] = list;
+  cloudSaveSetting('manual_customers', list);
+}
+function openAddCustomer() { openManualCustomerModal(null); }
+function editManualCustomer(rego) {
+  const mc = getManualCustomers().find(c => normaliseRego(c.rego) === normaliseRego(rego));
+  openManualCustomerModal(mc || null);
+}
+function openManualCustomerModal(mc) {
+  document.getElementById('mc-orig-rego').value = mc ? (mc.rego || '') : '';
+  document.getElementById('mc-name').value = mc ? (mc.name || '') : '';
+  document.getElementById('mc-phone').value = mc ? (mc.phone || '') : '';
+  document.getElementById('mc-rego').value = mc ? (mc.rego || '') : '';
+  document.getElementById('mc-brand').value = mc ? (mc.brand || '') : '';
+  document.getElementById('mc-model').value = mc ? (mc.model || '') : '';
+  document.getElementById('mc-vip').checked = mc ? !!mc.vip : false;
+  document.getElementById('mc-notes').value = mc ? (mc.notes || '') : '';
+  document.getElementById('mc-error').textContent = '';
+  document.getElementById('mc-title').textContent = mc ? 'Edit customer' : 'Add customer';
+  document.getElementById('mc-delete-btn').style.display = mc ? '' : 'none';
+  document.getElementById('manual-customer-modal').classList.add('show');
+}
+function closeManualCustomerModal() { document.getElementById('manual-customer-modal').classList.remove('show'); }
+function saveManualCustomer() {
+  const err = document.getElementById('mc-error');
+  const name = document.getElementById('mc-name').value.trim();
+  const phone = document.getElementById('mc-phone').value.trim();
+  const rego = document.getElementById('mc-rego').value.trim().toUpperCase();
+  const brand = document.getElementById('mc-brand').value.trim();
+  const model = document.getElementById('mc-model').value.trim();
+  const vip = document.getElementById('mc-vip').checked;
+  const notes = document.getElementById('mc-notes').value.trim();
+  const origRego = document.getElementById('mc-orig-rego').value;
+  if (!name) { err.textContent = 'Customer name is required.'; return; }
+  if (!rego) { err.textContent = 'Rego is required.'; return; }
+  if (phone && !isValidAUMobile(phone)) { err.textContent = 'Enter a valid Australian mobile, or leave it blank.'; return; }
+  const k = normaliseRego(rego);
+  if (normaliseRego(origRego) !== k && entries.some(e => normaliseRego(e.rego) === k)) {
+    err.textContent = 'A customer with this rego already exists from a check-in.'; return;
+  }
+  const list = getManualCustomers().slice();
+  const idx = list.findIndex(c => normaliseRego(c.rego) === (origRego ? normaliseRego(origRego) : k));
+  const rec = { rego, name, phone, brand, model, vip, notes,
+    addedAt: (idx >= 0 && list[idx].addedAt) ? list[idx].addedAt : new Date().toISOString() };
+  if (idx >= 0) list[idx] = rec; else list.push(rec);
+  persistManualCustomers(list);
+  closeManualCustomerModal();
+  renderCustomers();
+  quickToast('✓ Customer saved');
+  if (typeof hapticFeedback === 'function') hapticFeedback('success');
+}
+function deleteManualCustomer() {
+  const origRego = document.getElementById('mc-orig-rego').value;
+  if (!origRego || !confirm('Remove this manually-added customer?')) return;
+  persistManualCustomers(getManualCustomers().filter(c => normaliseRego(c.rego) !== normaliseRego(origRego)));
+  closeManualCustomerModal();
+  renderCustomers();
+  quickToast('Customer removed');
 }
 
 // Customer table sort state. Click a column header to change it.
@@ -10439,9 +10540,14 @@ function renderCustomers() {
   }
 
   tbody.innerHTML = customers.map(c => {
-    const last = new Date(c.lastVisit);
-    const daysSince = Math.floor((new Date() - last) / 86400000);
-    const lastText = daysSince === 0 ? 'Today' : daysSince === 1 ? 'Yesterday' : fmtDate(last);
+    let lastText;
+    if (c.visitCount === 0) {
+      lastText = '<span style="color:var(--text-muted);font-style:italic">Added manually</span>';
+    } else {
+      const last = new Date(c.lastVisit);
+      const daysSince = Math.floor((new Date() - last) / 86400000);
+      lastText = daysSince === 0 ? 'Today' : daysSince === 1 ? 'Yesterday' : fmtDate(last);
+    }
     const vehicle = (c.brand + (c.model ? ' ' + c.model : '')).trim() || '—';
     const vipCell = c.vip ? '<span style="display:inline-block;background:var(--bronze);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 7px;border-radius:10px">★ VIP</span>' : '<span style="color:var(--border)">—</span>';
     return `<tr style="cursor:pointer" onclick="showCustomerDetail('${c.rego.replace(/'/g, "\\'")}')">
@@ -11250,6 +11356,9 @@ async function disablePushAlerts() {
 function handleRealtimeSettingsChange(payload) {
   if (payload.new) {
     cloudSettings[payload.new.key] = payload.new.value;
+    if (payload.new.key === 'manual_customers') {
+      try { const v = document.getElementById('view-customers'); if (v && v.classList.contains('active')) renderCustomers(); } catch (e) {}
+    }
     if (payload.new.key === 'ticket_prefix') settings.prefix = payload.new.value;
     if (payload.new.key === 'next_ticket_num') settings.nextNum = payload.new.value;
     if (payload.new.key === 'handover_notes') {
@@ -12075,6 +12184,36 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="btn-row" style="justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeCheckoutModal()">Cancel</button>
       <button class="btn btn-primary" onclick="confirmCheckout()">✓ Confirm Checkout</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD / EDIT MANUAL CUSTOMER MODAL -->
+<div class="modal" id="manual-customer-modal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-title" id="mc-title">Add customer</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Pre-register a customer so their details auto-fill when their plate is entered at check-in.</div>
+    <input type="hidden" id="mc-orig-rego">
+    <div class="form-grid">
+      <div class="form-field"><label class="form-label">Customer name *</label><input type="text" id="mc-name" class="form-input" placeholder="Full name"></div>
+      <div class="form-field"><label class="form-label">Mobile</label><input type="tel" id="mc-phone" class="form-input" placeholder="0412 345 678"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-field"><label class="form-label">Rego *</label><input type="text" id="mc-rego" class="form-input" placeholder="ABC123" style="text-transform:uppercase"></div>
+      <div class="form-field"><label class="form-label">Brand</label><input type="text" id="mc-brand" class="form-input" placeholder="e.g. Tesla"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-field"><label class="form-label">Model</label><input type="text" id="mc-model" class="form-input" placeholder="e.g. Model Y"></div>
+      <div class="form-field"><label class="form-label">VIP</label><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding-top:7px"><input type="checkbox" id="mc-vip"> Mark as VIP</label></div>
+    </div>
+    <div class="form-field" style="margin-top:4px"><label class="form-label">Notes</label><input type="text" id="mc-notes" class="form-input" placeholder="Optional"></div>
+    <div id="mc-error" style="color:var(--red);font-size:13px;margin-top:10px;min-height:16px"></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-danger btn-sm" id="mc-delete-btn" onclick="deleteManualCustomer()" style="display:none">Delete</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn btn-secondary" onclick="closeManualCustomerModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveManualCustomer()">Save</button>
+      </div>
     </div>
   </div>
 </div>
