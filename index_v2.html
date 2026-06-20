@@ -3270,6 +3270,15 @@ function saveEntry() {
     if (!confirm(`Ticket number "${ticketInput}" already exists in the log. Save anyway?`)) return;
   }
 
+  // Warn if this plate is already on site (checked in, not yet picked up).
+  // The same car can't physically be parked twice, so this catches a car being
+  // checked in again before it was marked out. Staff can still override.
+  const regoKey = rego.replace(/\s+/g, '').toUpperCase();
+  const onSiteDup = entries.find(e => !e.timeOut && (e.rego || '').replace(/\s+/g, '').toUpperCase() === regoKey);
+  if (onSiteDup) {
+    if (!confirm(`${rego} is already on site (bay ${onSiteDup.bay || '—'}, ticket ${onSiteDup.ticket}). Check in anyway?`)) return;
+  }
+
   // Build timestamp from today's date + entered time
   const now = new Date();
   const [hh, mm] = timeStr.split(':').map(n => parseInt(n, 10));
