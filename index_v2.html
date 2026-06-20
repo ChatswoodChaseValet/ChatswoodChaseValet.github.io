@@ -487,6 +487,18 @@ body.dark-mode .ico-group{background:transparent}
   max-height:calc(100vh - 40px);
   overflow-y:auto;
 }
+/* Compact the checkout modal so all fields + buttons fit without scrolling
+   on a typical laptop screen. (The scroll fallback above still covers very
+   short screens / phones.) */
+#checkout-modal .modal-box{padding:16px 18px}
+#checkout-modal .modal-box>div{margin-bottom:10px !important}
+#checkout-modal .modal-title{margin-bottom:5px !important}
+#checkout-modal #checkout-info{margin-bottom:8px !important}
+#checkout-modal .form-field{gap:3px}
+#checkout-modal .form-grid{gap:10px}
+#checkout-modal .form-input,#checkout-modal .form-select{padding:7px 10px}
+#checkout-modal #checkout-summary-box{padding:10px 12px !important}
+#checkout-modal #checkout-summary-box>div{margin-bottom:3px !important}
 .modal-title{font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:12px}
 .modal-body{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:20px}
 
