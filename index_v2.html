@@ -5275,9 +5275,12 @@ function renderDashboard() {
 // scrolls on narrow screens). A bay turns red when an active car's bay number
 // matches it, green otherwise. Tweak top/left here to fine-tune the layout.
 const PMAP_TOTAL = 77;
-// Rotate the whole map (degrees clockwise: 0/90/180/270). Numbers stay upright.
-// If it ends up mirrored/upside-down, change this to the other 90° value.
-const PMAP_ROTATE = 270;
+// Orientation controls. PMAP_ROTATE: clockwise degrees 0/90/180/270 (numbers
+// stay upright). PMAP_FLIP_X mirrors left↔right, PMAP_FLIP_Y mirrors top↕bottom.
+// Tweak these so the layout matches the wall map (bay 1 in the top-left).
+const PMAP_ROTATE = 90;
+const PMAP_FLIP_X = true;
+const PMAP_FLIP_Y = false;
 const PMAP_PITCH = 33, PMAP_SPOT = 28, PMAP_PAD = 14;
 const PMAP_CLUSTERS = [
   { top: 12,  left: 150, bays: [1,2,3,4,5,6,7,8,9,10,11,12] },
@@ -5318,7 +5321,9 @@ function renderParkingMap() {
   const r = ((PMAP_ROTATE % 360) + 360) % 360;
   const spots = [];
   PMAP_CLUSTERS.forEach(c => c.bays.forEach((n, k) => {
-    const [rx, ry] = pmapRot(c.left + k * PMAP_PITCH, c.top, r);
+    let [rx, ry] = pmapRot(c.left + k * PMAP_PITCH, c.top, r);
+    if (PMAP_FLIP_X) rx = -rx;
+    if (PMAP_FLIP_Y) ry = -ry;
     spots.push({ n, rx, ry });
   }));
   // Normalise so the top-left spot sits at PMAP_PAD, and size the board to fit.
