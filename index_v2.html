@@ -1378,8 +1378,9 @@ body.dark-mode .scan-banner {
         <div id="damage-pad" class="damage-pad" onclick="addDamageMarker(event)">
           <div id="damage-markers" class="damage-markers"></div>
         </div>
-        <div>
+        <div style="flex:1 1 240px;min-width:220px">
           <div id="damage-count" style="font-size:12px;color:var(--text-muted);margin-bottom:8px">No marks added</div>
+          <div id="damage-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
           <button type="button" class="btn btn-secondary btn-sm" onclick="clearDamageMarkers()">↺ Clear marks</button>
         </div>
       </div>
@@ -10109,7 +10110,10 @@ function clearPendingExtras() {
 // {x,y} percentages on the entry so they redraw at any size, and shown
 // read-only at checkout when the car is handed back.
 // ═══════════════════════════════════════════════════
-let damageMarkers = []; // [{x, y}] in 0–100 % of the diagram
+let damageMarkers = []; // [{x, y, type}] in 0–100 % of the diagram
+
+// Damage types staff pick per mark. First entry is the default for a new mark.
+const DAMAGE_TYPES = ['Scratched', 'Dented', 'Marked'];
 
 // Top-down car outline, reused by the intake pad and the read-only view.
 // Detailed top-down inspection diagram (raster image). Markers overlay on top.
@@ -10119,22 +10123,36 @@ function renderDamageMarkers() {
   const pad = document.getElementById('damage-pad');
   const layer = document.getElementById('damage-markers');
   const count = document.getElementById('damage-count');
+  const list = document.getElementById('damage-list');
   if (!pad || !layer) return;
   // Ensure the car diagram is present behind the markers layer
   if (!pad.querySelector('.damage-car')) pad.insertAdjacentHTML('afterbegin', DAMAGE_CAR_SVG);
   layer.innerHTML = damageMarkers.map((m, i) =>
-    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" onclick="removeDamageMarker(${i},event)" title="Tap to remove">${i + 1}</div>`
+    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" onclick="removeDamageMarker(${i},event)" title="${m.type || DAMAGE_TYPES[0]} — tap to remove">${i + 1}</div>`
   ).join('');
   if (count) count.textContent = damageMarkers.length
     ? `${damageMarkers.length} mark${damageMarkers.length !== 1 ? 's' : ''} added`
     : 'No marks added';
+  // Per-mark dropdown so staff record what each numbered mark is.
+  if (list) list.innerHTML = damageMarkers.map((m, i) =>
+    `<div style="display:flex;align-items:center;gap:8px">
+      <span style="flex:none;width:22px;height:22px;border-radius:50%;background:#a83838;color:#fff;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center">${i + 1}</span>
+      <select class="form-select" style="flex:1;min-width:0" onchange="setDamageType(${i},this.value)">
+        ${DAMAGE_TYPES.map(t => `<option value="${t}"${(m.type || DAMAGE_TYPES[0]) === t ? ' selected' : ''}>${t}</option>`).join('')}
+      </select>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="removeDamageMarker(${i})" title="Remove this mark">✕</button>
+    </div>`
+  ).join('');
+}
+function setDamageType(i, val) {
+  if (damageMarkers[i]) damageMarkers[i].type = val;
 }
 function addDamageMarker(event) {
   const rect = event.currentTarget.getBoundingClientRect();
   const x = ((event.clientX - rect.left) / rect.width) * 100;
   const y = ((event.clientY - rect.top) / rect.height) * 100;
   if (x < 0 || x > 100 || y < 0 || y > 100) return;
-  damageMarkers.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+  damageMarkers.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, type: DAMAGE_TYPES[0] });
   renderDamageMarkers();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
 }
@@ -10148,12 +10166,21 @@ function clearDamageMarkers() {
   renderDamageMarkers();
 }
 
-// Read-only diagram for display elsewhere (checkout, log). Returns HTML.
+// Read-only diagram for display elsewhere (checkout, log). Returns HTML:
+// the marked-up car plus a numbered legend listing each mark's type.
 function damageDiagramHTML(markers) {
-  const dots = (markers || []).map((m, i) =>
-    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%">${i + 1}</div>`
+  const list = markers || [];
+  const dots = list.map((m, i) =>
+    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" title="${m.type || ''}">${i + 1}</div>`
   ).join('');
-  return `<div class="damage-pad readonly">${DAMAGE_CAR_SVG}<div class="damage-markers">${dots}</div></div>`;
+  const legend = list.map((m, i) =>
+    `<div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text)">
+      <span style="flex:none;width:18px;height:18px;border-radius:50%;background:#a83838;color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center">${i + 1}</span>
+      <span>${m.type || 'Marked'}</span>
+    </div>`
+  ).join('');
+  return `<div class="damage-pad readonly">${DAMAGE_CAR_SVG}<div class="damage-markers">${dots}</div></div>`
+    + (legend ? `<div style="display:flex;flex-direction:column;gap:5px;margin-top:2px">${legend}</div>` : '');
 }
 
 function dismissCustomerBanner() {
