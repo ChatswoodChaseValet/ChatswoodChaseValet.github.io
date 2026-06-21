@@ -10114,11 +10114,19 @@ function clearPendingExtras() {
 let damageMarkers = []; // [{x, y, type}] in 0–100 % of the diagram
 
 // Damage types staff pick per mark. First entry is the default for a new mark.
-const DAMAGE_TYPES = ['Scratched', 'Dented', 'Marked'];
+// "Other" reveals a free-text box so staff can describe anything not listed.
+const DAMAGE_TYPES = ['Scratched', 'Dented', 'Marked', 'Other'];
 
 // Top-down car outline, reused by the intake pad and the read-only view.
 // Detailed top-down inspection diagram (raster image). Markers overlay on top.
 const DAMAGE_CAR_SVG = '<img class="damage-car" src="car-diagram.png" alt="Car diagram — tap to mark damage" draggable="false">';
+
+// Human label for a mark — "Other" shows the typed detail when present.
+function damageLabel(m) {
+  const t = (m && m.type) || 'Marked';
+  if (t === 'Other') return m.detail ? ('Other — ' + m.detail) : 'Other';
+  return t;
+}
 
 function renderDamageMarkers() {
   const pad = document.getElementById('damage-pad');
@@ -10129,24 +10137,39 @@ function renderDamageMarkers() {
   // Ensure the car diagram is present behind the markers layer
   if (!pad.querySelector('.damage-car')) pad.insertAdjacentHTML('afterbegin', DAMAGE_CAR_SVG);
   layer.innerHTML = damageMarkers.map((m, i) =>
-    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" onclick="removeDamageMarker(${i},event)" title="${m.type || DAMAGE_TYPES[0]} — tap to remove">${i + 1}</div>`
+    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" onclick="removeDamageMarker(${i},event)" title="${escAttr(damageLabel(m))} — tap to remove">${i + 1}</div>`
   ).join('');
   if (count) count.textContent = damageMarkers.length
     ? `${damageMarkers.length} mark${damageMarkers.length !== 1 ? 's' : ''} added`
     : 'No marks added';
-  // Per-mark dropdown so staff record what each numbered mark is.
-  if (list) list.innerHTML = damageMarkers.map((m, i) =>
-    `<div style="display:flex;align-items:center;gap:8px">
-      <span style="flex:none;width:22px;height:22px;border-radius:50%;background:#a83838;color:#fff;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center">${i + 1}</span>
-      <select class="form-select" style="flex:1;min-width:0" onchange="setDamageType(${i},this.value)">
-        ${DAMAGE_TYPES.map(t => `<option value="${t}"${(m.type || DAMAGE_TYPES[0]) === t ? ' selected' : ''}>${t}</option>`).join('')}
-      </select>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="removeDamageMarker(${i})" title="Remove this mark">✕</button>
-    </div>`
-  ).join('');
+  // Per-mark dropdown so staff record what each numbered mark is. Picking
+  // "Other" reveals a free-text box for extra detail.
+  if (list) list.innerHTML = damageMarkers.map((m, i) => {
+    const type = m.type || DAMAGE_TYPES[0];
+    const detailBox = type === 'Other'
+      ? `<input type="text" id="damage-detail-${i}" class="form-input" style="margin-left:30px" placeholder="Describe the damage…" value="${escAttr(m.detail || '')}" oninput="setDamageDetail(${i},this.value)">`
+      : '';
+    return `<div style="display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="flex:none;width:22px;height:22px;border-radius:50%;background:#a83838;color:#fff;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center">${i + 1}</span>
+        <select class="form-select" style="flex:1;min-width:0" onchange="setDamageType(${i},this.value)">
+          ${DAMAGE_TYPES.map(t => `<option value="${t}"${type === t ? ' selected' : ''}>${t}</option>`).join('')}
+        </select>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="removeDamageMarker(${i})" title="Remove this mark">✕</button>
+      </div>
+      ${detailBox}
+    </div>`;
+  }).join('');
 }
 function setDamageType(i, val) {
-  if (damageMarkers[i]) damageMarkers[i].type = val;
+  if (!damageMarkers[i]) return;
+  damageMarkers[i].type = val;
+  if (val !== 'Other') delete damageMarkers[i].detail;
+  renderDamageMarkers();
+  if (val === 'Other') { const inp = document.getElementById('damage-detail-' + i); if (inp) inp.focus(); }
+}
+function setDamageDetail(i, val) {
+  if (damageMarkers[i]) damageMarkers[i].detail = val;
 }
 function addDamageMarker(event) {
   const rect = event.currentTarget.getBoundingClientRect();
@@ -10172,12 +10195,12 @@ function clearDamageMarkers() {
 function damageDiagramHTML(markers) {
   const list = markers || [];
   const dots = list.map((m, i) =>
-    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" title="${m.type || ''}">${i + 1}</div>`
+    `<div class="damage-dot" style="left:${m.x}%;top:${m.y}%" title="${escAttr(damageLabel(m))}">${i + 1}</div>`
   ).join('');
   const legend = list.map((m, i) =>
     `<div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text)">
       <span style="flex:none;width:18px;height:18px;border-radius:50%;background:#a83838;color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center">${i + 1}</span>
-      <span>${m.type || 'Marked'}</span>
+      <span>${escAttr(damageLabel(m))}</span>
     </div>`
   ).join('');
   return `<div class="damage-pad readonly">${DAMAGE_CAR_SVG}<div class="damage-markers">${dots}</div></div>`
