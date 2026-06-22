@@ -110,7 +110,7 @@ Running the Chatswood Chase valet, step by step
 ## Slide 11 — Hands-free shopping (bags)
 - Log the pickup: store/location + number of bags
 - Track it: **requested → collecting → in car → done**
-- **Claim or assign:** tap **I'll get it**, or (desktop, at the counter) use **Assign to…** to give the job to a specific person — it shows as **YOUR JOB** on their screen
+- **Claim or assign:** tap **I'll get it**, or (desktop, at the counter) use **Assign to…** to give the job to a specific person — their phone **rings with an "Assigned to you" alert** and it shows as **YOUR JOB** on their screen
 - **At the shop:** take a photo of the bags before you leave the store — this is required before you can mark them "In car"
 - **In car:** take the second photo (this one is sent to the customer)
 - You're credited for the job

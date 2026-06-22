@@ -6835,6 +6835,7 @@ function assignBag(id, jobId) {
   j.assigned = (currentUser && currentUser.displayName) || 'Staff';
   j.assignedUser = (currentUser && currentUser.username) || null;
   j.collectingAt = j.collectingAt || new Date().toISOString();
+  try { bagAssignSeen.add(bagAssignKey(e, j)); } catch (_) {}  // don't self-alarm
   saveData(id, { immediate: true });
   cloudAudit('bag_collecting', 'entry', id, { ticket: e.ticket, job: j.id });
   renderBagQueue();
@@ -6851,6 +6852,7 @@ function assignBagTo(id, jobId, username) {
   j.assignedUser = username;
   j.assigned = staffDisplayName(username);
   j.collectingAt = j.collectingAt || new Date().toISOString();
+  try { bagAssignSeen.add(bagAssignKey(e, j)); } catch (_) {}  // assigner's device won't self-alarm
   saveData(id, { immediate: true });
   cloudAudit('bag_assign', 'entry', id, { ticket: e.ticket, job: j.id, to: username, by: currentUser && currentUser.username });
   renderBagQueue();
@@ -6869,6 +6871,7 @@ function reassignBag(id, jobId, value) {
   j.status = 'collecting';
   j.assignedUser = value;
   j.assigned = staffDisplayName(value);
+  try { bagAssignSeen.add(bagAssignKey(e, j)); } catch (_) {}  // assigner's device won't self-alarm
   saveData(id, { immediate: true });
   cloudAudit('bag_reassign', 'entry', id, { ticket: e.ticket, job: j.id, from: prev, to: value, by: currentUser && currentUser.username });
   renderBagQueue();
@@ -11555,6 +11558,8 @@ function handleRealtimeEntryChange(payload) {
     maybeAlarmCustomerPickup(newEntry);
     // A customer requested hands-free shopping (any round) → raise the bag alarm.
     scanBagAlarms();
+    // A round was assigned to ME (e.g. by the desk) → alert this phone.
+    scanBagAssignedAlarms();
   } else if (payload.eventType === 'DELETE') {
     entries = entries.filter(e => e.id !== payload.old.id);
   }
@@ -11800,6 +11805,58 @@ function acknowledgeBagAlarm() {
     currentBagAlarmId = null;
     try { showView('bags'); } catch (e) {}   // jump to the bag queue to action it
   }
+}
+
+// ─── "ASSIGNED TO YOU" ALARM ────────────────────────────────────────────────
+// When the desk assigns (or reassigns) a hands-free round to a staff member,
+// that person's phone should ring — not just show a silent highlight. Detected
+// on the assignee's own device via the realtime echo of the assignment.
+let bagAssignSeen = new Set();
+function bagAssignKey(e, j) { return (e.id || '') + '|' + (j && j.id || '') + '|' + (j && j.assignedUser || ''); }
+
+// Mark all rounds already assigned to me as seen, so login doesn't replay them.
+function seedBagAssignBaseline() {
+  bagAssignSeen = new Set();
+  if (!currentUser) return;
+  activeBagJobs().forEach(({ e, j }) => {
+    if (j.status === 'collecting' && j.assignedUser === currentUser.username) bagAssignSeen.add(bagAssignKey(e, j));
+  });
+}
+
+function scanBagAssignedAlarms() {
+  if (!currentUser) return;
+  const modalOpen = ['pickup-alarm-modal', 'bag-alarm-modal', 'bag-assign-alarm-modal']
+    .some(id => { const m = document.getElementById(id); return m && m.classList.contains('show'); });
+  for (const { e, j } of activeBagJobs()) {
+    if (j.status !== 'collecting' || j.assignedUser !== currentUser.username) continue;
+    const key = bagAssignKey(e, j);
+    if (bagAssignSeen.has(key)) continue;
+    if (modalOpen) return;             // another alarm is up — retry on the next change
+    bagAssignSeen.add(key);
+    showAssignAlarm(e, j);
+    return;                            // one at a time
+  }
+}
+
+function showAssignAlarm(e, j) {
+  const modal = document.getElementById('bag-assign-alarm-modal');
+  if (!modal) return;
+  document.getElementById('bag-assign-loc').textContent = j.location || 'Valet Desk';
+  const cnt = Number(j.count) || 1;
+  document.getElementById('bag-assign-count').textContent = cnt + (cnt === 1 ? ' bag' : ' bags');
+  document.getElementById('bag-assign-ticket').textContent = e.ticket || '—';
+  document.getElementById('bag-assign-car').textContent =
+    [e.brand, e.model].filter(Boolean).join(' ') + (e.rego ? ' · ' + e.rego : '');
+  modal.classList.add('show');
+  startPickupAlarmSound();
+  if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+}
+
+function acknowledgeAssignAlarm(openBags) {
+  stopPickupAlarmSound();
+  const m = document.getElementById('bag-assign-alarm-modal');
+  if (m) m.classList.remove('show');
+  if (openBags) { try { showView('bags'); } catch (e) {} }
 }
 
 // ═══════════════════════════════════════════════════
@@ -12155,6 +12212,7 @@ async function completeLogin() {
   // NEW customer requests that arrive after login (not the backlog).
   seedPickupAlertBaseline();
   seedBagAlertBaseline();
+  seedBagAssignBaseline();
   // 5) Start real-time sync AFTER the initial fetch so we don't process
   //    events against a half-populated entries array.
   startRealtimeSync();
@@ -13186,6 +13244,29 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" onclick="bagAlarmCollect()" style="flex:1;font-size:16px;padding:16px" title="Marks this as being collected and opens the bag queue">On my way</button>
       <button class="btn btn-secondary" onclick="acknowledgeBagAlarm()" style="flex:1;font-size:16px;padding:16px">✓ Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- "Assigned to you" alarm — rings on the assignee's phone when the desk
+     hands them a hands-free shopping round. -->
+<div class="modal" id="bag-assign-alarm-modal">
+  <div class="modal-box" style="max-width:460px;text-align:center;border:3px solid var(--maroon)">
+    <div style="font-size:13px;letter-spacing:3px;color:var(--maroon);text-transform:uppercase;font-weight:bold;margin-bottom:6px">Assigned to you</div>
+    <div style="font-size:20px;font-weight:bold;color:var(--maroon);margin-bottom:16px">You've got a hands-free shopping pickup</div>
+
+    <div style="background:var(--sandstone);border-radius:10px;padding:18px 16px;margin-bottom:16px">
+      <div style="font-size:11px;letter-spacing:3px;color:#a48d53;text-transform:uppercase">Collect from</div>
+      <div id="bag-assign-loc" style="font-family:'Inter',sans-serif;font-size:30px;font-weight:bold;color:var(--maroon);line-height:1.2;margin:8px 0">—</div>
+      <div id="bag-assign-count" style="font-size:15px;color:#333333;font-weight:600">—</div>
+    </div>
+
+    <div id="bag-assign-car" style="font-size:17px;color:#333333;margin-bottom:4px">—</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Ticket <strong id="bag-assign-ticket" style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;color:var(--maroon)">—</strong></div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="acknowledgeAssignAlarm(true)" style="flex:1;font-size:16px;padding:16px" title="Opens the bag queue">On my way</button>
+      <button class="btn btn-secondary" onclick="acknowledgeAssignAlarm(false)" style="flex:1;font-size:16px;padding:16px">✓ Got it</button>
     </div>
   </div>
 </div>
