@@ -2131,8 +2131,9 @@ body.dark-mode .scan-banner {
       <div class="section-title">Car-Request Alerts</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
-      Get a notification on this phone when a customer requests their car from their ticket link —
-      <strong>even when the dashboard isn't open</strong>. Turn this on once per device.
+      Get a notification on this phone when a customer requests their car, or when the desk
+      <strong>assigns you a hands-free shopping pickup</strong> —
+      <strong>even when the dashboard isn't open</strong>. Turn this on once per device, and stay logged in as yourself so assigned-job alerts reach you.
     </p>
     <div style="background:var(--sandstone);padding:14px;border-radius:4px;border-left:3px solid var(--maroon);margin-bottom:14px">
       <div id="push-status" style="font-size:14px;font-weight:600;color:var(--text-muted)">○ Checking…</div>
@@ -6855,6 +6856,7 @@ function assignBagTo(id, jobId, username) {
   try { bagAssignSeen.add(bagAssignKey(e, j)); } catch (_) {}  // assigner's device won't self-alarm
   saveData(id, { immediate: true });
   cloudAudit('bag_assign', 'entry', id, { ticket: e.ticket, job: j.id, to: username, by: currentUser && currentUser.username });
+  notifyBagAssignee(id, j.id);
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
   quickToast('Assigned to ' + j.assigned);
@@ -6874,6 +6876,7 @@ function reassignBag(id, jobId, value) {
   try { bagAssignSeen.add(bagAssignKey(e, j)); } catch (_) {}  // assigner's device won't self-alarm
   saveData(id, { immediate: true });
   cloudAudit('bag_reassign', 'entry', id, { ticket: e.ticket, job: j.id, from: prev, to: value, by: currentUser && currentUser.username });
+  notifyBagAssignee(id, j.id);
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
   quickToast('Reassigned to ' + j.assigned);
@@ -6979,6 +6982,14 @@ function collectBagPhoto(id, jobId) {
 function addBagPhoto(id, jobId) { bagCapturePhoto(id, jobId); }
 // Retake the in-shop proof photo without changing the status.
 function addBagShopPhoto(id, jobId) { collectBagPhoto(id, jobId); }
+
+// Fire an OS push to the assignee's phone(s) so they're alerted even when the
+// app is closed. The Edge Function re-reads the entry and targets only that
+// person's devices; best-effort (the in-app alarm covers open tabs).
+async function notifyBagAssignee(id, jobId) {
+  if (!supa) return;
+  try { await supa.functions.invoke('notify-bag-assign', { body: { id, job: jobId } }); } catch (_) { /* best effort */ }
+}
 
 async function sendBagSms(e, j) {
   if (!e.phone || !supa) return;
@@ -11985,8 +11996,25 @@ async function storePushSubscription(sub) {
     p256dh: j.keys.p256dh,
     auth: j.keys.auth,
     label,
+    user_name: currentUser?.username || null,   // so a push can target this person
   }, { onConflict: 'endpoint' });
   if (error) throw error;
+}
+
+// On login, point this device's existing push subscription at whoever is now
+// logged in, so "assigned to you" pushes reach the right person even when a
+// phone is shared between staff across shifts.
+async function claimPushForCurrentUser() {
+  try {
+    if (!pushSupported() || !currentUser) return;
+    const reg = swRegistration || await navigator.serviceWorker.getRegistration();
+    const sub = reg ? await reg.pushManager.getSubscription() : null;
+    if (!sub) return;
+    const j = sub.toJSON();
+    await supa.from('push_subscriptions')
+      .update({ user_name: currentUser.username })
+      .eq('endpoint', j.endpoint);
+  } catch (_) { /* best effort */ }
 }
 
 async function disablePushAlerts() {
@@ -12495,8 +12523,9 @@ function initializeUI() {
   // Apply this device's saved UI mode (simple Mobile vs full Desktop)
   applyUiMode();
 
-  // Register the service worker + reflect push-alert state in Settings.
-  registerServiceWorker().then(updatePushUI);
+  // Register the service worker + reflect push-alert state in Settings, then
+  // point this device's push subscription at the logged-in user.
+  registerServiceWorker().then(() => { updatePushUI(); claimPushForCurrentUser(); });
 
   // Re-enable wake lock if it was on from a previous session
   if (settings.wakeLockEnabled) {
