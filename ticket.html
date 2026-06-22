@@ -311,31 +311,68 @@
     });
   }
 
+  // ── Bag jobs (hands-free shopping) — a car can have several rounds ──
+  // Mirror of the staff app's model so the customer page understands the
+  // bag_jobs array, migrating a legacy single-job row when needed.
+  var bagSeq = 0;
+  function newBagJobId(){ bagSeq = (bagSeq + 1) % 1e6; return 'bj' + Date.now().toString(36) + bagSeq.toString(36); }
+  function bagJobsFromRow(row){
+    if (row && Array.isArray(row.bag_jobs)) return row.bag_jobs.filter(Boolean);
+    if (!row || !row.bag_status) return [];
+    return [{
+      id: newBagJobId(), status: row.bag_status, requested: row.bag_requested,
+      location: row.bag_location, count: row.bag_count, notes: row.bag_notes, source: 'staff',
+      assigned: row.bag_assigned, assignedUser: row.bag_assigned_user, collectingAt: row.bag_collecting_at,
+      shopPhoto: row.bag_shop_photo, shopPhotoAt: row.bag_shop_photo_at,
+      inCarBy: row.bag_in_car_by, inCarAt: row.bag_in_car_at, photo: row.bag_photo, doneAt: row.bag_done_at
+    }];
+  }
+  // Legacy column mirror of the most relevant round, so older readers stay sane.
+  function bagLegacyMirror(jobs){
+    var active = (jobs||[]).filter(function(j){ return j.status && j.status !== 'done'; });
+    var j = active.length ? active[active.length-1] : (jobs && jobs.length ? jobs[jobs.length-1] : null);
+    return {
+      bag_status: j ? j.status : null, bag_requested: j ? j.requested : null,
+      bag_location: j ? j.location : null, bag_count: j ? j.count : null,
+      bag_photo: j ? j.photo : null, bag_in_car_by: j ? j.inCarBy : null,
+      bag_done_at: j ? j.doneAt : null, bag_assigned: j ? j.assigned : null
+    };
+  }
+
   // Render whatever the car's current state is. Staff-driven states
   // (on-the-way / ready / collected) always win and replace the buttons;
   // a plain pending request is only reflected on first load (`initial`),
   // so a realtime echo of the customer's own tap doesn't clobber their UI.
   function applyLiveStatus(row, initial){
     if (!row) return;
-    // Hands-free shopping status (independent of the car-pickup state)
-    if (row.bag_status) {
-      var bagForm = document.getElementById('bag-form');
+    // Hands-free shopping status (independent of the car-pickup state).
+    // A car can have several rounds (different shops) at once, each kept.
+    var bagJobs = bagJobsFromRow(row);
+    var bagForm = document.getElementById('bag-form');
+    var bagFormOpen = bagForm && bagForm.style.display !== 'none';
+    if (bagJobs.length && !bagFormOpen) {   // don't clobber a customer mid-add
       var bagBtns = document.getElementById('bag-buttons');
       var bagRes = document.getElementById('bag-result');
+      var esc = function(s){ return String(s == null ? '' : s).replace(/</g,'&lt;'); };
       if (bagRes) {
-        if (row.bag_status === 'in_car' || row.bag_status === 'done') {
-          if (bagForm) bagForm.style.display = 'none';
-          if (bagBtns) bagBtns.style.display = 'none';
-          var bagImg = row.bag_photo
-            ? '<br><img src="' + row.bag_photo + '" alt="Your shopping in your car" style="max-width:100%;border-radius:10px;margin-top:10px;border:1px solid #ebebe9">'
-            : '';
-          bagRes.innerHTML = '<div class="req-status"><span class="big">Your shopping is in your car!</span>Here\'s a photo from our valet. Enjoy the rest of your day.' + bagImg + '</div>'
-            + '<button class="req-btn now" type="button" id="bag-again" style="width:100%;margin-top:12px" onclick="startBagAgain()">Shopping at another shop? Send my bags again</button>';
-        } else if (row.bag_status === 'requested' || row.bag_status === 'collecting') {
-          if (bagForm) bagForm.style.display = 'none';
-          if (bagBtns) bagBtns.style.display = 'none';
-          bagRes.innerHTML = '<div class="req-status"><span class="big">On our way!</span>A valet is collecting your shopping' + (row.bag_location ? ' at <b>' + String(row.bag_location).replace(/</g,'&lt;') + '</b>' : '') + '. We\'ll text you when it\'s in your car.</div>';
-        }
+        if (bagForm) bagForm.style.display = 'none';
+        if (bagBtns) bagBtns.style.display = 'none';
+        var html = '';
+        // Delivered rounds (most recent first) — each with its photo.
+        var delivered = bagJobs.filter(function(j){ return j.status === 'in_car' || j.status === 'done'; });
+        delivered.slice().reverse().forEach(function(j){
+          var img = j.photo ? '<br><img src="' + j.photo + '" alt="Your shopping in your car" style="max-width:100%;border-radius:10px;margin-top:10px;border:1px solid #ebebe9">' : '';
+          html += '<div class="req-status" style="margin-bottom:10px"><span class="big">Your shopping is in your car!</span>'
+            + (j.location ? '<b>' + esc(j.location) + '</b> — ' : '') + 'here\'s a photo from our valet.' + img + '</div>';
+        });
+        // In-progress rounds.
+        var pending = bagJobs.filter(function(j){ return j.status === 'requested' || j.status === 'collecting'; });
+        pending.forEach(function(j){
+          html += '<div class="req-status" style="margin-bottom:10px"><span class="big">On our way!</span>A valet is collecting your shopping'
+            + (j.location ? ' at <b>' + esc(j.location) + '</b>' : '') + '. We\'ll text you when it\'s in your car.</div>';
+        });
+        html += '<button class="req-btn now" type="button" id="bag-again" style="width:100%;margin-top:4px" onclick="startBagAgain()">Shopping at another shop? Send my bags</button>';
+        bagRes.innerHTML = html;
       }
     }
     var buttons = document.getElementById('req-buttons');
@@ -426,7 +463,7 @@
   (async function init(){
     try {
       var row = null;
-      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status,bag_status,bag_location,bag_photo';
+      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status,bag_jobs,bag_status,bag_location,bag_photo,bag_count,bag_requested,bag_done_at,bag_in_car_by,bag_assigned';
 
       if (entryId) {
         var byId = await supa.from('entries').select(cols).eq('id', entryId).maybeSingle();
@@ -503,13 +540,24 @@
     bagSendBtn.disabled = true;
     var now = new Date();
     try {
-      var res = await supa.from('entries').update({
-        bag_status: 'requested', bag_requested: now.toISOString(),
-        bag_location: loc, bag_count: cnt, updated_at: now.toISOString(),
-        // Fresh round — clear the previous delivery's photo/status so it
-        // doesn't show against this new request.
-        bag_photo: null, bag_in_car_by: null, bag_done_at: null, bag_assigned: null
-      }).eq('id', entryId).is('time_out', null).select('id');
+      // Append a NEW round to the car's bag_jobs (keeps any earlier rounds),
+      // migrating a legacy single-job row first if needed.
+      var cur = await supa.from('entries')
+        .select('bag_jobs,bag_status,bag_location,bag_photo,bag_count,bag_requested,bag_done_at,bag_in_car_by,bag_assigned')
+        .eq('id', entryId).maybeSingle();
+      var jobs = (cur && !cur.error) ? bagJobsFromRow(cur.data) : [];
+      jobs.push({
+        id: newBagJobId(), status: 'requested', requested: now.toISOString(),
+        location: loc, count: cnt, notes: '', source: 'customer',
+        assigned: null, assignedUser: null, collectingAt: null,
+        shopPhoto: null, shopPhotoAt: null,
+        inCarBy: null, inCarAt: null, photo: null, doneAt: null
+      });
+      var patch = { bag_jobs: jobs, updated_at: now.toISOString() };
+      var mirror = bagLegacyMirror(jobs);
+      for (var k in mirror) patch[k] = mirror[k];
+      var res = await supa.from('entries').update(patch)
+        .eq('id', entryId).is('time_out', null).select('id');
       if (res.error || !res.data || !res.data.length) {
         bagResult.innerHTML = '<div class="req-error">Couldn\'t send your request. Please call the valet on 0427 000 822.</div>';
         bagSendBtn.disabled = false; return;

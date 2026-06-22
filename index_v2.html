@@ -5693,7 +5693,7 @@ function renderActive() {
     // Action buttons — identical for the desktop table cell and the phone card.
     // The five occasional actions are grouped into one segmented icon control;
     // Request (pickup) and Mark Out stay as prominent labelled buttons.
-    const bagOn = e.bagStatus && e.bagStatus !== 'done';
+    const bagOn = ensureBagJobs(e).some(j => j.status && j.status !== 'done');
     const washOn = e.carWash && e.carWash.status && e.carWash.status !== 'ready';
     const actions = `<div class="car-actions">`
       + washChip(e.carWash, e.id)
@@ -5702,7 +5702,7 @@ function renderActive() {
       + `<button class="ico-btn" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">${ACT_ICONS.qr}</button>`
       + `<button class="ico-btn" onclick="printKeyTag('${e.id}')" title="Print key tag">${ACT_ICONS.print}</button>`
       + `<button class="ico-btn" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">${ACT_ICONS.edit}</button>`
-      + `<button class="ico-btn${bagOn ? ' on' : ''}" onclick="logBagRequest('${e.id}')" title="Log a hands-free shopping bag pickup">${ACT_ICONS.bag}</button>`
+      + `<button class="ico-btn${bagOn ? ' on' : ''}" onclick="logBagRequest('${e.id}')" title="${bagOn ? 'Add another hands-free shopping pickup (new shop)' : 'Log a hands-free shopping bag pickup'}">${ACT_ICONS.bag}</button>`
       + `<button class="ico-btn${washOn ? ' on' : ''}" onclick="openWashDialog('${e.id}')" title="${e.carWash ? 'Manage car wash' : 'Add a car wash'}">${ACT_ICONS.wash}</button>`
       + `<button class="ico-btn ico-danger" onclick="deleteEntry('${e.id}')" title="Delete this entry (mistaken/duplicate)">${ACT_ICONS.trash}</button>`
       + `</span>`
@@ -6265,6 +6265,97 @@ async function toggleBagStaff(username) {
   renderStaffList();
 }
 
+// ─── BAG JOBS MODEL ─────────────────────────────────────────────────────────
+// A car can have several hands-free shopping rounds at once (different shops),
+// and finished rounds are kept. Each round is a job object in e.bagJobs:
+//   { id, status, requested, location, count, notes, source,
+//     assigned, assignedUser, collectingAt,
+//     shopPhoto, shopPhotoAt, inCarBy, inCarAt, photo, doneAt }
+// status: requested -> collecting -> in_car -> done.
+let bagJobSeq = 0;
+function newBagJobId() {
+  bagJobSeq = (bagJobSeq + 1) % 1e6;
+  return 'bj' + Date.now().toString(36) + bagJobSeq.toString(36);
+}
+
+// Read the jobs array from a DB row, migrating a legacy single-job row (the old
+// bag_* columns) into a one-element array so existing in-flight jobs survive.
+function normalizeBagJobs(d) {
+  if (Array.isArray(d.bag_jobs)) return d.bag_jobs.filter(Boolean);
+  if (!d.bag_status) return [];
+  return [{
+    id: newBagJobId(),
+    status: d.bag_status, requested: d.bag_requested, location: d.bag_location,
+    count: d.bag_count, notes: d.bag_notes, source: 'staff',
+    assigned: d.bag_assigned, assignedUser: d.bag_assigned_user, collectingAt: d.bag_collecting_at,
+    shopPhoto: d.bag_shop_photo, shopPhotoAt: d.bag_shop_photo_at,
+    inCarBy: d.bag_in_car_by, inCarAt: d.bag_in_car_at, photo: d.bag_photo, doneAt: d.bag_done_at,
+  }];
+}
+
+// Ensure an in-memory entry has its jobs array (defensive for older cached data).
+function ensureBagJobs(e) {
+  if (!Array.isArray(e.bagJobs)) e.bagJobs = normalizeBagJobs({
+    bag_jobs: null, bag_status: e.bagStatus, bag_requested: e.bagRequested,
+    bag_location: e.bagLocation, bag_count: e.bagCount, bag_notes: e.bagNotes,
+    bag_assigned: e.bagAssigned, bag_assigned_user: e.bagAssignedUser, bag_collecting_at: e.bagCollectingAt,
+    bag_shop_photo: e.bagShopPhoto, bag_shop_photo_at: e.bagShopPhotoAt,
+    bag_in_car_by: e.bagInCarBy, bag_in_car_at: e.bagInCarAt, bag_photo: e.bagPhoto, bag_done_at: e.bagDoneAt,
+  });
+  return e.bagJobs;
+}
+
+// Look up one job and its car. Accepts both the new (id, jobId) calls and any
+// legacy (id)-only call (falls back to the car's first active/most-recent job).
+function findBagJob(entryId, jobId) {
+  const e = entries.find(x => x.id === entryId);
+  if (!e) return { e: null, j: null };
+  const jobs = ensureBagJobs(e);
+  let j = jobId ? jobs.find(x => x.id === jobId) : null;
+  if (!j) j = jobs.find(x => x.status !== 'done') || jobs[jobs.length - 1] || null;
+  return { e, j };
+}
+
+// All active (not-done) jobs across on-site cars — used for the badge/alarm.
+function activeBagJobs() {
+  const out = [];
+  entries.filter(e => !e.timeOut).forEach(e => ensureBagJobs(e).forEach(j => {
+    if (j.status && j.status !== 'done') out.push({ e, j });
+  }));
+  return out;
+}
+
+// Every bag job (any status) across a given list of entries — used by reports.
+function allBagJobs(list) {
+  const out = [];
+  (list || entries).forEach(e => ensureBagJobs(e).forEach(j => {
+    if (j && j.status) out.push({ e, j });
+  }));
+  return out;
+}
+
+// Pick the round to mirror into the legacy bag_* columns (latest active, else
+// latest delivered/any) so the customer ticket page and older readers still work.
+function bagPrimaryJob(e) {
+  const jobs = (e.bagJobs && e.bagJobs.length) ? e.bagJobs : [];
+  if (!jobs.length) return null;
+  const active = jobs.filter(j => j.status && j.status !== 'done');
+  if (active.length) return active[active.length - 1];
+  return jobs[jobs.length - 1];
+}
+function bagLegacyMirror(e) {
+  const j = bagPrimaryJob(e);
+  return {
+    bag_status: j ? j.status : null, bag_requested: j ? j.requested : null,
+    bag_location: j ? j.location : null, bag_count: j ? j.count : null,
+    bag_assigned: j ? j.assigned : null, bag_assigned_user: j ? j.assignedUser : null,
+    bag_notes: j ? j.notes : null, bag_photo: j ? j.photo : null,
+    bag_shop_photo: j ? j.shopPhoto : null, bag_done_at: j ? j.doneAt : null,
+    bag_in_car_by: j ? j.inCarBy : null, bag_collecting_at: j ? j.collectingAt : null,
+    bag_shop_photo_at: j ? j.shopPhotoAt : null, bag_in_car_at: j ? j.inCarAt : null,
+  };
+}
+
 function updateBagBadge(count) {
   // The menu-icon count shows for everyone (just info: how many bag jobs are open).
   const badge = document.getElementById('bag-tab-badge');
@@ -6274,10 +6365,10 @@ function updateBagBadge(count) {
   // Live banner: show when there are unassigned ('requested') jobs.
   const banner = document.getElementById('bag-banner');
   if (banner) {
-    const newReqs = entries.filter(e => !e.timeOut && e.bagStatus === 'requested');
+    const newReqs = activeBagJobs().filter(x => x.j.status === 'requested');
     if (allowed && newReqs.length && !bagBannerDismissed) {
-      const latest = newReqs.sort((a,b)=>new Date(b.bagRequested)-new Date(a.bagRequested))[0];
-      banner.innerHTML = `<strong>${newReqs.length} bag pickup${newReqs.length!==1?'s':''} waiting</strong> · newest: ${latest.bagLocation || 'Valet Desk'} `
+      const latest = newReqs.sort((a,b)=>new Date(b.j.requested)-new Date(a.j.requested))[0];
+      banner.innerHTML = `<strong>${newReqs.length} bag pickup${newReqs.length!==1?'s':''} waiting</strong> · newest: ${latest.j.location || 'Valet Desk'} `
         + `<button onclick="showView('bags')" style="background:#fff;color:#531620;border:none;padding:2px 10px;border-radius:3px;margin-left:8px;cursor:pointer;font-weight:bold">Open</button>`
         + `<button onclick="dismissBagBanner()" style="background:transparent;color:inherit;border:1px solid;padding:2px 8px;border-radius:3px;margin-left:6px;cursor:pointer">Dismiss</button>`;
       banner.style.display = 'block';
@@ -6291,9 +6382,9 @@ function dismissBagBanner() { bagBannerDismissed = true; const b = document.getE
 
 // Bag queue is a compact one-line-per-call list; tapping a row opens its full
 // detail (stepper, photo, actions) and collapses any other open row.
-let bagExpandedId = null;
-function toggleBagDetail(id) {
-  bagExpandedId = (bagExpandedId === id) ? null : id;
+let bagExpandedId = null;   // now holds a job id (a car can have several jobs)
+function toggleBagDetail(jobId) {
+  bagExpandedId = (bagExpandedId === jobId) ? null : jobId;
   renderBagQueue();
 }
 
@@ -6335,14 +6426,16 @@ function tickBagTimers() {
 setInterval(tickBagTimers, 1000);
 
 function renderBagQueue() {
-  const active = entries
-    .filter(e => !e.timeOut && e.bagStatus && e.bagStatus !== 'done')
-    .sort((a, b) => new Date(a.bagRequested || 0) - new Date(b.bagRequested || 0)); // oldest first
-  // Completed deliveries for cars still on site stay visible (in green) so staff
-  // can see the job is done; they drop off once the car is checked out.
-  const doneOnSite = entries
-    .filter(e => !e.timeOut && e.bagStatus === 'done')
-    .sort((a, b) => new Date(b.bagDoneAt || 0) - new Date(a.bagDoneAt || 0)); // most recent first
+  // Flatten every on-site car's bag rounds into one list of {e, j} pairs.
+  const all = [];
+  entries.filter(e => !e.timeOut).forEach(e => ensureBagJobs(e).forEach(j => {
+    if (j && j.status) all.push({ e, j });
+  }));
+  const active = all.filter(x => x.j.status !== 'done')
+    .sort((a, b) => new Date(a.j.requested || 0) - new Date(b.j.requested || 0)); // oldest first
+  // Completed rounds for cars still on site stay visible (green) until checkout.
+  const doneOnSite = all.filter(x => x.j.status === 'done')
+    .sort((a, b) => new Date(b.j.doneAt || 0) - new Date(a.j.doneAt || 0)); // most recent first
   const list = active.concat(doneOnSite);
   updateBagBadge(active.length);   // badge + alarm count = outstanding work only
   const countEl = document.getElementById('bag-count');
@@ -6356,11 +6449,14 @@ function renderBagQueue() {
   const now = new Date();
   const STEPS = ['Requested', 'Collecting', 'In car', 'Done'];
   const STEP_INDEX = { requested: 0, collecting: 1, in_car: 2, done: 3 };
-  container.innerHTML = list.map(e => {
+  container.innerHTML = list.map(({ e, j }) => {
+    // How many rounds this car has, so a multi-shop car is obvious in the queue.
+    const carJobs = ensureBagJobs(e);
+    const roundLabel = carJobs.length > 1 ? ` · #${carJobs.indexOf(j) + 1} of ${carJobs.length}` : '';
     const car = [e.brand, e.model].filter(Boolean).join(' ') + (e.rego ? ' · ' + e.rego : '');
-    const waited = Math.max(0, Math.round((now - new Date(e.bagRequested)) / 60000));
-    const loggedTime = e.bagRequested ? fmtTime(new Date(e.bagRequested)) : '—';
-    const st = e.bagStatus;
+    const waited = Math.max(0, Math.round((now - new Date(j.requested)) / 60000));
+    const loggedTime = j.requested ? fmtTime(new Date(j.requested)) : '—';
+    const st = j.status;
     // Traffic light: green = done, red = a call that's waited more than
     // 10 minutes, yellow = pending (anything else still open).
     const isDone = st === 'done';
@@ -6368,13 +6464,13 @@ function renderBagQueue() {
     const rowColor = isDone ? '#3a7d44' : overdue ? '#d32f2f' : '#e0a640';
     const timeColor = isDone ? '#3a7d44' : overdue ? '#d32f2f' : '#a87f00';
     const label = st === 'requested' ? 'Requested'
-      : st === 'collecting' ? 'Collecting' + (e.bagAssigned ? ' · ' + e.bagAssigned : '')
+      : st === 'collecting' ? 'Collecting' + (j.assigned ? ' · ' + j.assigned : '')
       : st === 'in_car' ? 'In car'
-      : 'Done' + (e.bagInCarBy ? ' · ' + e.bagInCarBy : '');
+      : 'Done' + (j.inCarBy ? ' · ' + j.inCarBy : '');
     const hdr = { bg: rowColor, label };
     // "Assigned to me" — true when this open job is assigned to the logged-in
     // user, so it stands out in their own Bags queue.
-    const mine = !isDone && e.bagAssignedUser && currentUser && e.bagAssignedUser === currentUser.username;
+    const mine = !isDone && j.assignedUser && currentUser && j.assignedUser === currentUser.username;
 
     // Status progress bar: Requested → Collecting → In car → Done.
     const curIdx = STEP_INDEX[st] ?? 0;
@@ -6403,48 +6499,48 @@ function renderBagQueue() {
       if (getUiMode() === 'desktop') {
         const roster = bagStaffRoster();
         if (roster.length) {
-          assignPicker = `<select onclick="event.stopPropagation()" onchange="assignBagTo('${e.id}', this.value)" title="Assign this pickup to a specific staff member" style="flex:0 0 auto;padding:12px 8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--bone);color:var(--text);cursor:pointer">`
+          assignPicker = `<select onclick="event.stopPropagation()" onchange="assignBagTo('${e.id}', '${j.id}', this.value)" title="Assign this pickup to a specific staff member" style="flex:0 0 auto;padding:12px 8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--bone);color:var(--text);cursor:pointer">`
             + `<option value="">Assign to…</option>`
             + roster.map(s => `<option value="${s.username}">${s.displayName}</option>`).join('')
             + `</select>`;
         }
       }
-      actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">I'll get it</button>` + assignPicker;
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}', '${j.id}')">I'll get it</button>` + assignPicker;
     } else if (st === 'collecting') {
       // Required gate: staff must snap an in-shop proof photo before they can
       // mark the bags in the car.
-      actions = e.bagShopPhoto
-        ? `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">In car (take photo)</button>`
-          + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagShopPhoto('${e.id}')" title="Retake in-shop photo">Shop ✓</button>`
-        : `<button class="btn btn-primary" style="${sbase}" onclick="collectBagPhoto('${e.id}')">At shop — take photo</button>`;
+      actions = j.shopPhoto
+        ? `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}', '${j.id}')">In car (take photo)</button>`
+          + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagShopPhoto('${e.id}', '${j.id}')" title="Retake in-shop photo">Shop ✓</button>`
+        : `<button class="btn btn-primary" style="${sbase}" onclick="collectBagPhoto('${e.id}', '${j.id}')">At shop — take photo</button>`;
       // Desktop counter: let staff fix a wrong pick — reassign to someone else
       // or send it back to the unassigned queue. (Mobile keeps it simple.)
       if (getUiMode() === 'desktop') {
         const roster = bagStaffRoster();
         if (roster.length) {
-          actions += `<select onclick="event.stopPropagation()" onchange="reassignBag('${e.id}', this.value)" title="Reassign or unassign this pickup" style="flex:0 0 auto;padding:12px 8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--bone);color:var(--text);cursor:pointer">`
+          actions += `<select onclick="event.stopPropagation()" onchange="reassignBag('${e.id}', '${j.id}', this.value)" title="Reassign or unassign this pickup" style="flex:0 0 auto;padding:12px 8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--bone);color:var(--text);cursor:pointer">`
             + `<option value="">Reassign…</option>`
-            + roster.map(s => `<option value="${s.username}">${s.displayName}${s.username === e.bagAssignedUser ? ' (current)' : ''}</option>`).join('')
+            + roster.map(s => `<option value="${s.username}">${s.displayName}${s.username === j.assignedUser ? ' (current)' : ''}</option>`).join('')
             + `<option value="__unassign__">↺ Unassign</option>`
             + `</select>`;
         }
       }
     } else if (st === 'in_car') {
-      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}')">Done</button>`
-        + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add / retake proof photo">Photo${e.bagPhoto ? ' ✓' : ''}</button>`;
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}', '${j.id}')">Done</button>`
+        + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}', '${j.id}')" title="Add / retake proof photo">Photo${j.photo ? ' ✓' : ''}</button>`;
     } // 'done' → no primary action; the ✕ below clears it from the list
 
     // Proof photo thumbnails: the in-shop pickup shot (staff-only) and the
     // in-car shot. Either may exist; show whichever we have side by side.
-    const shopThumb = e.bagShopPhoto
+    const shopThumb = j.shopPhoto
       ? `<div style="flex-shrink:0;text-align:center">
-           <img src="${e.bagShopPhoto}" onclick="viewPhoto('${e.id}','shop')" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" title="In-shop photo — tap to enlarge">
+           <img src="${j.shopPhoto}" onclick="viewPhoto('${e.id}','shop','${j.id}')" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" title="In-shop photo — tap to enlarge">
            <div style="font-size:10px;color:var(--bronze);font-weight:600;margin-top:3px">In-shop proof</div>
          </div>`
       : '';
-    const carThumb = e.bagPhoto
+    const carThumb = j.photo
       ? `<div style="flex-shrink:0;text-align:center">
-           <img src="${e.bagPhoto}" onclick="viewPhoto('${e.id}','bag')" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" title="Proof photo — tap to enlarge">
+           <img src="${j.photo}" onclick="viewPhoto('${e.id}','bag','${j.id}')" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" title="Proof photo — tap to enlarge">
            <div style="font-size:10px;color:#3a7d44;font-weight:600;margin-top:3px">In-car proof</div>
          </div>`
       : '';
@@ -6452,22 +6548,22 @@ function renderBagQueue() {
       ? `<div style="display:flex;gap:8px;flex-shrink:0">${shopThumb}${carThumb}</div>`
       : '';
 
-    const expanded = bagExpandedId === e.id;
-    const cnt = e.bagCount || 1;
+    const expanded = bagExpandedId === j.id;
+    const cnt = j.count || 1;
 
     // Collapsed one-liner — always shown. Tap to open/close the detail.
     // Traffic-light circle: red (with a halo) once a call has waited >10 min,
     // yellow while pending, green when done. Sits on the right next to the time.
-    const dot = `<span class="bag-dot${isDone ? '' : ' bag-dot-flash'}"${isDone ? '' : ` data-req="${e.bagRequested}"`} title="${isDone ? 'Done' : overdue ? 'Waiting over 10 min' : 'Pending'}" style="flex:0 0 auto;width:16px;height:16px;border-radius:50%;background:${rowColor};border:2px solid #fff;box-shadow:0 0 0 1px ${rowColor}"></span>`;
-    const summary = `<div onclick="toggleBagDetail('${e.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-left:5px solid ${hdr.bg}">
+    const dot = `<span class="bag-dot${isDone ? '' : ' bag-dot-flash'}"${isDone ? '' : ` data-req="${j.requested}"`} title="${isDone ? 'Done' : overdue ? 'Waiting over 10 min' : 'Pending'}" style="flex:0 0 auto;width:16px;height:16px;border-radius:50%;background:${rowColor};border:2px solid #fff;box-shadow:0 0 0 1px ${rowColor}"></span>`;
+    const summary = `<div onclick="toggleBagDetail('${j.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-left:5px solid ${hdr.bg}">
         <div style="flex:1;min-width:0;font-size:14px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-          <b>${e.name || 'No name'}</b>${vipTag(e.vip)}${mine ? ' <span style="display:inline-block;background:var(--maroon);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:9px;vertical-align:middle">YOUR JOB</span>' : ''}<span style="color:var(--text-muted)"> · ${e.bagLocation || 'Valet Desk'} · ${cnt} bag${cnt !== 1 ? 's' : ''}</span>
+          <b>${e.name || 'No name'}</b>${vipTag(e.vip)}${mine ? ' <span style="display:inline-block;background:var(--maroon);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:9px;vertical-align:middle">YOUR JOB</span>' : ''}<span style="color:var(--text-muted)"> · ${j.location || 'Valet Desk'} · ${cnt} bag${cnt !== 1 ? 's' : ''}${roundLabel}</span>
         </div>
-        ${e.bagPhoto ? `<img src="${e.bagPhoto}" onclick="event.stopPropagation();viewPhoto('${e.id}','bag')" style="flex:0 0 auto;width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="In-car proof — tap to enlarge">` : ''}
+        ${j.photo ? `<img src="${j.photo}" onclick="event.stopPropagation();viewPhoto('${e.id}','bag','${j.id}')" style="flex:0 0 auto;width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="In-car proof — tap to enlarge">` : ''}
         <div style="text-align:right;flex:0 0 auto">
           ${isDone
-            ? `<div style="font-size:13px;font-weight:bold;color:#3a7d44">Done</div><div style="font-size:11px;color:var(--text-muted)">${e.bagDoneAt ? fmtTime(new Date(e.bagDoneAt)) : ''}</div>`
-            : `<div class="bag-wait" data-req="${e.bagRequested}" style="font-size:14px;font-weight:bold;color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(e.bagRequested))}</div><div style="font-size:11px;color:var(--text-muted)">${loggedTime}</div>`}
+            ? `<div style="font-size:13px;font-weight:bold;color:#3a7d44">Done</div><div style="font-size:11px;color:var(--text-muted)">${j.doneAt ? fmtTime(new Date(j.doneAt)) : ''}</div>`
+            : `<div class="bag-wait" data-req="${j.requested}" style="font-size:14px;font-weight:bold;color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(j.requested))}</div><div style="font-size:11px;color:var(--text-muted)">${loggedTime}</div>`}
         </div>
         ${dot}
         <span style="font-size:16px;color:var(--text-muted);flex:0 0 auto">${expanded ? '▾' : '▸'}</span>
@@ -6476,20 +6572,20 @@ function renderBagQueue() {
     // Full detail — only rendered for the open row (the stepper above is always shown).
     const detail = !expanded ? '' : `
       <div style="padding:14px;border-top:1px solid var(--border)">
-        <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">Logged <b style="color:#333">${loggedTime}</b> · ${isDone ? `<b style="color:#3a7d44">Done${e.bagDoneAt ? ' ' + fmtTime(new Date(e.bagDoneAt)) : ''}</b>` : `<b class="bag-wait" data-req="${e.bagRequested}" style="color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(e.bagRequested))}</b> waiting`}</div>
+        <div style="font-size:13px;margin-bottom:10px;color:var(--text-muted)">Logged <b style="color:#333">${loggedTime}</b> · ${isDone ? `<b style="color:#3a7d44">Done${j.doneAt ? ' ' + fmtTime(new Date(j.doneAt)) : ''}</b>` : `<b class="bag-wait" data-req="${j.requested}" style="color:${timeColor};font-variant-numeric:tabular-nums">${fmtElapsed(now - new Date(j.requested))}</b> waiting`}</div>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;color:var(--text-muted)">Pickup at</div>
-            <div style="font-size:18px;font-weight:bold;color:#333333">${e.bagLocation || 'Valet Desk'}</div>
-            <div style="font-size:13px;color:var(--text-muted);margin-top:4px">${cnt} bag${cnt !== 1 ? 's' : ''} · ${e.name || 'No name'}${e.bagNotes ? ' · ' + e.bagNotes : ''}</div>
+            <div style="font-size:13px;color:var(--text-muted)">Pickup at${carJobs.length > 1 ? ` (round ${carJobs.indexOf(j) + 1} of ${carJobs.length})` : ''}</div>
+            <div style="font-size:18px;font-weight:bold;color:#333333">${j.location || 'Valet Desk'}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:4px">${cnt} bag${cnt !== 1 ? 's' : ''} · ${e.name || 'No name'}${j.notes ? ' · ' + j.notes : ''}</div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${car} · Bay <b style="color:var(--maroon)">${e.bay || '—'}</b></div>
-            ${(e.bagAssigned || e.bagInCarBy) ? `<div style="font-size:12px;color:var(--bronze);font-weight:600;margin-top:4px">${e.bagAssigned ? 'Assigned: ' + e.bagAssigned : ''}${e.bagInCarBy ? (e.bagAssigned ? ' · ' : '') + 'In car: ' + e.bagInCarBy : ''}</div>` : ''}
+            ${(j.assigned || j.inCarBy) ? `<div style="font-size:12px;color:var(--bronze);font-weight:600;margin-top:4px">${j.assigned ? 'Assigned: ' + j.assigned : ''}${j.inCarBy ? (j.assigned ? ' · ' : '') + 'In car: ' + j.inCarBy : ''}</div>` : ''}
           </div>
           ${thumb}
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           ${callBtn}
-          <button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="cancelBag('${e.id}')" title="Cancel request">✕</button>
+          <button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="cancelBag('${e.id}', '${j.id}')" title="Cancel this round">✕</button>
           ${actions}
         </div>
       </div>`;
@@ -6704,42 +6800,43 @@ function confirmBagRequest() {
   requestBag(id, { location, count, notes: '', source: 'staff' });
 }
 
-function requestBag(id, { location, count, notes }) {
+// Add a NEW bag round (job) to a car — never overwrites existing rounds, so a
+// customer can have several pickups (different shops) running at once.
+function requestBag(id, { location, count, notes, source }) {
   const e = entries.find(x => x.id === id); if (!e) return;
-  e.bagStatus = 'requested';
-  e.bagRequested = new Date().toISOString();
-  e.bagLocation = location || 'Valet Desk';
-  e.bagCount = count || 1;
-  e.bagNotes = notes || '';
-  e.bagAssigned = null;
-  e.bagAssignedUser = null;
-  e.bagInCarBy = null;
-  e.bagDoneAt = null;
-  e.bagCollectingAt = null;
-  e.bagShopPhotoAt = null;
-  e.bagInCarAt = null;
-  e.bagPhoto = null;   // fresh round — drop the previous delivery's photo
-  e.bagShopPhoto = null; // and its in-shop proof photo
+  const jobs = ensureBagJobs(e);
+  const job = {
+    id: newBagJobId(),
+    status: 'requested',
+    requested: new Date().toISOString(),
+    location: location || 'Valet Desk',
+    count: count || 1,
+    notes: notes || '',
+    source: source || 'staff',
+    assigned: null, assignedUser: null, collectingAt: null,
+    shopPhoto: null, shopPhotoAt: null,
+    inCarBy: null, inCarAt: null, photo: null, doneAt: null,
+  };
+  jobs.push(job);
+  bagExpandedId = job.id;       // open the new round so staff see it straight away
   bagBannerDismissed = false;
   saveData(id, { immediate: true });
-  cloudAudit('bag_request', 'entry', id, { ticket: e.ticket, location: e.bagLocation, count: e.bagCount });
+  cloudAudit('bag_request', 'entry', id, { ticket: e.ticket, job: job.id, location: job.location, count: job.count });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
   quickToast('Bag pickup added to the queue');
-  // Raise the attention alarm here too, so a phone-in request is just as
-  // loud as a customer self-service one. Deduped by key, so the realtime
-  // echo won't pop it a second time.
-  maybeAlarmBagRequest(e);
+  // Raise the attention alarm (deduped by job, so the realtime echo won't repeat it).
+  scanBagAlarms();
 }
 
-function assignBag(id) {
-  const e = entries.find(x => x.id === id); if (!e) return;
-  e.bagStatus = 'collecting';
-  e.bagAssigned = (currentUser && currentUser.displayName) || 'Staff';
-  e.bagAssignedUser = (currentUser && currentUser.username) || null;
-  e.bagCollectingAt = e.bagCollectingAt || new Date().toISOString();
+function assignBag(id, jobId) {
+  const { e, j } = findBagJob(id, jobId); if (!j) return;
+  j.status = 'collecting';
+  j.assigned = (currentUser && currentUser.displayName) || 'Staff';
+  j.assignedUser = (currentUser && currentUser.username) || null;
+  j.collectingAt = j.collectingAt || new Date().toISOString();
   saveData(id, { immediate: true });
-  cloudAudit('bag_collecting', 'entry', id, { ticket: e.ticket });
+  cloudAudit('bag_collecting', 'entry', id, { ticket: e.ticket, job: j.id });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
 }
@@ -6747,97 +6844,96 @@ function assignBag(id) {
 // Desktop counter view: hand a requested bag job to a specific bag-enabled
 // person (instead of self-claiming via "I'll get it"). Stores their username
 // for reliable "assigned to you" highlighting on their own device.
-function assignBagTo(id, username) {
+function assignBagTo(id, jobId, username) {
   if (!username) return;
-  const e = entries.find(x => x.id === id); if (!e) return;
-  e.bagStatus = 'collecting';
-  e.bagAssignedUser = username;
-  e.bagAssigned = staffDisplayName(username);
-  e.bagCollectingAt = e.bagCollectingAt || new Date().toISOString();
+  const { e, j } = findBagJob(id, jobId); if (!j) return;
+  j.status = 'collecting';
+  j.assignedUser = username;
+  j.assigned = staffDisplayName(username);
+  j.collectingAt = j.collectingAt || new Date().toISOString();
   saveData(id, { immediate: true });
-  cloudAudit('bag_assign', 'entry', id, { ticket: e.ticket, to: username, by: currentUser && currentUser.username });
+  cloudAudit('bag_assign', 'entry', id, { ticket: e.ticket, job: j.id, to: username, by: currentUser && currentUser.username });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
-  quickToast('Assigned to ' + e.bagAssigned);
+  quickToast('Assigned to ' + j.assigned);
 }
 
 // Desktop: fix a wrong pick after a job is already being collected — switch it
 // to a different person, or send it back to the unassigned queue.
-function reassignBag(id, value) {
+function reassignBag(id, jobId, value) {
   if (!value) return;
-  if (value === '__unassign__') return unassignBag(id);
-  const e = entries.find(x => x.id === id); if (!e) return;
-  if (value === e.bagAssignedUser) return;   // picked the same person — no change
-  const prev = e.bagAssigned;
-  e.bagStatus = 'collecting';
-  e.bagAssignedUser = value;
-  e.bagAssigned = staffDisplayName(value);
+  if (value === '__unassign__') return unassignBag(id, jobId);
+  const { e, j } = findBagJob(id, jobId); if (!j) return;
+  if (value === j.assignedUser) return;   // picked the same person — no change
+  const prev = j.assigned;
+  j.status = 'collecting';
+  j.assignedUser = value;
+  j.assigned = staffDisplayName(value);
   saveData(id, { immediate: true });
-  cloudAudit('bag_reassign', 'entry', id, { ticket: e.ticket, from: prev, to: value, by: currentUser && currentUser.username });
+  cloudAudit('bag_reassign', 'entry', id, { ticket: e.ticket, job: j.id, from: prev, to: value, by: currentUser && currentUser.username });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
-  quickToast('Reassigned to ' + e.bagAssigned);
+  quickToast('Reassigned to ' + j.assigned);
 }
 
 // Desktop: undo an assignment made by mistake — back to the unassigned queue so
 // anyone can claim it. Clears the claim timing since it was never really started.
-function unassignBag(id) {
-  const e = entries.find(x => x.id === id); if (!e) return;
-  e.bagStatus = 'requested';
-  e.bagAssigned = null;
-  e.bagAssignedUser = null;
-  e.bagCollectingAt = null;
+function unassignBag(id, jobId) {
+  const { e, j } = findBagJob(id, jobId); if (!j) return;
+  j.status = 'requested';
+  j.assigned = null;
+  j.assignedUser = null;
+  j.collectingAt = null;
   bagBannerDismissed = false;   // it's an open request again
   saveData(id, { immediate: true });
-  cloudAudit('bag_unassign', 'entry', id, { ticket: e.ticket, by: currentUser && currentUser.username });
+  cloudAudit('bag_unassign', 'entry', id, { ticket: e.ticket, job: j.id, by: currentUser && currentUser.username });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
   quickToast('Back to unassigned');
 }
 
-// Mark bags in the car. REQUIRES a proof photo (opens the camera first); the
-// photo is shown to the customer on their ticket page and linked in the SMS.
-function bagInCar(id) {
-  bagCapturePhoto(id, e => {
-    e.bagStatus = 'in_car';
-    e.bagInCarBy = (currentUser && currentUser.displayName) || 'Staff';
-    e.bagInCarAt = e.bagInCarAt || new Date().toISOString();
-    cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket, by: e.bagInCarBy });
+// Mark this round's bags in the car. REQUIRES a proof photo (opens the camera
+// first); the photo is shown to the customer on their ticket page and texted.
+function bagInCar(id, jobId) {
+  bagCapturePhoto(id, jobId, (j, e) => {
+    j.status = 'in_car';
+    j.inCarBy = (currentUser && currentUser.displayName) || 'Staff';
+    j.inCarAt = j.inCarAt || new Date().toISOString();
+    cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket, job: j.id, by: j.inCarBy });
     quickToast('Bags in car' + (e.phone ? ' · sending photo to customer' : ''));
-    sendBagSms(e);
+    sendBagSms(e, j);
     if (typeof hapticFeedback === 'function') hapticFeedback('success');
-  });
+  }, 'photo');
 }
 
-function bagDone(id) {
-  const e = entries.find(x => x.id === id); if (!e) return;
-  e.bagStatus = 'done';
-  e.bagDoneAt = new Date().toISOString();
+function bagDone(id, jobId) {
+  const { e, j } = findBagJob(id, jobId); if (!j) return;
+  j.status = 'done';
+  j.doneAt = new Date().toISOString();
   saveData(id, { immediate: true });
-  cloudAudit('bag_done', 'entry', id, { ticket: e.ticket });
+  cloudAudit('bag_done', 'entry', id, { ticket: e.ticket, job: j.id });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 
-function cancelBag(id) {
-  const e = entries.find(x => x.id === id); if (!e) return;
+// Remove just this round from the car (other rounds stay).
+function cancelBag(id, jobId) {
+  const { e, j } = findBagJob(id, jobId); if (!e || !j) return;
   if (!confirm('Cancel this bag request?')) return;
-  e.bagStatus = null; e.bagRequested = null; e.bagLocation = null; e.bagCount = null;
-  e.bagAssigned = null; e.bagAssignedUser = null; e.bagInCarBy = null; e.bagNotes = null; e.bagDoneAt = null;
-  e.bagPhoto = null; e.bagShopPhoto = null;
-  e.bagCollectingAt = null; e.bagShopPhotoAt = null; e.bagInCarAt = null;
+  e.bagJobs = ensureBagJobs(e).filter(x => x.id !== j.id);
+  if (bagExpandedId === j.id) bagExpandedId = null;
   saveData(id, { immediate: true });
-  cloudAudit('bag_cancel', 'entry', id, { ticket: e.ticket });
+  cloudAudit('bag_cancel', 'entry', id, { ticket: e.ticket, job: j.id });
   renderBagQueue();
 }
 
-// Open the camera, downscale the photo, store it on the chosen entry field,
-// persist once, then run an optional callback (used by "In car" to also flip
-// the status). `field` selects which photo this is: 'bagPhoto' (in-car proof,
-// the default) or 'bagShopPhoto' (in-shop proof taken while collecting).
-// Cancelling the camera does nothing — so the status only advances with a photo.
-function bagCapturePhoto(id, after, field) {
-  field = field || 'bagPhoto';
+// Open the camera, downscale, store the photo on the chosen job field, persist
+// once, then run an optional callback (used by "In car" to also flip status).
+// `field` selects which photo: 'photo' (in-car proof, default) or 'shopPhoto'
+// (in-shop proof). Cancelling the camera does nothing — status only advances
+// with a photo.
+function bagCapturePhoto(id, jobId, after, field) {
+  field = field || 'photo';
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
   inp.onchange = ev => {
@@ -6851,12 +6947,12 @@ function bagCapturePhoto(id, after, field) {
         if (w > max || h > max) { const r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
         const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
         cv.getContext('2d').drawImage(img, 0, 0, w, h);
-        const e = entries.find(x => x.id === id); if (!e) return;
-        e[field] = cv.toDataURL('image/jpeg', 0.7);
-        if (typeof after === 'function') after(e);
+        const { e, j } = findBagJob(id, jobId); if (!j) return;
+        j[field] = cv.toDataURL('image/jpeg', 0.7);
+        if (typeof after === 'function') after(j, e);
         saveData(id, { immediate: true });
         renderBagQueue();
-        if (typeof after !== 'function') quickToast(field === 'bagShopPhoto' ? 'In-shop photo saved' : 'Proof photo saved');
+        if (typeof after !== 'function') quickToast(field === 'shopPhoto' ? 'In-shop photo saved' : 'Proof photo saved');
       };
       img.src = reader.result;
     };
@@ -6867,21 +6963,21 @@ function bagCapturePhoto(id, after, field) {
 
 // In-shop proof: staff snap the bags at the shop while collecting. Required
 // before "In car" becomes available, so every delivery has a pickup record.
-function collectBagPhoto(id) {
-  bagCapturePhoto(id, e => {
-    e.bagShopPhotoAt = e.bagShopPhotoAt || new Date().toISOString();
-    cloudAudit('bag_shop_photo', 'entry', id, { ticket: e.ticket, by: (currentUser && currentUser.displayName) || 'Staff' });
+function collectBagPhoto(id, jobId) {
+  bagCapturePhoto(id, jobId, (j, e) => {
+    j.shopPhotoAt = j.shopPhotoAt || new Date().toISOString();
+    cloudAudit('bag_shop_photo', 'entry', id, { ticket: e.ticket, job: j.id, by: (currentUser && currentUser.displayName) || 'Staff' });
     if (typeof hapticFeedback === 'function') hapticFeedback('light');
     quickToast('In-shop photo saved');
-  }, 'bagShopPhoto');
+  }, 'shopPhoto');
 }
 
 // Retake / add the in-car proof photo without changing the status.
-function addBagPhoto(id) { bagCapturePhoto(id); }
+function addBagPhoto(id, jobId) { bagCapturePhoto(id, jobId); }
 // Retake the in-shop proof photo without changing the status.
-function addBagShopPhoto(id) { collectBagPhoto(id); }
+function addBagShopPhoto(id, jobId) { collectBagPhoto(id, jobId); }
 
-async function sendBagSms(e) {
+async function sendBagSms(e, j) {
   if (!e.phone || !supa) return;
   const url = buildTicketUrl(e);
   const msg = 'Chatswood Chase Valet: your shopping is now in your car (Ticket ' + e.ticket + '). '
@@ -7235,10 +7331,15 @@ function renderLog() {
   }).join('');
 }
 
-function viewPhoto(id, which) {
+function viewPhoto(id, which, jobId) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
-  const src = which === 'bag' ? e.bagPhoto : which === 'shop' ? e.bagShopPhoto : e.photo;
+  let src = e.photo;
+  if (which === 'bag' || which === 'shop') {
+    const j = ensureBagJobs(e).find(x => x.id === jobId)
+      || ensureBagJobs(e).find(x => x.status !== 'done') || ensureBagJobs(e)[0];
+    src = j ? (which === 'bag' ? j.photo : j.shopPhoto) : null;
+  }
   if (!src) return;
   const caption = which === 'bag' ? 'Bag proof photo (sent to customer)'
     : which === 'shop' ? 'In-shop proof photo (staff only)'
@@ -7306,7 +7407,7 @@ function reportData() {
   const wdMax = Math.max(...ins.weekday);
   const peakDay = wdMax > 0 ? WD[ins.weekday.indexOf(wdMax)] : '—';
   return { from, to, list, completed, revenue, days, daily, brands,
-    uniqueBrands: Object.keys(byBrand).length, bagJobs: list.filter(e => e.bagStatus).length,
+    uniqueBrands: Object.keys(byBrand).length, bagJobs: allBagJobs(list).length,
     peakIn: ins.peakIn, peakOut: ins.peakOut, peakOcc: ins.peakOcc, peakDay,
     avgStayMs: ins.avgStay, medStayMs: ins.medStay };
 }
@@ -7631,16 +7732,16 @@ function renderReports() {
   const brands = new Set(filtered.map(e => e.brand));
   document.getElementById('rep-brands').textContent = brands.size;
 
-  // Bag pickups (hands-free shopping)
-  const bagJobs = filtered.filter(e => e.bagStatus);
-  const bagDone = bagJobs.filter(e => e.bagStatus === 'done').length;
+  // Bag pickups (hands-free shopping) — every round across all cars in range.
+  const bagJobs = allBagJobs(filtered).map(x => x.j);
+  const bagDone = bagJobs.filter(j => j.status === 'done').length;
   document.getElementById('rep-bags').textContent = bagJobs.length;
   const bagsSub = document.getElementById('rep-bags-sub');
   if (bagsSub) bagsSub.textContent = bagJobs.length ? `${bagDone} completed` : 'Hands-free shopping';
 
   // Bag jobs by staff — split into Collected (who picked the bags up at the
-  // shop) and Delivered (who put them in the car). Each job credits its
-  // collector (bagAssigned) and its loader (bagInCarBy) independently.
+  // shop) and Delivered (who put them in the car). Each round credits its
+  // collector (assigned) and its loader (inCarBy) independently.
   const bagStaffEl = document.getElementById('rep-bag-staff');
   if (bagStaffEl) {
     const staffCount = {};   // name -> { collected, delivered, durMs, durN }
@@ -7656,22 +7757,22 @@ function renderReports() {
     let totMs = 0, totN = 0;
     const phases = { wait: { ms: 0, n: 0 }, toShop: { ms: 0, n: 0 }, toCar: { ms: 0, n: 0 } };
     const addSeg = (a, b, p) => { if (a && b) { const d = new Date(b) - new Date(a); if (d > 0) { p.ms += d; p.n++; } } };
-    bagJobs.forEach(e => {
-      bump(e.bagAssigned, 'collected');
-      bump(e.bagInCarBy, 'delivered');
+    bagJobs.forEach(j => {
+      bump(j.assigned, 'collected');
+      bump(j.inCarBy, 'delivered');
       // Time per job is requested → done; credit it to the deliverer, who
       // closes the job out. Needs both timestamps and a recorded deliverer.
-      if (e.bagDoneAt && e.bagRequested && e.bagInCarBy) {
-        const d = new Date(e.bagDoneAt) - new Date(e.bagRequested);
+      if (j.doneAt && j.requested && j.inCarBy) {
+        const d = new Date(j.doneAt) - new Date(j.requested);
         if (d > 0) {
           totMs += d; totN++;
-          const rec = staffCount[e.bagInCarBy];
+          const rec = staffCount[j.inCarBy];
           rec.durMs += d; rec.durN++;
         }
       }
-      addSeg(e.bagRequested, e.bagCollectingAt, phases.wait);
-      addSeg(e.bagCollectingAt, e.bagShopPhotoAt, phases.toShop);
-      addSeg(e.bagShopPhotoAt, e.bagInCarAt, phases.toCar);
+      addSeg(j.requested, j.collectingAt, phases.wait);
+      addSeg(j.collectingAt, j.shopPhotoAt, phases.toShop);
+      addSeg(j.shopPhotoAt, j.inCarAt, phases.toCar);
     });
     // Sort by total work (collected + delivered), most active first.
     const sorted = Object.entries(staffCount)
@@ -8732,7 +8833,7 @@ function mgmtSummaryData(filtered) {
   const valTotal = validations.reduce((s, r) => s + r.total, 0);
   const sla = pickupWaitStats(filtered);
   const incidents = filtered.filter(e => e.incident && e.incident.condition === 'damage').length;
-  const bagJobs = filtered.filter(e => e.bagStatus).length;
+  const bagJobs = allBagJobs(filtered).length;
   return {
     cars: filtered.length, completed: completed.length, revenue, tips, washCollected,
     valCount: validations.reduce((s, r) => s + r.count, 0), valTotal,
@@ -11200,10 +11301,10 @@ function jsToDb(e) {
     pickup_requested: e.pickupRequested, pickup_eta: e.pickupETA,
     pickup_source: e.pickupSource, pickup_status: e.pickupStatus,
     discounts: e.discounts, discount_total: e.discountTotal,
-    bag_status: e.bagStatus, bag_requested: e.bagRequested, bag_location: e.bagLocation,
-    bag_count: e.bagCount, bag_assigned: e.bagAssigned, bag_assigned_user: e.bagAssignedUser, bag_notes: e.bagNotes,
-    bag_photo: e.bagPhoto, bag_shop_photo: e.bagShopPhoto, bag_done_at: e.bagDoneAt, bag_in_car_by: e.bagInCarBy,
-    bag_collecting_at: e.bagCollectingAt, bag_shop_photo_at: e.bagShopPhotoAt, bag_in_car_at: e.bagInCarAt,
+    bag_jobs: (e.bagJobs && e.bagJobs.length) ? e.bagJobs : null,
+    // Legacy single-job columns: mirror the most relevant round (latest active,
+    // else latest delivered) so older readers / the customer ticket still work.
+    ...bagLegacyMirror(e),
     shop_account: e.shopAccount, shop_cover: e.shopCover,
     shop_settled_at: e.shopSettledAt, shop_settled_by: e.shopSettledBy,
     car_wash: e.carWash || null,
@@ -11232,10 +11333,7 @@ function dbToJs(d) {
     pickupSource: d.pickup_source, pickupStatus: d.pickup_status,
     discounts: d.discounts || [],
     discountTotal: d.discount_total !== null ? parseFloat(d.discount_total) : 0,
-    bagStatus: d.bag_status, bagRequested: d.bag_requested, bagLocation: d.bag_location,
-    bagCount: d.bag_count, bagAssigned: d.bag_assigned, bagAssignedUser: d.bag_assigned_user, bagNotes: d.bag_notes,
-    bagPhoto: d.bag_photo, bagShopPhoto: d.bag_shop_photo, bagDoneAt: d.bag_done_at, bagInCarBy: d.bag_in_car_by,
-    bagCollectingAt: d.bag_collecting_at, bagShopPhotoAt: d.bag_shop_photo_at, bagInCarAt: d.bag_in_car_at,
+    bagJobs: normalizeBagJobs(d),
     shopAccount: d.shop_account,
     shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
     shopSettledAt: d.shop_settled_at, shopSettledBy: d.shop_settled_by,
@@ -11455,8 +11553,8 @@ function handleRealtimeEntryChange(payload) {
     // A customer just tapped "bring my car" on their SMS ticket link →
     // raise the alarm on this device (popup + chime + vibrate).
     maybeAlarmCustomerPickup(newEntry);
-    // A customer requested hands-free shopping → raise the bag alarm.
-    maybeAlarmBagRequest(newEntry);
+    // A customer requested hands-free shopping (any round) → raise the bag alarm.
+    scanBagAlarms();
   } else if (payload.eventType === 'DELETE') {
     entries = entries.filter(e => e.id !== payload.old.id);
   }
@@ -11604,30 +11702,38 @@ function stopPickupAlarmSound() {
 // (bag_status='requested') arrives that this device hasn't alarmed yet.
 // Reuses the pickup alarm's sound so the behaviour is identical.
 // ═══════════════════════════════════════════════════
-let bagAlertSeen = new Set();   // keys we've already handled (id|requestedAt)
-let bagAlertQueue = [];         // entry ids waiting to be shown
-let currentBagAlarmId = null;   // entry currently shown in the bag alarm modal
+let bagAlertSeen = new Set();   // job keys we've already handled (entryId|jobId)
+let bagAlertQueue = [];         // job keys waiting to be shown
+let currentBagAlarmId = null;   // entryId|jobId currently shown in the bag alarm modal
 
-function bagAlertKey(e) {
-  return (e.id || '') + '|' + (e.bagRequested || '');
+function bagAlertKey(e, j) {
+  return (e.id || '') + '|' + (j && j.id || '');
 }
 
 // Mark all current bag requests as already-seen so login / cloud-load
 // doesn't replay alarms for the existing backlog.
 function seedBagAlertBaseline() {
   bagAlertSeen = new Set();
-  entries.forEach(e => {
-    if (e.bagStatus === 'requested') bagAlertSeen.add(bagAlertKey(e));
+  activeBagJobs().forEach(({ e, j }) => {
+    if (j.status === 'requested') bagAlertSeen.add(bagAlertKey(e, j));
   });
 }
 
-function maybeAlarmBagRequest(e) {
+// Scan every on-site car's rounds and queue an alarm for any newly-'requested'
+// job we haven't seen yet. Replaces the old per-entry alarm; safe to call after
+// any change (deduped by job key).
+function scanBagAlarms() {
   if (!canHandleBags()) return;             // only admins + hands-free staff are alerted
-  if (!e || e.bagStatus !== 'requested' || e.timeOut) return;
-  const key = bagAlertKey(e);
-  if (bagAlertSeen.has(key)) return;        // already alarmed (or we logged it ourselves)
-  bagAlertSeen.add(key);
-  bagAlertQueue.push(e.id);
+  let added = false;
+  activeBagJobs().forEach(({ e, j }) => {
+    if (j.status !== 'requested') return;
+    const key = bagAlertKey(e, j);
+    if (bagAlertSeen.has(key)) return;
+    bagAlertSeen.add(key);
+    bagAlertQueue.push(key);
+    added = true;
+  });
+  if (!added) return;
   const bagModal = document.getElementById('bag-alarm-modal');
   const pickupModal = document.getElementById('pickup-alarm-modal');
   // Don't stack on top of an alarm that's already open; it'll show next.
@@ -11637,21 +11743,31 @@ function maybeAlarmBagRequest(e) {
   }
 }
 
+// Resolve a stored alarm key back to its live {e, j}, or null if it's gone/changed.
+function bagAlarmResolve(key) {
+  const [eid, jid] = String(key).split('|');
+  const e = entries.find(x => x.id === eid && !x.timeOut);
+  if (!e) return null;
+  const j = ensureBagJobs(e).find(x => x.id === jid && x.status === 'requested');
+  return j ? { e, j } : null;
+}
+
 function showNextBagAlarm() {
   const modal = document.getElementById('bag-alarm-modal');
   if (!modal) return;
-  let e = null;
+  let res = null;
   while (bagAlertQueue.length) {
-    const id = bagAlertQueue.shift();
-    e = entries.find(x => x.id === id && !x.timeOut && x.bagStatus === 'requested');
-    if (e) break;
-    e = null;
+    const key = bagAlertQueue.shift();
+    res = bagAlarmResolve(key);
+    if (res) break;
+    res = null;
   }
-  if (!e) { stopPickupAlarmSound(); modal.classList.remove('show'); currentBagAlarmId = null; return; }
+  if (!res) { stopPickupAlarmSound(); modal.classList.remove('show'); currentBagAlarmId = null; return; }
+  const { e, j } = res;
 
-  currentBagAlarmId = e.id;
-  const cnt = Number(e.bagCount) || 1;
-  document.getElementById('bag-alarm-loc').textContent = e.bagLocation || 'Valet Desk';
+  currentBagAlarmId = bagAlertKey(e, j);
+  const cnt = Number(j.count) || 1;
+  document.getElementById('bag-alarm-loc').textContent = j.location || 'Valet Desk';
   document.getElementById('bag-alarm-count').textContent = cnt + (cnt === 1 ? ' bag' : ' bags');
   document.getElementById('bag-alarm-ticket').textContent = e.ticket || '—';
   document.getElementById('bag-alarm-car').textContent =
@@ -11668,7 +11784,10 @@ function showNextBagAlarm() {
 
 // "On my way" — mark the job as being collected, then clear this alarm.
 function bagAlarmCollect() {
-  if (currentBagAlarmId) { try { assignBag(currentBagAlarmId); } catch (e) {} }
+  if (currentBagAlarmId) {
+    const [eid, jid] = String(currentBagAlarmId).split('|');
+    try { assignBag(eid, jid); } catch (e) {}
+  }
   acknowledgeBagAlarm();
 }
 
@@ -11846,8 +11965,7 @@ function handleRealtimeSettingsChange(payload) {
       // The hands-free roster changed — refresh this device's bag badge/banner
       // (and the staff list if an admin is viewing it) so the new permission
       // takes effect immediately without a reload.
-      const open = entries.filter(e => !e.timeOut && e.bagStatus && e.bagStatus !== 'done');
-      updateBagBadge(open.length);
+      updateBagBadge(activeBagJobs().length);
       try { renderStaffList(); } catch (e) {}
     }
     if (payload.new.key === 'dash_layout' || payload.new.key === 'dash_layout_v' || payload.new.key === 'capacity') {
