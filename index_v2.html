@@ -6300,6 +6300,9 @@ function renderBagQueue() {
       : st === 'in_car' ? 'In car'
       : 'Done' + (e.bagInCarBy ? ' · ' + e.bagInCarBy : '');
     const hdr = { bg: rowColor, label };
+    // "Assigned to me" — true when this open job is assigned to the logged-in
+    // user, so it stands out in their own Bags queue.
+    const mine = !isDone && e.bagAssignedUser && currentUser && e.bagAssignedUser === currentUser.username;
 
     // Status progress bar: Requested → Collecting → In car → Done.
     const curIdx = STEP_INDEX[st] ?? 0;
@@ -6321,7 +6324,20 @@ function renderBagQueue() {
     const sbase = 'flex:1;padding:13px 8px;font-size:14px;font-weight:600';
     let actions = '';
     if (st === 'requested') {
-      actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">I'll get it</button>`;
+      // Desktop counter: offer an "Assign to…" picker of bag-enabled staff so a
+      // person at the desk can delegate the job. Mobile keeps the simple
+      // self-claim only.
+      let assignPicker = '';
+      if (getUiMode() === 'desktop') {
+        const roster = bagStaffRoster();
+        if (roster.length) {
+          assignPicker = `<select onclick="event.stopPropagation()" onchange="assignBagTo('${e.id}', this.value)" title="Assign this pickup to a specific staff member" style="flex:0 0 auto;padding:12px 8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--bone);color:var(--text);cursor:pointer">`
+            + `<option value="">Assign to…</option>`
+            + roster.map(s => `<option value="${s.username}">${s.displayName}</option>`).join('')
+            + `</select>`;
+        }
+      }
+      actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">I'll get it</button>` + assignPicker;
     } else if (st === 'collecting') {
       // Required gate: staff must snap an in-shop proof photo before they can
       // mark the bags in the car.
@@ -6361,7 +6377,7 @@ function renderBagQueue() {
     const dot = `<span class="bag-dot${isDone ? '' : ' bag-dot-flash'}"${isDone ? '' : ` data-req="${e.bagRequested}"`} title="${isDone ? 'Done' : overdue ? 'Waiting over 10 min' : 'Pending'}" style="flex:0 0 auto;width:16px;height:16px;border-radius:50%;background:${rowColor};border:2px solid #fff;box-shadow:0 0 0 1px ${rowColor}"></span>`;
     const summary = `<div onclick="toggleBagDetail('${e.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-left:5px solid ${hdr.bg}">
         <div style="flex:1;min-width:0;font-size:14px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-          <b>${e.name || 'No name'}</b>${vipTag(e.vip)}<span style="color:var(--text-muted)"> · ${e.bagLocation || 'Valet Desk'} · ${cnt} bag${cnt !== 1 ? 's' : ''}</span>
+          <b>${e.name || 'No name'}</b>${vipTag(e.vip)}${mine ? ' <span style="display:inline-block;background:var(--maroon);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:9px;vertical-align:middle">YOUR JOB</span>' : ''}<span style="color:var(--text-muted)"> · ${e.bagLocation || 'Valet Desk'} · ${cnt} bag${cnt !== 1 ? 's' : ''}</span>
         </div>
         ${e.bagPhoto ? `<img src="${e.bagPhoto}" onclick="event.stopPropagation();viewPhoto('${e.id}','bag')" style="flex:0 0 auto;width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="In-car proof — tap to enlarge">` : ''}
         <div style="text-align:right;flex:0 0 auto">
@@ -6383,7 +6399,7 @@ function renderBagQueue() {
             <div style="font-size:18px;font-weight:bold;color:#333333">${e.bagLocation || 'Valet Desk'}</div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:4px">${cnt} bag${cnt !== 1 ? 's' : ''} · ${e.name || 'No name'}${e.bagNotes ? ' · ' + e.bagNotes : ''}</div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${car} · Bay <b style="color:var(--maroon)">${e.bay || '—'}</b></div>
-            ${(e.bagAssigned || e.bagInCarBy) ? `<div style="font-size:12px;color:var(--bronze);font-weight:600;margin-top:4px">${e.bagAssigned ? 'Collected: ' + e.bagAssigned : ''}${e.bagInCarBy ? (e.bagAssigned ? ' · ' : '') + 'In car: ' + e.bagInCarBy : ''}</div>` : ''}
+            ${(e.bagAssigned || e.bagInCarBy) ? `<div style="font-size:12px;color:var(--bronze);font-weight:600;margin-top:4px">${e.bagAssigned ? 'Assigned: ' + e.bagAssigned : ''}${e.bagInCarBy ? (e.bagAssigned ? ' · ' : '') + 'In car: ' + e.bagInCarBy : ''}</div>` : ''}
           </div>
           ${thumb}
         </div>
@@ -6394,7 +6410,7 @@ function renderBagQueue() {
         </div>
       </div>`;
 
-    return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:18px">
+    return `<div style="background:${mine ? '#fdf1f2' : '#fff'};border:1px solid ${mine ? 'var(--maroon)' : 'var(--border)'};border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:18px">
       ${summary}
       ${stepper}
       ${detail}
@@ -6612,6 +6628,7 @@ function requestBag(id, { location, count, notes }) {
   e.bagCount = count || 1;
   e.bagNotes = notes || '';
   e.bagAssigned = null;
+  e.bagAssignedUser = null;
   e.bagInCarBy = null;
   e.bagDoneAt = null;
   e.bagPhoto = null;   // fresh round — drop the previous delivery's photo
@@ -6632,10 +6649,27 @@ function assignBag(id) {
   const e = entries.find(x => x.id === id); if (!e) return;
   e.bagStatus = 'collecting';
   e.bagAssigned = (currentUser && currentUser.displayName) || 'Staff';
+  e.bagAssignedUser = (currentUser && currentUser.username) || null;
   saveData(id, { immediate: true });
   cloudAudit('bag_collecting', 'entry', id, { ticket: e.ticket });
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
+}
+
+// Desktop counter view: hand a requested bag job to a specific bag-enabled
+// person (instead of self-claiming via "I'll get it"). Stores their username
+// for reliable "assigned to you" highlighting on their own device.
+function assignBagTo(id, username) {
+  if (!username) return;
+  const e = entries.find(x => x.id === id); if (!e) return;
+  e.bagStatus = 'collecting';
+  e.bagAssignedUser = username;
+  e.bagAssigned = staffDisplayName(username);
+  saveData(id, { immediate: true });
+  cloudAudit('bag_assign', 'entry', id, { ticket: e.ticket, to: username, by: currentUser && currentUser.username });
+  renderBagQueue();
+  if (typeof hapticFeedback === 'function') hapticFeedback('light');
+  quickToast('Assigned to ' + e.bagAssigned);
 }
 
 // Mark bags in the car. REQUIRES a proof photo (opens the camera first); the
@@ -6665,7 +6699,7 @@ function cancelBag(id) {
   const e = entries.find(x => x.id === id); if (!e) return;
   if (!confirm('Cancel this bag request?')) return;
   e.bagStatus = null; e.bagRequested = null; e.bagLocation = null; e.bagCount = null;
-  e.bagAssigned = null; e.bagInCarBy = null; e.bagNotes = null; e.bagDoneAt = null;
+  e.bagAssigned = null; e.bagAssignedUser = null; e.bagInCarBy = null; e.bagNotes = null; e.bagDoneAt = null;
   e.bagPhoto = null; e.bagShopPhoto = null;
   saveData(id, { immediate: true });
   cloudAudit('bag_cancel', 'entry', id, { ticket: e.ticket });
@@ -10948,6 +10982,22 @@ const SALT = 'chatswood-salt-2026';
 
 let supa = null;       // Supabase client
 let currentUser = null; // { username, displayName, role }
+// Cached active-staff roster ({username, display_name, role, is_active}), kept
+// so synchronous renders (e.g. the bag-assign picker) can map usernames to
+// display names without an async fetch. Refreshed on load and staff edits.
+let staffRoster = [];
+function staffDisplayName(username) {
+  const s = staffRoster.find(x => x.username === username);
+  return (s && s.display_name) || username || 'Staff';
+}
+// Bag-enabled, active staff as {username, displayName} — the people who can be
+// assigned a hands-free shopping job from the desktop counter view.
+function bagStaffRoster() {
+  const enabled = bagStaffList();
+  return staffRoster
+    .filter(s => enabled.includes(s.username))
+    .map(s => ({ username: s.username, displayName: s.display_name || s.username }));
+}
 let realtimeChannel = null;
 let cloudSettings = {}; // Settings synced from cloud
 let pendingWrites = []; // Offline queue
@@ -10971,7 +11021,7 @@ function jsToDb(e) {
     pickup_source: e.pickupSource, pickup_status: e.pickupStatus,
     discounts: e.discounts, discount_total: e.discountTotal,
     bag_status: e.bagStatus, bag_requested: e.bagRequested, bag_location: e.bagLocation,
-    bag_count: e.bagCount, bag_assigned: e.bagAssigned, bag_notes: e.bagNotes,
+    bag_count: e.bagCount, bag_assigned: e.bagAssigned, bag_assigned_user: e.bagAssignedUser, bag_notes: e.bagNotes,
     bag_photo: e.bagPhoto, bag_shop_photo: e.bagShopPhoto, bag_done_at: e.bagDoneAt, bag_in_car_by: e.bagInCarBy,
     shop_account: e.shopAccount, shop_cover: e.shopCover,
     shop_settled_at: e.shopSettledAt, shop_settled_by: e.shopSettledBy,
@@ -11002,7 +11052,7 @@ function dbToJs(d) {
     discounts: d.discounts || [],
     discountTotal: d.discount_total !== null ? parseFloat(d.discount_total) : 0,
     bagStatus: d.bag_status, bagRequested: d.bag_requested, bagLocation: d.bag_location,
-    bagCount: d.bag_count, bagAssigned: d.bag_assigned, bagNotes: d.bag_notes,
+    bagCount: d.bag_count, bagAssigned: d.bag_assigned, bagAssignedUser: d.bag_assigned_user, bagNotes: d.bag_notes,
     bagPhoto: d.bag_photo, bagShopPhoto: d.bag_shop_photo, bagDoneAt: d.bag_done_at, bagInCarBy: d.bag_in_car_by,
     shopAccount: d.shop_account,
     shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
@@ -11823,12 +11873,14 @@ async function loadFromCloud() {
     if (!supa) {
       await initSupabase();
     }
-    const [cloudEntries, freshSettings] = await Promise.all([
+    const [cloudEntries, freshSettings, staff] = await Promise.all([
       cloudLoadAllEntries(),
       cloudLoadSettings(),
+      cloudListStaff().catch(() => null),
     ]);
     cloudSettings = freshSettings;
     entries = cloudEntries;
+    if (staff) staffRoster = staff;
     settings.prefix = cloudSettings.ticket_prefix || settings.prefix || 'A-';
     if (cloudSettings.next_ticket_num !== undefined && cloudSettings.next_ticket_num !== null) {
       settings.nextNum = cloudSettings.next_ticket_num;
@@ -11918,6 +11970,8 @@ async function renderStaffList() {
       .select('username, display_name, role, is_active, last_login')
       .order('display_name');
     if (error) throw error;
+    // Keep the roster cache fresh so the bag-assign picker shows current names.
+    staffRoster = (data || []).filter(s => s.is_active);
 
     const list = document.getElementById('staff-list');
     if (!data || data.length === 0) {
