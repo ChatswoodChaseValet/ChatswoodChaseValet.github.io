@@ -124,7 +124,7 @@ Confirm to finish — the car leaves the list, revenue is recorded, and any car 
 Customers leave purchases with stores; valet collects everything and loads the car. Track on the **Bags** tab:
 1. Log the bag pickup (Active Cars row → Bag icon, or the Bags tab) — note store/location and number of bags.
 2. The job moves through **requested → collecting → in car → done**.
-3. **Claim or assign it.** Anyone can tap **I'll get it** to take a job themselves. On **desktop**, the person at the counter can instead use the **Assign to…** dropdown to hand the job to a specific bag-enabled staff member — it then shows as **YOUR JOB** (highlighted) in that person's Bags queue.
+3. **Claim or assign it.** Anyone can tap **I'll get it** to take a job themselves. On **desktop**, the person at the counter can instead use the **Assign to…** dropdown to hand the job to a specific bag-enabled staff member — it then shows as **YOUR JOB** (highlighted) in that person's Bags queue. Picked the wrong person? Open the job and use the **Reassign…** dropdown to switch them, or choose **↺ Unassign** to put it back in the open queue.
 4. **Two photos are taken:** one **at the shop** when you collect the bags (required before you can mark them "In car" — our proof of what was handed over) and one **in the car** (sent to the customer as confirmation).
 5. Both the collector and the loader are credited (Reports → Bag Jobs by Staff).
 

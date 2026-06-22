@@ -6417,6 +6417,18 @@ function renderBagQueue() {
         ? `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">In car (take photo)</button>`
           + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagShopPhoto('${e.id}')" title="Retake in-shop photo">Shop ✓</button>`
         : `<button class="btn btn-primary" style="${sbase}" onclick="collectBagPhoto('${e.id}')">At shop — take photo</button>`;
+      // Desktop counter: let staff fix a wrong pick — reassign to someone else
+      // or send it back to the unassigned queue. (Mobile keeps it simple.)
+      if (getUiMode() === 'desktop') {
+        const roster = bagStaffRoster();
+        if (roster.length) {
+          actions += `<select onclick="event.stopPropagation()" onchange="reassignBag('${e.id}', this.value)" title="Reassign or unassign this pickup" style="flex:0 0 auto;padding:12px 8px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--bone);color:var(--text);cursor:pointer">`
+            + `<option value="">Reassign…</option>`
+            + roster.map(s => `<option value="${s.username}">${s.displayName}${s.username === e.bagAssignedUser ? ' (current)' : ''}</option>`).join('')
+            + `<option value="__unassign__">↺ Unassign</option>`
+            + `</select>`;
+        }
+      }
     } else if (st === 'in_car') {
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}')">Done</button>`
         + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add / retake proof photo">Photo${e.bagPhoto ? ' ✓' : ''}</button>`;
@@ -6747,6 +6759,40 @@ function assignBagTo(id, username) {
   renderBagQueue();
   if (typeof hapticFeedback === 'function') hapticFeedback('light');
   quickToast('Assigned to ' + e.bagAssigned);
+}
+
+// Desktop: fix a wrong pick after a job is already being collected — switch it
+// to a different person, or send it back to the unassigned queue.
+function reassignBag(id, value) {
+  if (!value) return;
+  if (value === '__unassign__') return unassignBag(id);
+  const e = entries.find(x => x.id === id); if (!e) return;
+  if (value === e.bagAssignedUser) return;   // picked the same person — no change
+  const prev = e.bagAssigned;
+  e.bagStatus = 'collecting';
+  e.bagAssignedUser = value;
+  e.bagAssigned = staffDisplayName(value);
+  saveData(id, { immediate: true });
+  cloudAudit('bag_reassign', 'entry', id, { ticket: e.ticket, from: prev, to: value, by: currentUser && currentUser.username });
+  renderBagQueue();
+  if (typeof hapticFeedback === 'function') hapticFeedback('light');
+  quickToast('Reassigned to ' + e.bagAssigned);
+}
+
+// Desktop: undo an assignment made by mistake — back to the unassigned queue so
+// anyone can claim it. Clears the claim timing since it was never really started.
+function unassignBag(id) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  e.bagStatus = 'requested';
+  e.bagAssigned = null;
+  e.bagAssignedUser = null;
+  e.bagCollectingAt = null;
+  bagBannerDismissed = false;   // it's an open request again
+  saveData(id, { immediate: true });
+  cloudAudit('bag_unassign', 'entry', id, { ticket: e.ticket, by: currentUser && currentUser.username });
+  renderBagQueue();
+  if (typeof hapticFeedback === 'function') hapticFeedback('light');
+  quickToast('Back to unassigned');
 }
 
 // Mark bags in the car. REQUIRES a proof photo (opens the camera first); the
