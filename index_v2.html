@@ -482,7 +482,22 @@ body.dark-mode .ico-group{background:transparent}
 .pmap-spot{position:absolute;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   font-size:11px;font-weight:bold;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.28);cursor:default}
 .pmap-spot.free{background:var(--green)}
-.pmap-spot.occ{background:#a83838}
+.pmap-spot.occ{background:#a83838;cursor:pointer}
+.pmap-spot.occ:hover{background:#c14545;box-shadow:0 0 0 3px rgba(168,56,56,.35),0 1px 3px rgba(0,0,0,.28)}
+
+/* ─── PARKING-MAP BAY QUICK MENU ─── */
+.bay-menu-overlay{position:fixed;inset:0;background:rgba(42,38,32,.55);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px}
+.bay-menu{background:var(--white);border-radius:12px;max-width:340px;width:100%;box-shadow:0 12px 44px rgba(0,0,0,.32);overflow:hidden;animation:bayMenuIn .12s ease-out}
+@keyframes bayMenuIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.bay-menu-head{position:relative;background:var(--maroon);color:#fff;padding:14px 44px 14px 16px}
+.bay-menu-head .bm-bay{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85;font-weight:600}
+.bay-menu-head .bm-car{font-size:18px;font-weight:bold;margin-top:2px;line-height:1.2}
+.bay-menu-head .bm-sub{font-size:12px;opacity:.88;margin-top:4px}
+.bay-menu-close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;line-height:1;cursor:pointer}
+.bay-menu-close:hover{background:rgba(255,255,255,.32)}
+.bay-menu-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px}
+.bay-menu-actions .btn{width:100%;text-decoration:none}
+.bay-menu-actions .bm-full{grid-column:1 / -1}
 
 /* ─── MODAL ─── */
 .modal{
@@ -1144,6 +1159,7 @@ body.dark-mode .scan-banner {
       <div class="pmap-legend">
         <span><i class="free"></i>Available <b id="pmap-free" style="color:var(--text)">—</b></span>
         <span><i class="occ"></i>Occupied <b id="pmap-occ" style="color:var(--text)">—</b></span>
+        <span style="color:var(--text-muted);font-style:italic">Tap a red bay for actions</span>
       </div>
     </div>
     <div class="pmap-wrap"><div class="pmap-board" id="parking-map"></div></div>
@@ -5340,9 +5356,10 @@ function renderParkingMap() {
     const e = byBay[s.n];
     const veh = e ? [e.brand, e.model].filter(Boolean).join(' ') : '';
     const title = e
-      ? `Bay ${s.n} — ${e.rego || 'occupied'}${veh ? ' · ' + veh : ''} · ticket ${e.ticket}`
+      ? `Bay ${s.n} — ${e.rego || 'occupied'}${veh ? ' · ' + veh : ''} · ticket ${e.ticket} · tap for actions`
       : `Bay ${s.n} — available`;
-    return `<div class="pmap-spot ${e ? 'occ' : 'free'}" style="left:${s.rx}px;top:${s.ry}px" title="${escAttr(title)}">${s.n}</div>`;
+    const click = e ? ` onclick="openBayMenu('${e.id}', event)"` : '';
+    return `<div class="pmap-spot ${e ? 'occ' : 'free'}" style="left:${s.rx}px;top:${s.ry}px" title="${escAttr(title)}"${click}>${s.n}</div>`;
   }).join('');
 
   const occN = Object.keys(byBay).filter(n => +n >= 1 && +n <= PMAP_TOTAL).length;
@@ -5350,6 +5367,52 @@ function renderParkingMap() {
   const occEl = document.getElementById('pmap-occ');
   if (freeEl) freeEl.textContent = PMAP_TOTAL - occN;
   if (occEl) occEl.textContent = occN;
+}
+
+// Tapping an occupied bay on the map opens a quick-action sheet for that car —
+// the common things staff want without hunting through Active Cars: Mark Out,
+// request pickup, call, edit, bag pickup, car wash. Each action reuses the
+// existing handler and closes the sheet first.
+function openBayMenu(id, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  closeBayMenu();
+  const veh = [e.brand, e.model].filter(Boolean).join(' ') || 'Vehicle';
+  const fees = calculateTotalFee(new Date() - new Date(e.timeIn));
+  const pickupOn = !!e.pickupRequested;
+  const sub = `Ticket ${e.ticket} · ${e.name || 'No name'} · in ${fmtTime(new Date(e.timeIn))} · ${fmtMoney(fees.total)}`;
+  const call = e.phone
+    ? `<a href="tel:${escAttr(e.phone)}" class="btn btn-secondary" onclick="closeBayMenu()">Call</a>`
+    : '';
+  const overlay = document.createElement('div');
+  overlay.id = 'bay-menu-overlay';
+  overlay.className = 'bay-menu-overlay';
+  overlay.onclick = closeBayMenu;
+  overlay.innerHTML = `<div class="bay-menu" onclick="event.stopPropagation()">
+      <div class="bay-menu-head">
+        <button class="bay-menu-close" onclick="closeBayMenu()" aria-label="Close">✕</button>
+        <div class="bm-bay">Bay ${escAttr(String(e.bay))}</div>
+        <div class="bm-car">${escAttr(veh)}${e.rego ? ' · ' + escAttr(e.rego) : ''}</div>
+        <div class="bm-sub">${escAttr(sub)}</div>
+      </div>
+      <div class="bay-menu-actions">
+        <button class="btn btn-primary bm-full" onclick="closeBayMenu();checkout('${e.id}')">✓ Mark Out</button>
+        <button class="btn btn-secondary" onclick="closeBayMenu();togglePickupRequest('${e.id}')">${pickupOn ? 'Cancel pickup' : 'Request pickup'}</button>
+        ${call}
+        <button class="btn btn-secondary" onclick="closeBayMenu();openEditCar('${e.id}')">Edit</button>
+        <button class="btn btn-secondary" onclick="closeBayMenu();logBagRequest('${e.id}')">Bag pickup</button>
+        <button class="btn btn-secondary bm-full" onclick="closeBayMenu();openWashDialog('${e.id}')">${e.carWash ? 'Manage wash' : 'Car wash'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', bayMenuEsc);
+}
+function bayMenuEsc(ev) { if (ev.key === 'Escape') closeBayMenu(); }
+function closeBayMenu() {
+  document.removeEventListener('keydown', bayMenuEsc);
+  const o = document.getElementById('bay-menu-overlay');
+  if (o) o.remove();
 }
 
 function renderBrandList(list, containerId) {
