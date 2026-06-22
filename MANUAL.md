@@ -168,7 +168,7 @@ Pick a date range at the top; every panel updates. Menu groups related panels:
 | **Payments** | Cash-up (Card/EFTPOS vs cash, tips, outstanding, non-card flagged) plus **Shop Accounts**, **Car Wash** and **Discounts** panels. |
 | **Staff Performance** | Cars parked per attendant; checkouts + revenue + tips per attendant. |
 | **Customers** | Stay-length tiers (free <2h vs paid) and repeat customers. |
-| **Bag Jobs by Staff** | Hands-free shopping jobs per staff member, split into **Collected** (picked the bags up at the shop) and **Delivered** (put them in the car), plus **Avg time** per job (requested → done, credited to the deliverer) and an overall average for the range. |
+| **Bag Jobs by Staff** | Hands-free shopping jobs per staff member, split into **Collected** (picked the bags up at the shop) and **Delivered** (put them in the car), plus **Avg time** per job per person. A breakdown at the top shows the average **Wait to claim** (requested → claimed), **To shop** (claimed → bags photographed at the shop), **Shop → car** (shop → loaded in car) and **Total per job**, over the selected range. |
 | **Period Comparison** | This week/month/year vs the last. |
 | **Incidents** | Cars where new damage was logged at handover, with notes and acknowledgement. |
 | **Full Log** | Every entry, searchable. |

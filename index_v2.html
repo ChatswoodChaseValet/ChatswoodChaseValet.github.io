@@ -6640,6 +6640,9 @@ function requestBag(id, { location, count, notes }) {
   e.bagAssignedUser = null;
   e.bagInCarBy = null;
   e.bagDoneAt = null;
+  e.bagCollectingAt = null;
+  e.bagShopPhotoAt = null;
+  e.bagInCarAt = null;
   e.bagPhoto = null;   // fresh round — drop the previous delivery's photo
   e.bagShopPhoto = null; // and its in-shop proof photo
   bagBannerDismissed = false;
@@ -6659,6 +6662,7 @@ function assignBag(id) {
   e.bagStatus = 'collecting';
   e.bagAssigned = (currentUser && currentUser.displayName) || 'Staff';
   e.bagAssignedUser = (currentUser && currentUser.username) || null;
+  e.bagCollectingAt = e.bagCollectingAt || new Date().toISOString();
   saveData(id, { immediate: true });
   cloudAudit('bag_collecting', 'entry', id, { ticket: e.ticket });
   renderBagQueue();
@@ -6674,6 +6678,7 @@ function assignBagTo(id, username) {
   e.bagStatus = 'collecting';
   e.bagAssignedUser = username;
   e.bagAssigned = staffDisplayName(username);
+  e.bagCollectingAt = e.bagCollectingAt || new Date().toISOString();
   saveData(id, { immediate: true });
   cloudAudit('bag_assign', 'entry', id, { ticket: e.ticket, to: username, by: currentUser && currentUser.username });
   renderBagQueue();
@@ -6687,6 +6692,7 @@ function bagInCar(id) {
   bagCapturePhoto(id, e => {
     e.bagStatus = 'in_car';
     e.bagInCarBy = (currentUser && currentUser.displayName) || 'Staff';
+    e.bagInCarAt = e.bagInCarAt || new Date().toISOString();
     cloudAudit('bag_in_car', 'entry', id, { ticket: e.ticket, by: e.bagInCarBy });
     quickToast('Bags in car' + (e.phone ? ' · sending photo to customer' : ''));
     sendBagSms(e);
@@ -6710,6 +6716,7 @@ function cancelBag(id) {
   e.bagStatus = null; e.bagRequested = null; e.bagLocation = null; e.bagCount = null;
   e.bagAssigned = null; e.bagAssignedUser = null; e.bagInCarBy = null; e.bagNotes = null; e.bagDoneAt = null;
   e.bagPhoto = null; e.bagShopPhoto = null;
+  e.bagCollectingAt = null; e.bagShopPhotoAt = null; e.bagInCarAt = null;
   saveData(id, { immediate: true });
   cloudAudit('bag_cancel', 'entry', id, { ticket: e.ticket });
   renderBagQueue();
@@ -6753,6 +6760,7 @@ function bagCapturePhoto(id, after, field) {
 // before "In car" becomes available, so every delivery has a pickup record.
 function collectBagPhoto(id) {
   bagCapturePhoto(id, e => {
+    e.bagShopPhotoAt = e.bagShopPhotoAt || new Date().toISOString();
     cloudAudit('bag_shop_photo', 'entry', id, { ticket: e.ticket, by: (currentUser && currentUser.displayName) || 'Staff' });
     if (typeof hapticFeedback === 'function') hapticFeedback('light');
     quickToast('In-shop photo saved');
@@ -7531,8 +7539,14 @@ function renderReports() {
       if (!name) return;
       (staffCount[name] = staffCount[name] || { collected: 0, delivered: 0, durMs: 0, durN: 0 })[key]++;
     };
-    // Overall turnaround (requested → done) across all completed jobs.
+    // Overall turnaround (requested → done) across all completed jobs, plus a
+    // phase breakdown using the transition timestamps we now stamp:
+    //   wait   = requested → collecting   (how long before someone claimed it)
+    //   toShop = collecting → in-shop photo (claim until bags in hand at shop)
+    //   toCar  = in-shop photo → in car     (shop until loaded in the car)
     let totMs = 0, totN = 0;
+    const phases = { wait: { ms: 0, n: 0 }, toShop: { ms: 0, n: 0 }, toCar: { ms: 0, n: 0 } };
+    const addSeg = (a, b, p) => { if (a && b) { const d = new Date(b) - new Date(a); if (d > 0) { p.ms += d; p.n++; } } };
     bagJobs.forEach(e => {
       bump(e.bagAssigned, 'collected');
       bump(e.bagInCarBy, 'delivered');
@@ -7546,6 +7560,9 @@ function renderReports() {
           rec.durMs += d; rec.durN++;
         }
       }
+      addSeg(e.bagRequested, e.bagCollectingAt, phases.wait);
+      addSeg(e.bagCollectingAt, e.bagShopPhotoAt, phases.toShop);
+      addSeg(e.bagShopPhotoAt, e.bagInCarAt, phases.toCar);
     });
     // Sort by total work (collected + delivered), most active first.
     const sorted = Object.entries(staffCount)
@@ -7555,7 +7572,18 @@ function renderReports() {
     } else {
       // Scale both columns to one max so collected and delivered are comparable.
       const max = Math.max(1, ...sorted.flatMap(([, c]) => [c.collected, c.delivered]));
-      const overall = `<div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Average time per job: <b style="color:var(--maroon);font-size:15px">${totN ? fmtDuration(totMs / totN) : '—'}</b>${totN ? ` · over ${totN} completed job${totN !== 1 ? 's' : ''}` : ' · no completed jobs yet'}</div>`;
+      const avgP = p => p.n ? fmtDuration(p.ms / p.n) : '—';
+      const chipStr = (label, val, color) => `<div style="flex:1;min-width:88px;background:var(--sandstone);border-radius:8px;padding:8px 10px;text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);font-weight:700">${label}</div>
+          <div style="font-size:17px;font-weight:bold;color:${color || 'var(--text)'};margin-top:2px">${val}</div>
+        </div>`;
+      const overall = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          ${chipStr('Wait to claim', avgP(phases.wait))}
+          ${chipStr('To shop', avgP(phases.toShop))}
+          ${chipStr('Shop → car', avgP(phases.toCar))}
+          ${chipStr('Total per job', totN ? fmtDuration(totMs / totN) : '—', 'var(--maroon)')}
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">${totN ? `Over ${totN} completed job${totN !== 1 ? 's' : ''} in this range` : 'No completed jobs in this range yet'}</div>`;
       const header = `<div style="display:flex;align-items:center;gap:12px;padding:0 0 6px;border-bottom:1px solid #ebebe9;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted)">
           <div style="flex:0 0 100px">Staff</div>
           <div style="flex:1">Collected</div>
@@ -11066,6 +11094,7 @@ function jsToDb(e) {
     bag_status: e.bagStatus, bag_requested: e.bagRequested, bag_location: e.bagLocation,
     bag_count: e.bagCount, bag_assigned: e.bagAssigned, bag_assigned_user: e.bagAssignedUser, bag_notes: e.bagNotes,
     bag_photo: e.bagPhoto, bag_shop_photo: e.bagShopPhoto, bag_done_at: e.bagDoneAt, bag_in_car_by: e.bagInCarBy,
+    bag_collecting_at: e.bagCollectingAt, bag_shop_photo_at: e.bagShopPhotoAt, bag_in_car_at: e.bagInCarAt,
     shop_account: e.shopAccount, shop_cover: e.shopCover,
     shop_settled_at: e.shopSettledAt, shop_settled_by: e.shopSettledBy,
     car_wash: e.carWash || null,
@@ -11097,6 +11126,7 @@ function dbToJs(d) {
     bagStatus: d.bag_status, bagRequested: d.bag_requested, bagLocation: d.bag_location,
     bagCount: d.bag_count, bagAssigned: d.bag_assigned, bagAssignedUser: d.bag_assigned_user, bagNotes: d.bag_notes,
     bagPhoto: d.bag_photo, bagShopPhoto: d.bag_shop_photo, bagDoneAt: d.bag_done_at, bagInCarBy: d.bag_in_car_by,
+    bagCollectingAt: d.bag_collecting_at, bagShopPhotoAt: d.bag_shop_photo_at, bagInCarAt: d.bag_in_car_at,
     shopAccount: d.shop_account,
     shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
     shopSettledAt: d.shop_settled_at, shopSettledBy: d.shop_settled_by,
