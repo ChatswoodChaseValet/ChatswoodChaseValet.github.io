@@ -6242,6 +6242,15 @@ function fmtElapsed(ms) {
   return `${pad(m)}:${pad(s)}`;
 }
 
+// Human-friendly duration for reports: "<1m", "7m", "1h 5m".
+function fmtDuration(ms) {
+  const min = ms / 60000;
+  if (min < 1) return '<1m';
+  if (min < 60) return Math.round(min) + 'm';
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
 // Once a second, live-update the waiting timers and the status-circle colour
 // (yellow → red past 10 min) without re-rendering the whole list, so the
 // flashing animation stays smooth. Only runs while the Bags tab is visible.
@@ -7517,12 +7526,27 @@ function renderReports() {
   // collector (bagAssigned) and its loader (bagInCarBy) independently.
   const bagStaffEl = document.getElementById('rep-bag-staff');
   if (bagStaffEl) {
-    const staffCount = {};   // name -> { collected, delivered }
+    const staffCount = {};   // name -> { collected, delivered, durMs, durN }
     const bump = (name, key) => {
       if (!name) return;
-      (staffCount[name] = staffCount[name] || { collected: 0, delivered: 0 })[key]++;
+      (staffCount[name] = staffCount[name] || { collected: 0, delivered: 0, durMs: 0, durN: 0 })[key]++;
     };
-    bagJobs.forEach(e => { bump(e.bagAssigned, 'collected'); bump(e.bagInCarBy, 'delivered'); });
+    // Overall turnaround (requested → done) across all completed jobs.
+    let totMs = 0, totN = 0;
+    bagJobs.forEach(e => {
+      bump(e.bagAssigned, 'collected');
+      bump(e.bagInCarBy, 'delivered');
+      // Time per job is requested → done; credit it to the deliverer, who
+      // closes the job out. Needs both timestamps and a recorded deliverer.
+      if (e.bagDoneAt && e.bagRequested && e.bagInCarBy) {
+        const d = new Date(e.bagDoneAt) - new Date(e.bagRequested);
+        if (d > 0) {
+          totMs += d; totN++;
+          const rec = staffCount[e.bagInCarBy];
+          rec.durMs += d; rec.durN++;
+        }
+      }
+    });
     // Sort by total work (collected + delivered), most active first.
     const sorted = Object.entries(staffCount)
       .sort((a, b) => (b[1].collected + b[1].delivered) - (a[1].collected + a[1].delivered));
@@ -7531,21 +7555,26 @@ function renderReports() {
     } else {
       // Scale both columns to one max so collected and delivered are comparable.
       const max = Math.max(1, ...sorted.flatMap(([, c]) => [c.collected, c.delivered]));
-      const header = `<div style="display:flex;align-items:center;gap:10px;padding:0 0 6px;border-bottom:1px solid #ebebe9;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted)">
+      const overall = `<div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Average time per job: <b style="color:var(--maroon);font-size:15px">${totN ? fmtDuration(totMs / totN) : '—'}</b>${totN ? ` · over ${totN} completed job${totN !== 1 ? 's' : ''}` : ' · no completed jobs yet'}</div>`;
+      const header = `<div style="display:flex;align-items:center;gap:12px;padding:0 0 6px;border-bottom:1px solid #ebebe9;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted)">
           <div style="flex:0 0 100px">Staff</div>
           <div style="flex:1">Collected</div>
           <div style="flex:1">Delivered</div>
+          <div style="flex:0 0 64px;text-align:right">Avg time</div>
         </div>`;
       const bar = (count, color) => `<div style="flex:1;display:flex;align-items:center;gap:8px">
           <div class="brand-bar-wrap"><div style="height:100%;border-radius:3px;transition:width .4s;width:${(count / max) * 100}%;background:${color}"></div></div>
           <div style="flex:0 0 26px;text-align:right;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;font-size:13px;color:${count ? color : 'var(--text-muted)'}">${count}</div>
         </div>`;
-      bagStaffEl.innerHTML = header + sorted.map(([name, c]) => `
+      const rows = sorted.map(([name, c]) => `
         <div class="brand-row">
           <div style="flex:0 0 100px;font-size:13px;font-weight:600;color:var(--text)">${name}</div>
           ${bar(c.collected, 'var(--bronze)')}
           ${bar(c.delivered, 'var(--maroon)')}
+          <div style="flex:0 0 64px;text-align:right;font-size:13px;font-weight:600;color:${c.durN ? 'var(--text)' : 'var(--text-muted)'}" title="${c.durN ? `Average requested → done over ${c.durN} job${c.durN !== 1 ? 's' : ''} this person delivered` : 'No completed deliveries with timing in this range'}">${c.durN ? fmtDuration(c.durMs / c.durN) : '—'}</div>
         </div>`).join('');
+      const note = `<div style="font-size:11px;color:var(--text-muted);margin-top:10px;font-style:italic">Avg time is requested → done, credited to the deliverer. "—" means no completed, timed deliveries in range.</div>`;
+      bagStaffEl.innerHTML = overall + header + rows + note;
     }
   }
 
