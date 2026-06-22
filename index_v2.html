@@ -6323,18 +6323,33 @@ function renderBagQueue() {
     if (st === 'requested') {
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}')">I'll get it</button>`;
     } else if (st === 'collecting') {
-      actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">In car (take photo)</button>`;
+      // Required gate: staff must snap an in-shop proof photo before they can
+      // mark the bags in the car.
+      actions = e.bagShopPhoto
+        ? `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}')">In car (take photo)</button>`
+          + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagShopPhoto('${e.id}')" title="Retake in-shop photo">Shop ✓</button>`
+        : `<button class="btn btn-primary" style="${sbase}" onclick="collectBagPhoto('${e.id}')">At shop — take photo</button>`;
     } else if (st === 'in_car') {
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagDone('${e.id}')">Done</button>`
         + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagPhoto('${e.id}')" title="Add / retake proof photo">Photo${e.bagPhoto ? ' ✓' : ''}</button>`;
     } // 'done' → no primary action; the ✕ below clears it from the list
 
-    // Thumbnail of the proof photo once staff have loaded the car and snapped it.
-    const thumb = e.bagPhoto
+    // Proof photo thumbnails: the in-shop pickup shot (staff-only) and the
+    // in-car shot. Either may exist; show whichever we have side by side.
+    const shopThumb = e.bagShopPhoto
+      ? `<div style="flex-shrink:0;text-align:center">
+           <img src="${e.bagShopPhoto}" onclick="viewPhoto('${e.id}','shop')" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" title="In-shop photo — tap to enlarge">
+           <div style="font-size:10px;color:var(--bronze);font-weight:600;margin-top:3px">In-shop proof</div>
+         </div>`
+      : '';
+    const carThumb = e.bagPhoto
       ? `<div style="flex-shrink:0;text-align:center">
            <img src="${e.bagPhoto}" onclick="viewPhoto('${e.id}','bag')" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" title="Proof photo — tap to enlarge">
            <div style="font-size:10px;color:#3a7d44;font-weight:600;margin-top:3px">In-car proof</div>
          </div>`
+      : '';
+    const thumb = (shopThumb || carThumb)
+      ? `<div style="display:flex;gap:8px;flex-shrink:0">${shopThumb}${carThumb}</div>`
       : '';
 
     const expanded = bagExpandedId === e.id;
@@ -6600,6 +6615,7 @@ function requestBag(id, { location, count, notes }) {
   e.bagInCarBy = null;
   e.bagDoneAt = null;
   e.bagPhoto = null;   // fresh round — drop the previous delivery's photo
+  e.bagShopPhoto = null; // and its in-shop proof photo
   bagBannerDismissed = false;
   saveData(id, { immediate: true });
   cloudAudit('bag_request', 'entry', id, { ticket: e.ticket, location: e.bagLocation, count: e.bagCount });
@@ -6650,15 +6666,19 @@ function cancelBag(id) {
   if (!confirm('Cancel this bag request?')) return;
   e.bagStatus = null; e.bagRequested = null; e.bagLocation = null; e.bagCount = null;
   e.bagAssigned = null; e.bagInCarBy = null; e.bagNotes = null; e.bagDoneAt = null;
+  e.bagPhoto = null; e.bagShopPhoto = null;
   saveData(id, { immediate: true });
   cloudAudit('bag_cancel', 'entry', id, { ticket: e.ticket });
   renderBagQueue();
 }
 
-// Open the camera, downscale the photo, store it on the entry, persist once,
-// then run an optional callback (used by "In car" to also flip the status).
+// Open the camera, downscale the photo, store it on the chosen entry field,
+// persist once, then run an optional callback (used by "In car" to also flip
+// the status). `field` selects which photo this is: 'bagPhoto' (in-car proof,
+// the default) or 'bagShopPhoto' (in-shop proof taken while collecting).
 // Cancelling the camera does nothing — so the status only advances with a photo.
-function bagCapturePhoto(id, after) {
+function bagCapturePhoto(id, after, field) {
+  field = field || 'bagPhoto';
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
   inp.onchange = ev => {
@@ -6673,11 +6693,11 @@ function bagCapturePhoto(id, after) {
         const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
         cv.getContext('2d').drawImage(img, 0, 0, w, h);
         const e = entries.find(x => x.id === id); if (!e) return;
-        e.bagPhoto = cv.toDataURL('image/jpeg', 0.7);
+        e[field] = cv.toDataURL('image/jpeg', 0.7);
         if (typeof after === 'function') after(e);
         saveData(id, { immediate: true });
         renderBagQueue();
-        if (typeof after !== 'function') quickToast('Proof photo saved');
+        if (typeof after !== 'function') quickToast(field === 'bagShopPhoto' ? 'In-shop photo saved' : 'Proof photo saved');
       };
       img.src = reader.result;
     };
@@ -6686,8 +6706,20 @@ function bagCapturePhoto(id, after) {
   inp.click();
 }
 
-// Retake / add a proof photo without changing the status.
+// In-shop proof: staff snap the bags at the shop while collecting. Required
+// before "In car" becomes available, so every delivery has a pickup record.
+function collectBagPhoto(id) {
+  bagCapturePhoto(id, e => {
+    cloudAudit('bag_shop_photo', 'entry', id, { ticket: e.ticket, by: (currentUser && currentUser.displayName) || 'Staff' });
+    if (typeof hapticFeedback === 'function') hapticFeedback('light');
+    quickToast('In-shop photo saved');
+  }, 'bagShopPhoto');
+}
+
+// Retake / add the in-car proof photo without changing the status.
 function addBagPhoto(id) { bagCapturePhoto(id); }
+// Retake the in-shop proof photo without changing the status.
+function addBagShopPhoto(id) { collectBagPhoto(id); }
 
 async function sendBagSms(e) {
   if (!e.phone || !supa) return;
@@ -7046,9 +7078,11 @@ function renderLog() {
 function viewPhoto(id, which) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
-  const src = which === 'bag' ? e.bagPhoto : e.photo;
+  const src = which === 'bag' ? e.bagPhoto : which === 'shop' ? e.bagShopPhoto : e.photo;
   if (!src) return;
-  const caption = which === 'bag' ? 'Bag proof photo (sent to customer)' : (e.brand + ' ' + (e.model || ''));
+  const caption = which === 'bag' ? 'Bag proof photo (sent to customer)'
+    : which === 'shop' ? 'In-shop proof photo (staff only)'
+    : (e.brand + ' ' + (e.model || ''));
   const w = window.open('', '_blank', 'width=800,height=900');
   w.document.write(`<title>Photo — ${e.ticket} ${e.rego}</title>
     <body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;color:#fff;font-family:'Inter',sans-serif">
@@ -10938,7 +10972,7 @@ function jsToDb(e) {
     discounts: e.discounts, discount_total: e.discountTotal,
     bag_status: e.bagStatus, bag_requested: e.bagRequested, bag_location: e.bagLocation,
     bag_count: e.bagCount, bag_assigned: e.bagAssigned, bag_notes: e.bagNotes,
-    bag_photo: e.bagPhoto, bag_done_at: e.bagDoneAt, bag_in_car_by: e.bagInCarBy,
+    bag_photo: e.bagPhoto, bag_shop_photo: e.bagShopPhoto, bag_done_at: e.bagDoneAt, bag_in_car_by: e.bagInCarBy,
     shop_account: e.shopAccount, shop_cover: e.shopCover,
     shop_settled_at: e.shopSettledAt, shop_settled_by: e.shopSettledBy,
     car_wash: e.carWash || null,
@@ -10969,7 +11003,7 @@ function dbToJs(d) {
     discountTotal: d.discount_total !== null ? parseFloat(d.discount_total) : 0,
     bagStatus: d.bag_status, bagRequested: d.bag_requested, bagLocation: d.bag_location,
     bagCount: d.bag_count, bagAssigned: d.bag_assigned, bagNotes: d.bag_notes,
-    bagPhoto: d.bag_photo, bagDoneAt: d.bag_done_at, bagInCarBy: d.bag_in_car_by,
+    bagPhoto: d.bag_photo, bagShopPhoto: d.bag_shop_photo, bagDoneAt: d.bag_done_at, bagInCarBy: d.bag_in_car_by,
     shopAccount: d.shop_account,
     shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
     shopSettledAt: d.shop_settled_at, shopSettledBy: d.shop_settled_by,
