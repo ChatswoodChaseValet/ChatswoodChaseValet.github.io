@@ -1122,6 +1122,7 @@ body.dark-mode .scan-banner {
   <button class="flyout-item" data-group="staff" onclick="goReport('staff')">Staff Performance</button>
   <button class="flyout-item" data-group="customers" onclick="goReport('customers')">Customers</button>
   <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
+  <button class="flyout-item" data-group="feedback" onclick="goReport('feedback')">Customer Feedback</button>
   <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
   <button class="flyout-item" data-group="incidents" onclick="goReport('incidents')">Incidents</button>
   <button class="flyout-item" data-group="log" onclick="goReport('log')">Full Log</button>
@@ -1913,6 +1914,14 @@ body.dark-mode .scan-banner {
     <div id="rep-bag-staff"><div class="empty">No bag pickups in this range</div></div>
   </div>
 
+  <div class="section rep-section" data-repgroup="feedback">
+    <div class="section-header">
+      <div class="section-title">Customer Feedback</div>
+      <div style="font-size:11px;color:var(--text-muted);font-style:italic">1-tap ratings left by customers after their car was returned</div>
+    </div>
+    <div id="rep-feedback"><div class="empty">No feedback in this range</div></div>
+  </div>
+
   <div class="section rep-section" data-repgroup="volume">
     <div class="section-header">
       <div class="section-title">Daily Volume</div>
@@ -2477,6 +2486,16 @@ body.dark-mode .scan-banner {
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
       <button class="btn btn-secondary" onclick="document.getElementById(&#39;merge-file&#39;).click()" title="Add records from a JSON file to your existing data (skips duplicates)">⤒ Merge Import (add records)</button>
       <input type="file" id="merge-file" accept=".json" style="display:none" onchange="importJSONMerge(event)">
+    </div>
+    <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bronze);font-weight:600;margin-bottom:4px">Automatic cloud backup</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;line-height:1.6">
+        A full snapshot is saved to the cloud <strong>every night automatically</strong> and kept for 30 days — a safety net if data is changed or deleted by mistake. It stays server-side (never downloaded here unless you ask).
+      </p>
+      <div style="background:var(--sandstone);padding:12px 14px;border-radius:4px;border-left:3px solid var(--maroon);margin-bottom:12px">
+        <div id="backup-status" style="font-size:14px;font-weight:600;color:var(--text-muted)">○ Checking…</div>
+      </div>
+      <button class="btn btn-secondary" onclick="backupNow()" id="btn-backup-now">⛁ Back up now</button>
     </div>
     <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.6">
@@ -5416,6 +5435,51 @@ function closeBayMenu() {
   if (o) o.remove();
 }
 
+// Customer feedback report: average score, star distribution and recent comments
+// from the 1-tap ratings customers leave on their ticket after pickup.
+function renderFeedbackReport(filtered) {
+  const el = document.getElementById('rep-feedback');
+  if (!el) return;
+  const rated = filtered.filter(e => e.rating != null && e.rating >= 1 && e.rating <= 5);
+  if (!rated.length) { el.innerHTML = '<div class="empty">No feedback in this range</div>'; return; }
+  const n = rated.length;
+  const avg = rated.reduce((s, e) => s + Number(e.rating), 0) / n;
+  const dist = [0, 0, 0, 0, 0];   // index 0 = 1★ … 4 = 5★
+  rated.forEach(e => { dist[e.rating - 1]++; });
+  const maxD = Math.max(1, ...dist);
+  const stars = v => '★★★★★☆☆☆☆☆'.slice(5 - v, 10 - v);
+  // Headline + distribution bars (5★ at top).
+  let html = `<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
+      <div style="font-size:34px;font-weight:bold;color:var(--maroon);font-family:'Inter',sans-serif">${avg.toFixed(2)}</div>
+      <div style="font-size:14px;color:var(--bronze);letter-spacing:1px">${stars(Math.round(avg))}</div>
+      <div style="font-size:12px;color:var(--text-muted)">over ${n} rating${n !== 1 ? 's' : ''}</div>
+    </div>`;
+  for (let v = 5; v >= 1; v--) {
+    const c = dist[v - 1];
+    html += `<div class="brand-row">
+        <div style="flex:0 0 40px;font-size:13px;font-weight:600;color:var(--bronze)">${v}★</div>
+        <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(c / maxD) * 100}%"></div></div>
+        <div class="brand-count">${c}</div>
+      </div>`;
+  }
+  // Recent comments (most recent first).
+  const comments = rated
+    .filter(e => e.ratingComment && e.ratingComment.trim())
+    .sort((a, b) => new Date(b.ratingAt || 0) - new Date(a.ratingAt || 0))
+    .slice(0, 20);
+  if (comments.length) {
+    html += `<div style="margin-top:16px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--bronze);font-weight:600">Recent comments</div>`;
+    html += comments.map(e => {
+      const when = e.ratingAt ? fmtDate(new Date(e.ratingAt)) : '';
+      return `<div style="border-top:1px solid var(--border);padding:9px 0">
+          <div style="font-size:13px;color:var(--bronze)">${stars(e.rating)} <span style="color:var(--text-muted);font-size:11px">· ${escAttr(e.name || 'Guest')} · ${when}</span></div>
+          <div style="font-size:13px;color:var(--text);margin-top:2px">${escAttr(e.ratingComment)}</div>
+        </div>`;
+    }).join('');
+  }
+  el.innerHTML = html;
+}
+
 function renderBrandList(list, containerId) {
   const container = document.getElementById(containerId);
   if (list.length === 0) {
@@ -7831,6 +7895,8 @@ function renderReports() {
   }
 
   // Brand breakdown
+  renderFeedbackReport(filtered);
+
   renderBrandList(filtered, 'rep-brand-list');
 
   // Daily volume — cars and revenue per calendar day
@@ -9404,6 +9470,36 @@ function exportJSON() {
   a.download = `valet-backup-${fmtDateISO(new Date())}.json`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── AUTOMATIC CLOUD BACKUP ─────────────────────────────────────────────────
+// A nightly Postgres cron job snapshots all data server-side (30-day keep).
+// These just show status and let an admin trigger an extra snapshot on demand.
+async function updateBackupStatus() {
+  const el = document.getElementById('backup-status');
+  if (!el || !supa) return;
+  try {
+    const { data, error } = await supa.rpc('latest_backup_info');
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row || !row.created_at) { el.textContent = '○ No cloud backup yet'; return; }
+    el.innerHTML = `Last cloud backup: <strong style="color:var(--text)">${fmtDate(new Date(row.created_at))} ${fmtTime(new Date(row.created_at))}</strong> · ${row.row_count} car records`;
+  } catch (e) { el.textContent = '○ Backup status unavailable'; }
+}
+
+async function backupNow() {
+  const btn = document.getElementById('btn-backup-now');
+  if (!supa) { alert('Not connected to the cloud.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Backing up…'; }
+  try {
+    const { error } = await supa.rpc('make_data_backup', { p_kind: 'manual' });
+    if (error) throw error;
+    quickToast('Cloud backup saved');
+    await updateBackupStatus();
+  } catch (e) {
+    alert('Backup failed: ' + (e.message || e));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⛁ Back up now'; }
+  }
 }
 
 function importJSON(event) {
@@ -11315,6 +11411,9 @@ function jsToDb(e) {
     pickup_requested: e.pickupRequested, pickup_eta: e.pickupETA,
     pickup_source: e.pickupSource, pickup_status: e.pickupStatus,
     discounts: e.discounts, discount_total: e.discountTotal,
+    rating: e.rating != null ? e.rating : null,
+    rating_at: e.ratingAt || null,
+    rating_comment: e.ratingComment || null,
     bag_jobs: (e.bagJobs && e.bagJobs.length) ? e.bagJobs : null,
     // Legacy single-job columns: mirror the most relevant round (latest active,
     // else latest delivered) so older readers / the customer ticket still work.
@@ -11348,6 +11447,8 @@ function dbToJs(d) {
     discounts: d.discounts || [],
     discountTotal: d.discount_total !== null ? parseFloat(d.discount_total) : 0,
     bagJobs: normalizeBagJobs(d),
+    rating: d.rating != null ? d.rating : null,
+    ratingAt: d.rating_at, ratingComment: d.rating_comment,
     shopAccount: d.shop_account,
     shopCover: d.shop_cover !== null && d.shop_cover !== undefined ? parseFloat(d.shop_cover) : null,
     shopSettledAt: d.shop_settled_at, shopSettledBy: d.shop_settled_by,
@@ -12526,6 +12627,7 @@ function initializeUI() {
   // Register the service worker + reflect push-alert state in Settings, then
   // point this device's push subscription at the logged-in user.
   registerServiceWorker().then(() => { updatePushUI(); claimPushForCurrentUser(); });
+  updateBackupStatus();
 
   // Re-enable wake lock if it was on from a previous session
   if (settings.wakeLockEnabled) {

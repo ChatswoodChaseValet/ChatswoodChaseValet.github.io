@@ -378,8 +378,10 @@
     var buttons = document.getElementById('req-buttons');
     if (row.time_out) {
       buttons.style.display = 'none';
-      resultBox.innerHTML = '<div class="req-status" style="color:#a48d53;background:#f8f7f5;border-color:#ebebe9">' +
+      var thanks = '<div class="req-status" style="color:#a48d53;background:#f8f7f5;border-color:#ebebe9">' +
         '<span class="big">Thanks for visiting!</span>Your car has been collected. We hope to see you again at Chatswood Chase.</div>';
+      resultBox.innerHTML = thanks + ratingSection(row);
+      wireRating();
       return;
     }
     if (row.pickup_status === 'ready') {
@@ -411,6 +413,63 @@
           function(payload){ applyLiveStatus(payload.new, false); })
         .subscribe();
     } catch (e) { /* realtime unavailable — page still works, just not live */ }
+  }
+
+  // ── Customer feedback (1-tap rating after the car is collected) ──
+  function ratingSection(row){
+    if (row && row.rating) {
+      var stars = '';
+      for (var i = 1; i <= 5; i++) stars += (i <= row.rating ? '★' : '☆');
+      return '<div class="req-status" style="margin-top:12px;background:#f8f7f5;border-color:#ebebe9">'
+        + '<span class="big" style="color:#a48d53;letter-spacing:2px">' + stars + '</span>Thanks for your feedback!</div>';
+    }
+    var s = '';
+    for (var k = 1; k <= 5; k++) {
+      s += '<button type="button" class="rate-star" data-v="' + k + '" aria-label="' + k + ' stars" '
+        + 'style="background:none;border:none;font-size:40px;line-height:1;cursor:pointer;color:#d8d2c8;padding:2px 4px">☆</button>';
+    }
+    return '<div id="rate-box" style="margin-top:14px;text-align:center;background:#fff;border:1px solid #ebebe9;border-radius:14px;padding:16px">'
+      + '<div style="font-size:16px;font-weight:600;color:#333;margin-bottom:8px">How did we do?</div>'
+      + '<div id="rate-stars" style="display:flex;justify-content:center;gap:2px">' + s + '</div>'
+      + '<div id="rate-after" style="display:none;margin-top:12px">'
+      +   '<textarea id="rate-comment" rows="2" placeholder="Anything we could do better? (optional)" '
+      +     'style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:10px;padding:10px;font-family:inherit;font-size:14px"></textarea>'
+      +   '<button type="button" id="rate-send" class="req-btn now" style="width:100%;margin-top:8px">Send</button>'
+      + '</div>'
+      + '<div id="rate-done" style="display:none;color:#3a7d44;font-weight:600;margin-top:8px">Thanks for your feedback!</div>'
+      + '</div>';
+  }
+  function wireRating(){
+    var stars = document.querySelectorAll('#rate-stars .rate-star');
+    if (!stars.length) return;
+    var chosen = 0;
+    function paint(v){ stars.forEach(function(b){ var on = +b.dataset.v <= v; b.textContent = on ? '★' : '☆'; b.style.color = on ? '#a48d53' : '#d8d2c8'; }); }
+    stars.forEach(function(b){
+      b.addEventListener('mouseenter', function(){ paint(+b.dataset.v); });
+      b.addEventListener('click', async function(){
+        chosen = +b.dataset.v; paint(chosen);
+        // 1-tap: record the score immediately; comment is optional after.
+        await saveRating(chosen, null);
+        var after = document.getElementById('rate-after'); if (after) after.style.display = '';
+      });
+    });
+    document.querySelector('#rate-stars').addEventListener('mouseleave', function(){ paint(chosen); });
+    var send = document.getElementById('rate-send');
+    if (send) send.addEventListener('click', async function(){
+      send.disabled = true;
+      var c = (document.getElementById('rate-comment').value || '').trim();
+      await saveRating(chosen, c);
+      document.getElementById('rate-after').style.display = 'none';
+      document.getElementById('rate-done').style.display = '';
+    });
+  }
+  async function saveRating(score, comment){
+    if (!entryId || !score) return;
+    try {
+      var patch = { rating: score, rating_at: new Date().toISOString() };
+      if (comment != null) patch.rating_comment = comment;
+      await supa.from('entries').update(patch).eq('id', entryId);
+    } catch (e) { /* best effort */ }
   }
 
   function showError(msg){
@@ -463,7 +522,7 @@
   (async function init(){
     try {
       var row = null;
-      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status,bag_jobs,bag_status,bag_location,bag_photo,bag_count,bag_requested,bag_done_at,bag_in_car_by,bag_assigned';
+      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status,bag_jobs,bag_status,bag_location,bag_photo,bag_count,bag_requested,bag_done_at,bag_in_car_by,bag_assigned,rating,rating_comment';
 
       if (entryId) {
         var byId = await supa.from('entries').select(cols).eq('id', entryId).maybeSingle();
