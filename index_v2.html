@@ -7512,25 +7512,39 @@ function renderReports() {
   const bagsSub = document.getElementById('rep-bags-sub');
   if (bagsSub) bagsSub.textContent = bagJobs.length ? `${bagDone} completed` : 'Hands-free shopping';
 
-  // Bag jobs by staff — credit both the collector and whoever put it in the car.
+  // Bag jobs by staff — split into Collected (who picked the bags up at the
+  // shop) and Delivered (who put them in the car). Each job credits its
+  // collector (bagAssigned) and its loader (bagInCarBy) independently.
   const bagStaffEl = document.getElementById('rep-bag-staff');
   if (bagStaffEl) {
-    const staffCount = {};
-    bagJobs.forEach(e => {
-      const names = new Set([e.bagAssigned, e.bagInCarBy].filter(Boolean));
-      if (!names.size) names.add('Unassigned');
-      names.forEach(n => { staffCount[n] = (staffCount[n] || 0) + 1; });
-    });
-    const sorted = Object.entries(staffCount).sort((a, b) => b[1] - a[1]);
+    const staffCount = {};   // name -> { collected, delivered }
+    const bump = (name, key) => {
+      if (!name) return;
+      (staffCount[name] = staffCount[name] || { collected: 0, delivered: 0 })[key]++;
+    };
+    bagJobs.forEach(e => { bump(e.bagAssigned, 'collected'); bump(e.bagInCarBy, 'delivered'); });
+    // Sort by total work (collected + delivered), most active first.
+    const sorted = Object.entries(staffCount)
+      .sort((a, b) => (b[1].collected + b[1].delivered) - (a[1].collected + a[1].delivered));
     if (!sorted.length) {
       bagStaffEl.innerHTML = '<div class="empty">No bag pickups in this range</div>';
     } else {
-      const max = sorted[0][1];
-      bagStaffEl.innerHTML = sorted.map(([name, count]) => `
+      // Scale both columns to one max so collected and delivered are comparable.
+      const max = Math.max(1, ...sorted.flatMap(([, c]) => [c.collected, c.delivered]));
+      const header = `<div style="display:flex;align-items:center;gap:10px;padding:0 0 6px;border-bottom:1px solid #ebebe9;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted)">
+          <div style="flex:0 0 100px">Staff</div>
+          <div style="flex:1">Collected</div>
+          <div style="flex:1">Delivered</div>
+        </div>`;
+      const bar = (count, color) => `<div style="flex:1;display:flex;align-items:center;gap:8px">
+          <div class="brand-bar-wrap"><div style="height:100%;border-radius:3px;transition:width .4s;width:${(count / max) * 100}%;background:${color}"></div></div>
+          <div style="flex:0 0 26px;text-align:right;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;font-size:13px;color:${count ? color : 'var(--text-muted)'}">${count}</div>
+        </div>`;
+      bagStaffEl.innerHTML = header + sorted.map(([name, c]) => `
         <div class="brand-row">
-          <div class="brand-name">${name}</div>
-          <div class="brand-bar-wrap"><div class="brand-bar" style="width:${(count / max) * 100}%"></div></div>
-          <div class="brand-count">${count}</div>
+          <div style="flex:0 0 100px;font-size:13px;font-weight:600;color:var(--text)">${name}</div>
+          ${bar(c.collected, 'var(--bronze)')}
+          ${bar(c.delivered, 'var(--maroon)')}
         </div>`).join('');
     }
   }
