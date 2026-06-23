@@ -11465,9 +11465,9 @@ async function initSupabase() {
     throw new Error('Supabase library failed to load');
   }
   supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  // Test connection with an anon-safe RPC (works before login and after the
-  // PII lockdown, when anon can no longer read tables directly).
-  const { error } = await supa.rpc('latest_backup_info');
+  // Test connection with the narrowest anon-safe RPC (works before login and
+  // after the PII lockdown). get_ticket_status(null,null) returns nothing.
+  const { error } = await supa.rpc('get_ticket_status', { p_id: null, p_ticket: null });
   if (error) throw error;
   return true;
 }
