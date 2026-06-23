@@ -404,15 +404,19 @@
     }
   }
 
-  // Listen for staff updates to this car so the page reflects them live.
+  // Keep the page current by polling the status RPC (the public key has no
+  // direct table/realtime access). Light: one row every 5s while the page is
+  // open; stops once the car has been collected.
+  var watchTimer = null;
   function watchEntry(){
-    try {
-      supa.channel('ticket-' + entryId)
-        .on('postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'entries', filter: 'id=eq.' + entryId },
-          function(payload){ applyLiveStatus(payload.new, false); })
-        .subscribe();
-    } catch (e) { /* realtime unavailable — page still works, just not live */ }
+    if (watchTimer) return;
+    watchTimer = setInterval(async function(){
+      if (document.hidden) return;            // don't poll a backgrounded tab
+      var row = await fetchTicket();
+      if (!row) return;
+      applyLiveStatus(row, false);
+      if (row.time_out) { clearInterval(watchTimer); watchTimer = null; }
+    }, 5000);
   }
 
   // ── Customer feedback (1-tap rating after the car is collected) ──
@@ -466,9 +470,7 @@
   async function saveRating(score, comment){
     if (!entryId || !score) return;
     try {
-      var patch = { rating: score, rating_at: new Date().toISOString() };
-      if (comment != null) patch.rating_comment = comment;
-      await supa.from('entries').update(patch).eq('id', entryId);
+      await supa.rpc('submit_rating', { p_id: entryId, p_score: score, p_comment: (comment != null ? comment : null) });
     } catch (e) { /* best effort */ }
   }
 
@@ -491,17 +493,12 @@
     var now = new Date();
     var eta = new Date(now.getTime() + mins * 60000);
     try {
-      var res = await supa.from('entries').update({
-        pickup_requested: now.toISOString(),
-        pickup_eta: eta.toISOString(),
-        pickup_source: 'customer',
-        pickup_status: null,          // fresh request — clear any prior staff status
-        updated_at: now.toISOString()
-      }).eq('id', entryId).is('time_out', null).select('id');
+      // Security-definer RPC — no direct table access from the public key.
+      var res = await supa.rpc('request_pickup', { p_id: entryId, p_eta: eta.toISOString() });
 
       if (res.error) { showError("Something went wrong sending your request."); setBusy(false); return; }
-      if (!res.data || res.data.length === 0) {
-        // Row not updated — either already collected or not active.
+      if (!res.data || res.data === 0) {
+        // No row updated — either already collected or not active.
         resultBox.innerHTML = '<div class="req-status" style="color:#a48d53;background:#f8f7f5;border-color:#ebebe9">' +
           'This ticket is no longer active — your car may already have been collected. Please see the valet desk if you need help.</div>';
         return;
@@ -519,31 +516,28 @@
   // Identify the car, then show the request section. Prefer the ?id= param;
   // if it's missing (older link or a cached dashboard), fall back to finding
   // the active car by its ticket number so the buttons still appear.
+  // Fetch the car's public status via a security-definer RPC (no direct table
+  // access — customer PII like name/phone is never exposed to the public key).
+  async function fetchTicket(){
+    try {
+      var q = await supa.rpc('get_ticket_status', {
+        p_id: entryId || null,
+        p_ticket: entryId ? null : (/^[A-Z0-9-]{1,16}$/.test(ticketParam) ? ticketParam : null)
+      });
+      if (q.error) return null;
+      var row = Array.isArray(q.data) ? q.data[0] : q.data;
+      return row || null;
+    } catch (e) { return null; }
+  }
+
   (async function init(){
     try {
-      var row = null;
-      var cols = 'id,time_out,pickup_requested,pickup_eta,pickup_source,pickup_status,bag_jobs,bag_status,bag_location,bag_photo,bag_count,bag_requested,bag_done_at,bag_in_car_by,bag_assigned,rating,rating_comment';
-
-      if (entryId) {
-        var byId = await supa.from('entries').select(cols).eq('id', entryId).maybeSingle();
-        if (byId && !byId.error) row = byId.data;
-      }
-      if (!row && /^[A-Z0-9-]{1,16}$/.test(ticketParam)) {
-        var byT = await supa.from('entries').select(cols)
-          .ilike('ticket', ticketParam)
-          .is('time_out', null)
-          .order('time_in', { ascending: false })
-          .limit(1);
-        if (byT && !byT.error && byT.data && byT.data.length) {
-          row = byT.data[0];
-          entryId = row.id;
-        }
-      }
-
-      if (!row || !entryId) return;           // couldn't match a car — just show the QR
+      var row = await fetchTicket();
+      if (!row || !row.id) return;            // couldn't match a car — just show the QR
+      entryId = row.id;
       section.style.display = '';
       if (!row.time_out) document.getElementById('bag-section').style.display = '';
-      // Reflect the car's current state, then keep it live.
+      // Reflect the car's current state, then keep it live by polling.
       applyLiveStatus(row, true);
       if (!row.time_out) watchEntry();
     } catch (e) {
@@ -597,27 +591,11 @@
     var loc = (sel === '__other__') ? ((bagLocInput.value || '').trim() || 'Valet Desk') : sel;
     var cnt = parseInt(document.getElementById('bag-count').value, 10) || 1;
     bagSendBtn.disabled = true;
-    var now = new Date();
     try {
-      // Append a NEW round to the car's bag_jobs (keeps any earlier rounds),
-      // migrating a legacy single-job row first if needed.
-      var cur = await supa.from('entries')
-        .select('bag_jobs,bag_status,bag_location,bag_photo,bag_count,bag_requested,bag_done_at,bag_in_car_by,bag_assigned')
-        .eq('id', entryId).maybeSingle();
-      var jobs = (cur && !cur.error) ? bagJobsFromRow(cur.data) : [];
-      jobs.push({
-        id: newBagJobId(), status: 'requested', requested: now.toISOString(),
-        location: loc, count: cnt, notes: '', source: 'customer',
-        assigned: null, assignedUser: null, collectingAt: null,
-        shopPhoto: null, shopPhotoAt: null,
-        inCarBy: null, inCarAt: null, photo: null, doneAt: null
-      });
-      var patch = { bag_jobs: jobs, updated_at: now.toISOString() };
-      var mirror = bagLegacyMirror(jobs);
-      for (var k in mirror) patch[k] = mirror[k];
-      var res = await supa.from('entries').update(patch)
-        .eq('id', entryId).is('time_out', null).select('id');
-      if (res.error || !res.data || !res.data.length) {
+      // Append a NEW round server-side (keeps any earlier rounds). The RPC does
+      // the append, so the public key never touches the entries table directly.
+      var res = await supa.rpc('request_bag', { p_id: entryId, p_location: loc, p_count: cnt });
+      if (res.error) {
         bagResult.innerHTML = '<div class="req-error">Couldn\'t send your request. Please call the valet on 0427 000 822.</div>';
         bagSendBtn.disabled = false; return;
       }
