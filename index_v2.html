@@ -6337,6 +6337,11 @@ async function toggleBagStaff(username) {
 //     assigned, assignedUser, collectingAt,
 //     shopPhoto, shopPhotoAt, inCarBy, inCarAt, photo, doneAt }
 // status: requested -> collecting -> in_car -> done.
+//
+// In-shop proof photo: turned OFF for now (we need each shop's permission
+// before photographing bags in-store). While false, staff take only the single
+// in-car proof photo. Flip to true to require the in-shop photo step again.
+const BAG_SHOP_PHOTO = false;
 let bagJobSeq = 0;
 function newBagJobId() {
   bagJobSeq = (bagJobSeq + 1) % 1e6;
@@ -6572,12 +6577,17 @@ function renderBagQueue() {
       }
       actions = `<button class="btn btn-primary" style="${sbase}" onclick="assignBag('${e.id}', '${j.id}')">I'll get it</button>` + assignPicker;
     } else if (st === 'collecting') {
-      // Required gate: staff must snap an in-shop proof photo before they can
-      // mark the bags in the car.
-      actions = j.shopPhoto
-        ? `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}', '${j.id}')">In car (take photo)</button>`
-          + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagShopPhoto('${e.id}', '${j.id}')" title="Retake in-shop photo">Shop ✓</button>`
-        : `<button class="btn btn-primary" style="${sbase}" onclick="collectBagPhoto('${e.id}', '${j.id}')">At shop — take photo</button>`;
+      // In-shop photo is OPTIONAL while BAG_SHOP_PHOTO is off (awaiting shop
+      // permission) — staff go straight to the single in-car proof photo.
+      // Flip BAG_SHOP_PHOTO to true to bring back the required in-shop step.
+      if (BAG_SHOP_PHOTO) {
+        actions = j.shopPhoto
+          ? `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}', '${j.id}')">In car (take photo)</button>`
+            + `<button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 12px;font-size:13px" onclick="addBagShopPhoto('${e.id}', '${j.id}')" title="Retake in-shop photo">Shop ✓</button>`
+          : `<button class="btn btn-primary" style="${sbase}" onclick="collectBagPhoto('${e.id}', '${j.id}')">At shop — take photo</button>`;
+      } else {
+        actions = `<button class="btn btn-primary" style="${sbase}" onclick="bagInCar('${e.id}', '${j.id}')">In car (take photo)</button>`;
+      }
       // Desktop counter: let staff fix a wrong pick — reassign to someone else
       // or send it back to the unassigned queue. (Mobile keeps it simple.)
       if (getUiMode() === 'desktop') {

@@ -111,11 +111,10 @@ Running the Chatswood Chase valet, step by step
 - Log the pickup: store/location + number of bags
 - Track it: **requested → collecting → in car → done**
 - **Claim or assign:** tap **I'll get it**, or (desktop, at the counter) use **Assign to…** to give the job to a specific person — their phone **rings with an "Assigned to you" alert** and it shows as **YOUR JOB** on their screen
-- **At the shop:** take a photo of the bags before you leave the store — this is required before you can mark them "In car"
-- **In car:** take the second photo (this one is sent to the customer)
+- **In car:** take one proof photo when you load the bags (this is sent to the customer)
 - You're credited for the job
 
-*Speaker notes:* Explain the customer leaves purchases with stores; we bring them to the car. Stress the two photos — one at the shop (our proof of what we collected) and one in the car (the customer's confirmation). You can't skip the shop photo.
+*Speaker notes:* Explain the customer leaves purchases with stores; we bring them to the car. For now there's just one photo — taken in the car as the customer's confirmation. (An in-shop photo step exists in the app but is switched off until we have each shop's permission to photograph in-store.)
 *Visual:* The **Bags** screenshot (`screenshots/manual/bags.png`).
 
 ---
