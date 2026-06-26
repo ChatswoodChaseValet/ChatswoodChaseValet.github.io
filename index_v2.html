@@ -5962,8 +5962,8 @@ async function sendQRSms(id) {
   // encoding, so it stays fewer billable segments.
   // Kept to one GSM-7 SMS segment (~115 chars after the link is shortened) so
   // each check-in text bills as a single message, not two.
-  let msg = 'Chatswood Chase Valet ticket ' + e.ticket
-    + '. QR, car pickup & hands-free shopping (or call 0427000822): ' + url;
+  let msg = 'Chatswood Chase Valet, ticket ' + e.ticket
+    + '. View your QR ticket to collect your vehicle (enquiries 0427 000 822): ' + url;
 
   // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
   //    If it isn't deployed/configured yet, or the send fails, we quietly
