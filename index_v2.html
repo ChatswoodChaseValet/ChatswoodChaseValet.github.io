@@ -3651,6 +3651,7 @@ function dismissSaveToast() {
     printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
     if (e.name) printText(e.name + "\n", 0, 0, true, false, false, 0, 1);          // customer name
     printText("In: " + fmtTime(new Date(e.timeIn)) + "\n", 0, 0, false, false, false, 0, 1);  // check-in time
+    if (e.attendantIn) printText("Staff: " + e.attendantIn + "\n", 0, 0, false, false, false, 0, 1);  // serving staff, small font
     printText("\n", 0, 0, false, false, false, 0, 1);
     print1DBarcode(e.ticket, 8, 2, 70, 2, 1);                       // Code128 = ticket, HRI below (scans back into Scan Mode)
     printText("\n\n\n", 0, 0, false, false, false, 0, 1);            // feed clear of the tear bar
@@ -3673,6 +3674,7 @@ function dismissSaveToast() {
     printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
     printText("Test Customer\n", 0, 0, true, false, false, 0, 1);
     printText("In: " + fmtTime(new Date()) + "\n", 0, 0, false, false, false, 0, 1);
+    printText("Staff: JD\n", 0, 0, false, false, false, 0, 1);
     printText("\n", 0, 0, false, false, false, 0, 1);
     print1DBarcode("TEST-001", 8, 2, 70, 2, 1);
     printText("\n\n\n", 0, 0, false, false, false, 0, 1);
@@ -3775,7 +3777,9 @@ function dismissSaveToast() {
     if (sb) z += '^FO0,216^A0N,32,32^FB' + W + ',1,0,C^FD' + zSan(sb) + '^FS';        // full car brand name, UPPERCASE
     z += '^FO0,258^GB' + W + ',2,2^FS';
     if (d.name) z += '^FO0,268^A0N,30,30^FB' + W + ',1,0,C^FD' + zSan(d.name) + '^FS';
-    z += '^FO0,304^A0N,24,24^FB' + W + ',1,0,C^FD' + zSan('In: ' + (d.timeStr || '')) + '^FS';
+    var inLine = 'In: ' + (d.timeStr || '');
+    if (d.staff) inLine += '   Staff: ' + d.staff;   // serving staff on the same small line
+    z += '^FO0,304^A0N,24,24^FB' + W + ',1,0,C^FD' + zSan(inLine) + '^FS';
     z += '^BY' + mw + ',3,150^FO' + bx + ',338^BCN,150,Y,N,N^FD' + data + '^FS';      // taller barcode (freed by smaller ticket#)
     z += '^XZ';
     return z;
@@ -3784,12 +3788,12 @@ function dismissSaveToast() {
   window._printKeyTagZebra = function (entryOrId) {
     var e = (typeof entryOrId === 'string') ? entries.find(function (x) { return x.id === entryOrId; }) : entryOrId;
     if (!e) { flashScanStatus('Entry not found', 'error'); return; }
-    var zpl = buildZebraZpl({ ticket: e.ticket, bay: e.bay, plate: e.rego, brand: e.brand, name: e.name, timeStr: fmtTime(new Date(e.timeIn)), barcode: e.ticket });
+    var zpl = buildZebraZpl({ ticket: e.ticket, bay: e.bay, plate: e.rego, brand: e.brand, name: e.name, timeStr: fmtTime(new Date(e.timeIn)), staff: e.attendantIn, barcode: e.ticket });
     zebraPrint(zpl, 'Key tag printed');
   };
 
   window._printTestTagZebra = function () {
-    var zpl = buildZebraZpl({ ticket: 'TEST-001', bay: '1', plate: 'ABC123', brand: 'Toyota', name: 'Test Customer', timeStr: fmtTime(new Date()), barcode: 'TEST-001' });
+    var zpl = buildZebraZpl({ ticket: 'TEST-001', bay: '1', plate: 'ABC123', brand: 'Toyota', name: 'Test Customer', timeStr: fmtTime(new Date()), staff: 'JD', barcode: 'TEST-001' });
     zebraPrint(zpl, 'Test tag sent — check the printer');
   };
 })();
