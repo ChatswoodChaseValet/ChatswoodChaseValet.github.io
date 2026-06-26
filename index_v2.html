@@ -1701,6 +1701,7 @@ body.dark-mode .scan-banner {
             <th>Customer</th>
             <th>Date</th>
             <th>Time In</th>
+            <th>Logged By</th>
             <th>Time Out</th>
             <th>Duration</th>
             <th>Brand</th>
@@ -7477,13 +7478,14 @@ function renderLog() {
       e.brand.toLowerCase().includes(search) ||
       (e.model || '').toLowerCase().includes(search) ||
       (e.name || '').toLowerCase().includes(search) ||
-      (e.bay || '').toLowerCase().includes(search)
+      (e.bay || '').toLowerCase().includes(search) ||
+      (e.attendantIn || '').toLowerCase().includes(search)
     );
   }
 
   const tbody = document.getElementById('log-tbody');
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13" class="empty" style="border-bottom:none">No matching entries</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" class="empty" style="border-bottom:none">No matching entries</td></tr>';
     return;
   }
   tbody.innerHTML = filtered.map(e => {
@@ -7495,6 +7497,7 @@ function renderLog() {
       <td>${e.name || '—'}</td>
       <td>${fmtDate(tIn)}</td>
       <td>${fmtTime(tIn)}</td>
+      <td>${e.attendantIn || '—'}</td>
       <td>${tOut ? fmtTime(tOut) : '—'}</td>
       <td>${dur ? fmtDuration(dur) : '—'}</td>
       <td><b>${e.brand}</b></td>
