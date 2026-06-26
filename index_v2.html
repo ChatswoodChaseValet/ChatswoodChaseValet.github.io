@@ -3425,7 +3425,10 @@ function saveEntry() {
     name: document.getElementById('f-name').value.trim(),
     phone: document.getElementById('f-phone').value.trim(),
     notes: document.getElementById('f-notes').value.trim(),
-    attendantIn: document.getElementById('f-attendant').value.trim().toUpperCase(),
+    // Serving staff: use the typed initials if given, otherwise the logged-in
+    // staff member's name (each person signs in, so that's who served).
+    attendantIn: document.getElementById('f-attendant').value.trim().toUpperCase()
+      || (currentUser && currentUser.displayName) || '',
     photo: pendingCarPhoto,
     gps: pendingGPS,
     damage: damageMarkers.slice(),
@@ -3651,7 +3654,8 @@ function dismissSaveToast() {
     printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
     if (e.name) printText(e.name + "\n", 0, 0, true, false, false, 0, 1);          // customer name
     printText("In: " + fmtTime(new Date(e.timeIn)) + "\n", 0, 0, false, false, false, 0, 1);  // check-in time
-    if (e.attendantIn) printText("Staff: " + e.attendantIn + "\n", 0, 0, false, false, false, 0, 1);  // serving staff, small font
+    var servedBy = e.attendantIn || (currentUser && currentUser.displayName) || '';  // serving staff (falls back to logged-in name)
+    if (servedBy) printText("Staff: " + servedBy + "\n", 0, 0, false, false, false, 0, 1);  // small font
     printText("\n", 0, 0, false, false, false, 0, 1);
     print1DBarcode(e.ticket, 8, 2, 70, 2, 1);                       // Code128 = ticket, HRI below (scans back into Scan Mode)
     printText("\n\n\n", 0, 0, false, false, false, 0, 1);            // feed clear of the tear bar
@@ -3788,7 +3792,7 @@ function dismissSaveToast() {
   window._printKeyTagZebra = function (entryOrId) {
     var e = (typeof entryOrId === 'string') ? entries.find(function (x) { return x.id === entryOrId; }) : entryOrId;
     if (!e) { flashScanStatus('Entry not found', 'error'); return; }
-    var zpl = buildZebraZpl({ ticket: e.ticket, bay: e.bay, plate: e.rego, brand: e.brand, name: e.name, timeStr: fmtTime(new Date(e.timeIn)), staff: e.attendantIn, barcode: e.ticket });
+    var zpl = buildZebraZpl({ ticket: e.ticket, bay: e.bay, plate: e.rego, brand: e.brand, name: e.name, timeStr: fmtTime(new Date(e.timeIn)), staff: e.attendantIn || (currentUser && currentUser.displayName) || '', barcode: e.ticket });
     zebraPrint(zpl, 'Key tag printed');
   };
 
