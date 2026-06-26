@@ -1703,7 +1703,7 @@ body.dark-mode .scan-banner {
         <input type="text" id="log-search" class="form-input" placeholder="Ticket, rego, brand, staff…" oninput="renderLog()">
       </div>
       <button class="btn btn-secondary" onclick="clearLogFilters()">Clear Filters</button>
-      <button class="btn btn-secondary" onclick="exportCSV()">⤓ Export CSV</button>
+      <button class="btn btn-secondary" onclick="exportCSV(true)">⤓ Export CSV</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -7480,12 +7480,13 @@ function localDateStr(dt) {
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
 
-function renderLog() {
-  let filtered = [...entries];
+// Shared Full-Log filter (date range + search) so the table and the CSV export
+// always reflect the same set.
+function getLogFiltered() {
   const fromDate = document.getElementById('log-date-from').value;
   const toDate = document.getElementById('log-date-to').value;
   const search = document.getElementById('log-search').value.trim().toLowerCase();
-
+  let filtered = [...entries];
   if (fromDate || toDate) {
     filtered = filtered.filter(e => {
       const ds = localDateStr(e.timeIn);
@@ -7505,10 +7506,18 @@ function renderLog() {
       (e.attendantIn || '').toLowerCase().includes(search)
     );
   }
+  return filtered;
+}
+
+function renderLog() {
+  const filtered = getLogFiltered();
+  const hasFilter = !!(document.getElementById('log-date-from').value
+    || document.getElementById('log-date-to').value
+    || document.getElementById('log-search').value.trim());
 
   const total = entries.length;
   document.getElementById('log-count').textContent =
-    (fromDate || toDate || search)
+    hasFilter
       ? `${filtered.length} of ${total} entr${total !== 1 ? 'ies' : 'y'}`
       : `${total} entr${total !== 1 ? 'ies' : 'y'} total`;
 
@@ -9577,10 +9586,13 @@ function updatePrinterTypeUI() {
 // ═══════════════════════════════════════════════════
 // EXPORT / IMPORT
 // ═══════════════════════════════════════════════════
-function exportCSV() {
-  if (entries.length === 0) { alert('No entries to export.'); return; }
+// useFilter=true exports only the rows matching the Full Log's date range &
+// search (e.g. "This Month"); otherwise the whole log.
+function exportCSV(useFilter) {
+  const data = useFilter ? getLogFiltered() : entries;
+  if (data.length === 0) { alert('No entries to export for this range.'); return; }
   const headers = ['Ticket','Date','Time In','Time Out','Duration (min)','Bay','Brand','Model','Colour','Rego','Customer Name','Phone','Attendant In','Attendant Out','Parking Fee','Valet Fee','Total Fee','Tip','Payment Status','Payment Method','Square Payment ID','Notes'];
-  const rows = entries.map(e => {
+  const rows = data.map(e => {
     const tIn = new Date(e.timeIn);
     const tOut = e.timeOut ? new Date(e.timeOut) : null;
     const dur = tOut ? Math.floor((tOut - tIn) / 60000) : '';
@@ -9616,7 +9628,13 @@ function exportCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `valet-log-${fmtDateISO(new Date())}.csv`;
+  let suffix = fmtDateISO(new Date());
+  if (useFilter) {
+    const from = document.getElementById('log-date-from').value;
+    const to = document.getElementById('log-date-to').value;
+    if (from || to) suffix = (from || 'start') + '_to_' + (to || 'end');
+  }
+  a.download = `valet-log-${suffix}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
