@@ -1683,12 +1683,24 @@ body.dark-mode .scan-banner {
     </div>
     <div class="filters">
       <div class="filter-field">
-        <label class="form-label">Date</label>
-        <input type="date" id="log-date" class="form-input" onchange="renderLog()">
+        <label class="form-label">From</label>
+        <input type="date" id="log-date-from" class="form-input" onchange="renderLog()">
+      </div>
+      <div class="filter-field">
+        <label class="form-label">To</label>
+        <input type="date" id="log-date-to" class="form-input" onchange="renderLog()">
+      </div>
+      <div class="filter-field">
+        <label class="form-label">Quick range</label>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-secondary btn-sm" onclick="setLogRange('today')">Today</button>
+          <button class="btn btn-secondary btn-sm" onclick="setLogRange('week')">This Week</button>
+          <button class="btn btn-secondary btn-sm" onclick="setLogRange('month')">This Month</button>
+        </div>
       </div>
       <div class="filter-field" style="flex:1;min-width:200px">
         <label class="form-label">Search</label>
-        <input type="text" id="log-search" class="form-input" placeholder="Ticket, rego, brand…" oninput="renderLog()">
+        <input type="text" id="log-search" class="form-input" placeholder="Ticket, rego, brand, staff…" oninput="renderLog()">
       </div>
       <button class="btn btn-secondary" onclick="clearLogFilters()">Clear Filters</button>
       <button class="btn btn-secondary" onclick="exportCSV()">⤓ Export CSV</button>
@@ -7460,16 +7472,27 @@ ${unpaid.length > 0 ? `
 // ═══════════════════════════════════════════════════
 // FULL LOG RENDER
 // ═══════════════════════════════════════════════════
-function renderLog() {
-  document.getElementById('log-count').textContent =
-    `${entries.length} entr${entries.length !== 1 ? 'ies' : 'y'} total`;
+// Local YYYY-MM-DD for a timestamp — matches the Date column the user sees, so
+// an early-morning Sydney check-in isn't bucketed into the previous UTC day.
+function localDateStr(dt) {
+  const d = new Date(dt);
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
 
+function renderLog() {
   let filtered = [...entries];
-  const dateFilter = document.getElementById('log-date').value;
+  const fromDate = document.getElementById('log-date-from').value;
+  const toDate = document.getElementById('log-date-to').value;
   const search = document.getElementById('log-search').value.trim().toLowerCase();
 
-  if (dateFilter) {
-    filtered = filtered.filter(e => e.timeIn.slice(0, 10) === dateFilter);
+  if (fromDate || toDate) {
+    filtered = filtered.filter(e => {
+      const ds = localDateStr(e.timeIn);
+      if (fromDate && ds < fromDate) return false;
+      if (toDate && ds > toDate) return false;
+      return true;
+    });
   }
   if (search) {
     filtered = filtered.filter(e =>
@@ -7482,6 +7505,12 @@ function renderLog() {
       (e.attendantIn || '').toLowerCase().includes(search)
     );
   }
+
+  const total = entries.length;
+  document.getElementById('log-count').textContent =
+    (fromDate || toDate || search)
+      ? `${filtered.length} of ${total} entr${total !== 1 ? 'ies' : 'y'}`
+      : `${total} entr${total !== 1 ? 'ies' : 'y'} total`;
 
   const tbody = document.getElementById('log-tbody');
   if (filtered.length === 0) {
@@ -7546,8 +7575,25 @@ function viewPhoto(id, which, jobId) {
   w.document.close();
 }
 
+// Quick-range shortcuts for the Full Log: today / this week (Mon-Sun) / this
+// month, all up to and including today. Uses local dates to match the table.
+function setLogRange(period) {
+  const today = new Date();
+  let from = new Date(today);
+  if (period === 'week') {
+    const dow = (today.getDay() + 6) % 7;          // 0 = Mon … 6 = Sun
+    from.setDate(today.getDate() - dow);
+  } else if (period === 'month') {
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+  document.getElementById('log-date-from').value = localDateStr(from);
+  document.getElementById('log-date-to').value = localDateStr(today);
+  renderLog();
+}
+
 function clearLogFilters() {
-  document.getElementById('log-date').value = '';
+  document.getElementById('log-date-from').value = '';
+  document.getElementById('log-date-to').value = '';
   document.getElementById('log-search').value = '';
   renderLog();
 }
