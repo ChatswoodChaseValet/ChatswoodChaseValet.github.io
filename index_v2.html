@@ -999,6 +999,66 @@ body.dark-mode .scan-banner {
   }
 }
 
+/* ─── SAVE CONFIRMATION MODAL — tap to dismiss (new entry) ─── */
+.save-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 15, 10, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 400;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.save-modal-overlay.show { opacity: 1; pointer-events: auto }
+.save-modal {
+  background: linear-gradient(135deg, #2a5a2a 0%, #173f17 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 26px 24px 22px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border-top: 5px solid #7ec97f;
+  text-align: center;
+  transform: scale(0.92);
+  transition: transform 0.2s cubic-bezier(.22,.95,.49,1);
+}
+.save-modal-overlay.show .save-modal { transform: scale(1) }
+.save-modal-icon {
+  background: #7ec97f;
+  color: #143f14;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  margin: 0 auto 14px;
+}
+.save-modal-title {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+.save-modal-details { font-size: 15px; line-height: 1.5; color: #eaf6ea }
+.save-modal-keytag {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 14px;
+}
+.save-modal-meta { font-size: 12px; color: #a5c9a5; margin-top: 10px; font-style: italic }
+.save-modal-actions { margin-top: 18px; display: flex; flex-direction: column; gap: 9px }
+.save-modal-actions .btn { width: 100% }
+
 /* ─── QUICK ADD MODE — hide non-essential fields ─── */
 .view.quick-add-on #f-model,
 .view.quick-add-on #f-colour,
@@ -3501,42 +3561,48 @@ function saveEntry() {
 // ═══════════════════════════════════════════════════
 // SAVE SUCCESS TOAST — prominent confirmation
 // ═══════════════════════════════════════════════════
+// Prominent save confirmation — a tap-to-dismiss modal (no auto-dismiss) so the
+// staff member has to acknowledge it before moving on. Distinct from the
+// transient toasts (quickToast / Checkout Complete) which still reuse #save-toast.
 function showSaveToast(entry) {
-  let toast = document.getElementById('save-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'save-toast';
-    toast.className = 'save-toast';
-    document.body.appendChild(toast);
+  let overlay = document.getElementById('save-modal');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'save-modal';
+    overlay.className = 'save-modal-overlay';
+    // Tap the dimmed backdrop (anywhere outside the card) to dismiss.
+    overlay.addEventListener('click', (ev) => { if (ev.target === overlay) dismissSaveModal(); });
+    document.body.appendChild(overlay);
   }
-  // Reset to default green styles (in case it was bronze from a checkout)
-  toast.style.background = '';
-  toast.style.borderLeftColor = '';
 
+  const mono = "ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace";
   const timeStr = fmtTime(new Date(entry.timeIn));
   const vehicle = [entry.brand, entry.model].filter(Boolean).join(' ');
-  const cloudIcon = (supa && navigator.onLine) ? '' : '';
   const cloudText = (supa && navigator.onLine) ? 'Synced to cloud' : 'Saved locally (will sync when online)';
 
-  toast.innerHTML = `
-    <div class="save-toast-icon">✓</div>
-    <div class="save-toast-content">
-      <div class="save-toast-title">Entry Saved Successfully</div>
-      <div class="save-toast-details">
-        <div><strong style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
-        <div style="margin-top:2px">${vehicle || 'Vehicle logged'} in Bay <strong>${entry.bay}</strong> at <strong>${timeStr}</strong></div>
-        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.14);border-radius:5px;font-size:13px">Write on key tag: <strong style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-size:16px;color:#e0a640">${entry.ticket} · ${entry.bay}</strong></div>
-        <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="printKeyTag('${entry.id}')">Print Key Tag</button>
+  overlay.innerHTML = `
+    <div class="save-modal" role="alertdialog" aria-live="assertive">
+      <div class="save-modal-icon">✓</div>
+      <div class="save-modal-title">Entry Saved Successfully</div>
+      <div class="save-modal-details">
+        <div><strong style="font-family:${mono};color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
+        <div style="margin-top:3px">${vehicle || 'Vehicle logged'} in Bay <strong>${entry.bay}</strong> at <strong>${timeStr}</strong></div>
+        <div class="save-modal-keytag">Write on key tag: <strong style="font-family:${mono};font-size:17px;color:#e0a640">${entry.ticket} · ${entry.bay}</strong></div>
       </div>
-      <div class="save-toast-meta">${cloudIcon} ${cloudText}</div>
+      <div class="save-modal-meta">${cloudText}</div>
+      <div class="save-modal-actions">
+        <button class="btn btn-secondary btn-sm" onclick="printKeyTag('${entry.id}')">Print Key Tag</button>
+        <button class="btn btn-primary" onclick="dismissSaveModal()">Done — Next Car</button>
+      </div>
     </div>
-    <button class="save-toast-close" onclick="dismissSaveToast()">✕</button>
   `;
-  toast.classList.add('show');
+  // Add .show on the next frame so the fade/scale transition runs.
+  requestAnimationFrame(() => overlay.classList.add('show'));
+}
 
-  // Auto-dismiss after 5 seconds
-  if (toast.dismissTimer) clearTimeout(toast.dismissTimer);
-  toast.dismissTimer = setTimeout(dismissSaveToast, 5000);
+function dismissSaveModal() {
+  const overlay = document.getElementById('save-modal');
+  if (overlay) overlay.classList.remove('show');
 }
 
 function dismissSaveToast() {
