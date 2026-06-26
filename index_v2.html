@@ -3484,7 +3484,12 @@ function saveEntry() {
   }
 
   resetForm();
-  prepareNewEntry();
+  // Bring the fresh New Entry page back up so staff clearly see a clean form
+  // ready for the next car. The form is long (photo + damage diagram), so the
+  // Save button sits near the bottom — without scrolling back to the top staff
+  // are left looking at a blank lower half and can't tell the save worked.
+  showView('new-entry');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // If the customer gave a mobile number, send them their QR ticket
   // straight away (opens Messages pre-filled — operator taps Send).
