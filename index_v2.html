@@ -427,6 +427,11 @@ tr:hover td{background:var(--bg)}
 .chart-toggle{display:inline-flex;align-items:center;justify-content:center;padding:7px 11px}
 .chart-toggle.on{background:var(--maroon);color:#fff;border-color:var(--maroon)}
 
+/* Feature switches (Settings → Features). When a feature is turned off, every
+   bit of its UI carrying the matching class is hidden across the dashboard. */
+body.ff-bags-off .ff-bags{display:none !important}
+body.ff-pickup-off .ff-pickup{display:none !important}
+
 /* ─── ACTIVE CARS as cards on phones (no sideways table scroll) ─── */
 .active-cards{display:none;flex-direction:column;gap:12px;margin-top:14px}
 .acard{border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:#fff;
@@ -1014,7 +1019,7 @@ body.dark-mode .scan-banner {
 }
 </style>
 </head>
-<body>
+<body class="ff-bags-off ff-pickup-off">
 
 <!-- ════════════════════════════════════════════
      LOGIN OVERLAY — shown until authenticated
@@ -1104,8 +1109,8 @@ body.dark-mode .scan-banner {
   <button class="tab active desktop-only" onclick="showView(&#39;dashboard&#39;)" aria-label="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="tab-label">Dashboard</span></button>
   <button class="tab" onclick="showView(&#39;new-entry&#39;)" aria-label="New Entry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="tab-label">New Entry</span></button>
   <button class="tab" onclick="showView(&#39;quick-pickup&#39;)" aria-label="Quick Pickup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="tab-label">Quick Pickup</span></button>
-  <button class="tab" onclick="showView(&#39;pickup-queue&#39;)" aria-label="Queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="tab-label">Queue</span><span class="tab-badge" id="pq-tab-badge" style="display:none">0</span></button>
-  <button class="tab" onclick="showView(&#39;bags&#39;)" aria-label="Bags"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="tab-label">Bags</span><span class="tab-badge" id="bag-tab-badge" style="display:none">0</span></button>
+  <button class="tab ff-pickup" onclick="showView(&#39;pickup-queue&#39;)" aria-label="Queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="tab-label">Queue</span><span class="tab-badge" id="pq-tab-badge" style="display:none">0</span></button>
+  <button class="tab ff-bags" onclick="showView(&#39;bags&#39;)" aria-label="Bags"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="tab-label">Bags</span><span class="tab-badge" id="bag-tab-badge" style="display:none">0</span></button>
   <button class="tab" onclick="showView(&#39;active&#39;)" aria-label="Active Cars"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg><span class="tab-label">Active Cars</span><span class="tab-badge" id="active-tab-badge" style="display:none">0</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)" aria-label="Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="tab-label">Customers</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;reports&#39;)" aria-label="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="tab-label">Reports</span></button>
@@ -1121,7 +1126,7 @@ body.dark-mode .scan-banner {
   <button class="flyout-item" data-group="payments" onclick="goReport('payments')">Payments</button>
   <button class="flyout-item" data-group="staff" onclick="goReport('staff')">Staff Performance</button>
   <button class="flyout-item" data-group="customers" onclick="goReport('customers')">Customers</button>
-  <button class="flyout-item" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
+  <button class="flyout-item ff-bags" data-group="bagstaff" onclick="goReport('bagstaff')">Bag Jobs by Staff</button>
   <button class="flyout-item" data-group="feedback" onclick="goReport('feedback')">Customer Feedback</button>
   <button class="flyout-item" data-group="comparison" onclick="goReport('comparison')">Period Comparison</button>
   <button class="flyout-item" data-group="incidents" onclick="goReport('incidents')">Incidents</button>
@@ -1133,6 +1138,7 @@ body.dark-mode .scan-banner {
   <div class="nav-flyout-title">Settings</div>
   <button class="flyout-item" data-group="access" onclick="showSettingsGroup('access')">Staff &amp; Access</button>
   <button class="flyout-item" data-group="carpark" onclick="showSettingsGroup('carpark')">Car Park</button>
+  <button class="flyout-item" data-group="features" onclick="showSettingsGroup('features')">Features</button>
   <button class="flyout-item" data-group="retailers" onclick="showSettingsGroup('retailers')">Retailers</button>
   <button class="flyout-item" data-group="carwash" onclick="showSettingsGroup('carwash')">Car Wash</button>
   <button class="flyout-item" data-group="alerts" onclick="showSettingsGroup('alerts')">Alerts &amp; Messaging</button>
@@ -2131,6 +2137,31 @@ body.dark-mode .scan-banner {
           <div style="font-size:12px;color:var(--text-muted)">Fetches the latest data from cloud database (use if dashboard looks out-of-date)</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="forceReloadFromCloud()">Reload</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section set-section" data-setgroup="features">
+    <div class="section-header">
+      <div class="section-title">Features</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+      Turn customer-facing services on or off. When a service is <strong>off</strong> it disappears from the staff dashboard <strong>and</strong> from the customer's SMS ticket page (no buttons, no alarms). Synced to all devices within seconds.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
+        <div style="flex:1;min-width:200px">
+          <div style="font-weight:600;font-size:13px">Hands-free shopping</div>
+          <div style="font-size:12px;color:var(--text-muted)">Customers send their shopping bags to the car. Adds the Bags tab and bag-collection alerts for staff.</div>
+        </div>
+        <button id="ff-bags-btn" class="btn btn-secondary btn-sm" onclick="setFeatureFlag('bags', !handsFreeOn())">Off</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
+        <div style="flex:1;min-width:200px">
+          <div style="font-weight:600;font-size:13px">Customer car-request</div>
+          <div style="font-size:12px;color:var(--text-muted)">Customers tap “bring my car” (5 / 10 / 15 min) from their SMS link. Adds the Queue tab and the pickup alarm for staff.</div>
+        </div>
+        <button id="ff-pickup-btn" class="btn btn-secondary btn-sm" onclick="setFeatureFlag('pickup', !pickupReqOn())">Off</button>
       </div>
     </div>
   </div>
@@ -4748,6 +4779,46 @@ function getCapacity() {
   const v = cloudSettings && Number(cloudSettings.capacity);
   return (v && v > 0) ? Math.round(v) : DEFAULT_CAPACITY;
 }
+
+// ── Feature switches (Settings → Features) ─────────────────────────────────
+// Two on/off flags synced via cloud app_settings, default OFF until switched
+// on by an admin:
+//   feature_handsfree → hands-free shopping (bag-to-car service)
+//   feature_pickup    → customer "request my car" (5/10/15-min) from the SMS link
+// applyFeatureFlags() toggles body classes that hide the matching UI (.ff-bags
+// / .ff-pickup) right across the dashboard. The customer ticket page reads the
+// same flags via the get_public_settings RPC.
+function handsFreeOn() { return !!(cloudSettings && cloudSettings.feature_handsfree); }
+function pickupReqOn() { return !!(cloudSettings && cloudSettings.feature_pickup); }
+function applyFeatureFlags() {
+  document.body.classList.toggle('ff-bags-off', !handsFreeOn());
+  document.body.classList.toggle('ff-pickup-off', !pickupReqOn());
+}
+// Reflect the On/Off state on the Settings → Features toggle buttons (mirrors
+// the maroon "on" / bone "off" look used by the bag-staff toggles).
+function syncFeatureToggleButtons() {
+  [['ff-bags-btn', handsFreeOn()], ['ff-pickup-btn', pickupReqOn()]].forEach(([id, on]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.textContent = on ? 'On' : 'Off';
+    btn.style.background = on ? '#531620' : 'var(--bone)';
+    btn.style.color = on ? '#fff' : 'var(--text)';
+    btn.style.border = '1px solid ' + (on ? '#531620' : 'var(--border)');
+  });
+}
+async function setFeatureFlag(which, on) {
+  const key = which === 'bags' ? 'feature_handsfree' : 'feature_pickup';
+  cloudSettings[key] = !!on;
+  try { await cloudSaveSetting(key, !!on); } catch (e) {}
+  try { cloudAudit('feature_toggle', 'settings', key, { on: !!on }); } catch (e) {}
+  applyFeatureFlags();
+  try { refreshActiveViewOnly(); } catch (e) {}
+  try { renderSettings(); } catch (e) {}
+  if (typeof quickToast === 'function') {
+    const name = which === 'bags' ? 'Hands-free shopping' : 'Customer car-request';
+    quickToast('✓ ' + name + (on ? ' turned ON' : ' turned OFF'));
+  }
+}
 function saveCapacity() {
   const n = parseInt(document.getElementById('s-capacity').value, 10);
   if (!n || n < 1) { alert('Enter a valid number of open spots (1 or more).'); return; }
@@ -5418,10 +5489,10 @@ function openBayMenu(id, ev) {
       </div>
       <div class="bay-menu-actions">
         <button class="btn btn-primary bm-full" onclick="closeBayMenu();checkout('${e.id}')">✓ Mark Out</button>
-        <button class="btn btn-secondary" onclick="closeBayMenu();togglePickupRequest('${e.id}')">${pickupOn ? 'Cancel pickup' : 'Request pickup'}</button>
+        <button class="btn btn-secondary ff-pickup" onclick="closeBayMenu();togglePickupRequest('${e.id}')">${pickupOn ? 'Cancel pickup' : 'Request pickup'}</button>
         ${call}
         <button class="btn btn-secondary" onclick="closeBayMenu();openEditCar('${e.id}')">Edit</button>
-        <button class="btn btn-secondary" onclick="closeBayMenu();logBagRequest('${e.id}')">Bag pickup</button>
+        <button class="btn btn-secondary ff-bags" onclick="closeBayMenu();logBagRequest('${e.id}')">Bag pickup</button>
         <button class="btn btn-secondary bm-full" onclick="closeBayMenu();openWashDialog('${e.id}')">${e.carWash ? 'Manage wash' : 'Car wash'}</button>
       </div>
     </div>`;
@@ -5741,10 +5812,10 @@ function renderActive() {
 
     const pickupBtn = (() => {
       if (!e.pickupRequested) {
-        return '<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(\'' + e.id + '\')" title="Customer asked for car">Request</button>';
+        return '<button class="btn btn-secondary btn-sm ff-pickup" onclick="togglePickupRequest(\'' + e.id + '\')" title="Customer asked for car">Request</button>';
       }
       if (!e.pickupETA) {
-        return '<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest(\'' + e.id + '\')" title="Cancel pickup request" style="background:var(--bronze);color:#fff">Requested</button>';
+        return '<button class="btn btn-secondary btn-sm ff-pickup" onclick="togglePickupRequest(\'' + e.id + '\')" title="Cancel pickup request" style="background:var(--bronze);color:#fff">Requested</button>';
       }
       const minsLeft = Math.round((new Date(e.pickupETA) - now) / 60000);
       let label, bg;
@@ -5752,7 +5823,7 @@ function renderActive() {
       else if (minsLeft <= 3) { label = `${minsLeft}m`; bg = '#c45a5a'; }
       else if (minsLeft <= 10) { label = `${minsLeft}m`; bg = '#e0a640'; }
       else { label = `${minsLeft}m`; bg = 'var(--bronze)'; }
-      return `<button class="btn btn-secondary btn-sm" onclick="togglePickupRequest('${e.id}')" title="Cancel pickup request" style="background:${bg};color:#fff">${label}</button>`;
+      return `<button class="btn btn-secondary btn-sm ff-pickup" onclick="togglePickupRequest('${e.id}')" title="Cancel pickup request" style="background:${bg};color:#fff">${label}</button>`;
     })();
 
     // Action buttons — identical for the desktop table cell and the phone card.
@@ -5767,7 +5838,7 @@ function renderActive() {
       + `<button class="ico-btn" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">${ACT_ICONS.qr}</button>`
       + `<button class="ico-btn" onclick="printKeyTag('${e.id}')" title="Print key tag">${ACT_ICONS.print}</button>`
       + `<button class="ico-btn" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">${ACT_ICONS.edit}</button>`
-      + `<button class="ico-btn${bagOn ? ' on' : ''}" onclick="logBagRequest('${e.id}')" title="${bagOn ? 'Add another hands-free shopping pickup (new shop)' : 'Log a hands-free shopping bag pickup'}">${ACT_ICONS.bag}</button>`
+      + `<button class="ico-btn ff-bags${bagOn ? ' on' : ''}" onclick="logBagRequest('${e.id}')" title="${bagOn ? 'Add another hands-free shopping pickup (new shop)' : 'Log a hands-free shopping bag pickup'}">${ACT_ICONS.bag}</button>`
       + `<button class="ico-btn${washOn ? ' on' : ''}" onclick="openWashDialog('${e.id}')" title="${e.carWash ? 'Manage car wash' : 'Add a car wash'}">${ACT_ICONS.wash}</button>`
       + `<button class="ico-btn ico-danger" onclick="deleteEntry('${e.id}')" title="Delete this entry (mistaken/duplicate)">${ACT_ICONS.trash}</button>`
       + `</span>`
@@ -6012,6 +6083,12 @@ async function checkSmsBalanceUI() {
 function togglePickupRequest(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
+  // When the feature is off we still allow clearing a stray request, just not
+  // creating a new one (the buttons are hidden anyway — this is belt-and-braces).
+  if (!pickupReqOn() && !e.pickupRequested) {
+    if (typeof quickToast === 'function') quickToast('Customer car-request is turned off (Settings → Features)');
+    return;
+  }
   if (e.pickupRequested) {
     // Cancel pickup request
     e.pickupRequested = null;
@@ -6265,7 +6342,7 @@ function renderQuickPickup() {
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         ${callBtn}
         ${qrBtn}
-        <button class="btn btn-secondary" onclick="event.stopPropagation();togglePickupRequest('${e.id}')" style="flex:1;min-width:90px;padding:14px 10px;font-size:13px">${e.pickupRequested ? '✓ Requested' : 'Request'}</button>
+        <button class="btn btn-secondary ff-pickup" onclick="event.stopPropagation();togglePickupRequest('${e.id}')" style="flex:1;min-width:90px;padding:14px 10px;font-size:13px">${e.pickupRequested ? '✓ Requested' : 'Request'}</button>
         <button class="btn btn-primary" onclick="event.stopPropagation();checkout('${e.id}')" style="flex:1 1 100%;min-width:0;padding:14px 10px;font-size:14px;font-weight:bold;white-space:nowrap">✓ Mark Out · ${fmtMoney(fees.total)}</button>
       </div>
     </div>`;
@@ -6315,6 +6392,7 @@ function bagStaffList() {
   return Array.isArray(v) ? v : [];
 }
 function canHandleBags(user) {
+  if (!handsFreeOn()) return false;            // feature switched off in Settings
   user = user || currentUser;
   if (!user) return false;
   return bagStaffList().includes(user.username);
@@ -6832,6 +6910,7 @@ function exportShopStatementCSV(shop) {
 // Staff logs a phone-in / walk-up bag request via a shop-picker modal, so it
 // matches what the customer sees (no free-typing the shop each time).
 function logBagRequest(id) {
+  if (!handsFreeOn()) { if (typeof quickToast === 'function') quickToast('Hands-free shopping is turned off (Settings → Features)'); return; }
   const e = entries.find(x => x.id === id); if (!e) return;
   const modal = document.getElementById('bag-request-modal');
   modal.dataset.entryId = id;
@@ -9369,6 +9448,8 @@ function renderSettings() {
   if (capEl) capEl.value = getCapacity();
   const osEl = document.getElementById('s-overstay');
   if (osEl) osEl.value = getOverstayHours();
+  applyFeatureFlags();
+  syncFeatureToggleButtons();
   renderWashSettings();
   // Populate Plate Recognizer settings
   const prKey = document.getElementById('s-pr-key');
@@ -11730,6 +11811,7 @@ function seedPickupAlertBaseline() {
 }
 
 function maybeAlarmCustomerPickup(e) {
+  if (!pickupReqOn()) return;                        // feature switched off in Settings
   if (!e || e.pickupSource !== 'customer') return;
   if (!e.pickupRequested || e.timeOut) return;      // not a live request
   const key = pickupAlertKey(e);
@@ -12192,10 +12274,18 @@ function handleRealtimeSettingsChange(payload) {
       const osEl = document.getElementById('s-overstay');
       if (osEl) osEl.value = getOverstayHours();
     }
+    if (payload.new.key === 'feature_handsfree' || payload.new.key === 'feature_pickup') {
+      // A feature was switched on/off on another device — apply it here too:
+      // show/hide the relevant UI, refresh the open view, and sync the toggles.
+      try { applyFeatureFlags(); } catch (e) {}
+      try { refreshActiveViewOnly(); } catch (e) {}
+      try { renderSettings(); } catch (e) {}
+    }
   }
 }
 
 function refreshActiveViews() {
+  try { applyFeatureFlags(); } catch (e) {}
   // Re-render whichever views are mounted. We render all of them because
   // when a non-active view becomes active via tab click, it should already
   // be up to date — avoids stale data flashing when switching tabs.

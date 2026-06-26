@@ -146,15 +146,20 @@
     <!-- Customer "bring my car" section — populated by the script below
          only when a valid entry id is present in the link. -->
     <div class="req" id="req-section" style="display:none">
-      <div class="req-title">Ready to leave?</div>
-      <div class="req-sub">Tap when you'd like your car brought round:</div>
-      <div class="req-grid" id="req-buttons">
-        <button class="req-btn now" data-min="0">I'm here now</button>
-        <button class="req-btn" data-min="5">in 5 min</button>
-        <button class="req-btn" data-min="10">in 10 min</button>
-        <button class="req-btn" data-min="15">in 15 min</button>
-        <button class="req-btn" data-min="20">in 20 min</button>
-        <button class="req-btn" data-min="30">in 30 min</button>
+      <!-- The request controls are hidden when the "customer car-request"
+           feature is switched off in the dashboard; req-result stays so the
+           post-collection thank-you + rating still appears. -->
+      <div id="req-controls">
+        <div class="req-title">Ready to leave?</div>
+        <div class="req-sub">Tap when you'd like your car brought round:</div>
+        <div class="req-grid" id="req-buttons">
+          <button class="req-btn now" data-min="0">I'm here now</button>
+          <button class="req-btn" data-min="5">in 5 min</button>
+          <button class="req-btn" data-min="10">in 10 min</button>
+          <button class="req-btn" data-min="15">in 15 min</button>
+          <button class="req-btn" data-min="20">in 20 min</button>
+          <button class="req-btn" data-min="30">in 30 min</button>
+        </div>
       </div>
       <div id="req-result"></div>
     </div>
@@ -378,6 +383,7 @@
     var buttons = document.getElementById('req-buttons');
     if (row.time_out) {
       buttons.style.display = 'none';
+      section.style.display = '';   // reveal for the thank-you + rating, even if car-request is off
       var thanks = '<div class="req-status" style="color:#a48d53;background:#f8f7f5;border-color:#ebebe9">' +
         '<span class="big">Thanks for visiting!</span>Your car has been collected. We hope to see you again at Chatswood Chase.</div>';
       resultBox.innerHTML = thanks + ratingSection(row);
@@ -518,6 +524,18 @@
   // the active car by its ticket number so the buttons still appear.
   // Fetch the car's public status via a security-definer RPC (no direct table
   // access — customer PII like name/phone is never exposed to the public key).
+  // Which customer-facing features are switched on (set in the dashboard's
+  // Settings → Features). A PII-free security-definer RPC — never exposes the
+  // access PIN or anything else. Defaults to OFF if the call fails.
+  async function fetchFlags(){
+    try {
+      var q = await supa.rpc('get_public_settings');
+      if (q.error) return { handsfree: false, pickup: false };
+      var r = Array.isArray(q.data) ? q.data[0] : q.data;
+      return r || { handsfree: false, pickup: false };
+    } catch (e) { return { handsfree: false, pickup: false }; }
+  }
+
   async function fetchTicket(){
     try {
       var q = await supa.rpc('get_ticket_status', {
@@ -532,11 +550,18 @@
 
   (async function init(){
     try {
-      var row = await fetchTicket();
+      var results = await Promise.all([fetchTicket(), fetchFlags()]);
+      var row = results[0];
+      var flags = results[1] || { handsfree: false, pickup: false };
       if (!row || !row.id) return;            // couldn't match a car — just show the QR
       entryId = row.id;
-      section.style.display = '';
-      if (!row.time_out) document.getElementById('bag-section').style.display = '';
+      // Car-request controls only when the feature is on; keep the section
+      // visible if the car's already collected so the rating can show.
+      var ctrl = document.getElementById('req-controls');
+      if (ctrl) ctrl.style.display = flags.pickup ? '' : 'none';
+      if (flags.pickup || row.time_out) section.style.display = '';
+      // Hands-free shopping section only when that feature is on.
+      if (flags.handsfree && !row.time_out) document.getElementById('bag-section').style.display = '';
       // Reflect the car's current state, then keep it live by polling.
       applyLiveStatus(row, true);
       if (!row.time_out) watchEntry();
