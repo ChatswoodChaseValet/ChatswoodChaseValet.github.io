@@ -5962,7 +5962,7 @@ async function sendQRSms(id) {
   // encoding, so it stays fewer billable segments.
   // Kept to one GSM-7 SMS segment (~115 chars after the link is shortened) so
   // each check-in text bills as a single message, not two.
-  const msg = 'Chatswood Chase Valet ticket ' + e.ticket
+  let msg = 'Chatswood Chase Valet ticket ' + e.ticket
     + '. QR, car pickup & hands-free shopping (or call 0427000822): ' + url;
 
   // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
@@ -5983,6 +5983,18 @@ async function sendQRSms(id) {
     } catch (err) {
       // network/function error — fall through to the manual composer
     }
+  }
+
+  // The auto-send didn't go through — we're handing off to the operator's own
+  // Messages app / share sheet below. Swap the long ticket link for a short
+  // one first (same is.gd shortener the server uses) so the customer never
+  // sees the raw GitHub Pages address. Best-effort: if it fails, the long
+  // link still works.
+  if (supa) {
+    try {
+      const { data } = await supa.functions.invoke('send-ticket-sms', { body: { action: 'shorten', url } });
+      if (data && data.ok && data.url && data.url !== url) msg = msg.split(url).join(data.url);
+    } catch (_) { /* keep the long (still-working) link */ }
   }
 
   // 2) Fallback: open the operator's Messages app pre-filled (one tap to send).
