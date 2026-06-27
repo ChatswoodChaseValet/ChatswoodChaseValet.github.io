@@ -393,6 +393,8 @@ tr:hover td{background:var(--bg)}
 /* Active Cars: render Ticket in the app font (matching the Brand column), not
    Courier monospace, so it reads more clearly. Keeps bold + maroon. */
 #view-active .ticket-num{font-family:inherit}
+/* Ticket number hidden in Currently On Site for now — remove this rule to restore. */
+#view-active .th-ticket, #active-tbody .ticket-num, #active-cards .acard-ticket{display:none}
 .status-pill{
   display:inline-block;
   padding:3px 9px;
@@ -1658,7 +1660,7 @@ body.dark-mode .scan-banner {
       <table>
         <thead>
           <tr>
-            <th>Ticket</th>
+            <th class="th-ticket">Ticket</th>
             <th>Customer</th>
             <th>Rego</th>
             <th>Brand</th>
