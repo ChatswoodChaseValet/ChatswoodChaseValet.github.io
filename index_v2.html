@@ -3801,26 +3801,42 @@ function dismissSaveToast() {
     x.send(body != null ? body : null);
   }
 
+  // Parse the /available response into a flat list of device objects.
+  // Browser Print versions differ: some return {printer:[...]}, some
+  // {device:[...]}, some a bare array, some a single object.
+  function parseAvailable(t) {
+    try {
+      var j = JSON.parse(t);
+      var raw = j.printer || j.device || j;
+      if (Array.isArray(raw)) return raw;
+      if (raw && (raw.uid || raw.name || raw.connection)) return [raw];
+    } catch (e) {}
+    return [];
+  }
+
   // Resolve the printer device object Browser Print needs for /write.
   function getDevice(cb, err) {
     var name = (settings.printerZebraName || '').trim();
-    if (name) {
-      zReq('GET', '/available', null, function (t) {
-        var list = [];
-        try { var j = JSON.parse(t); list = j.printer || j.device || []; } catch (e) {}
-        var d = null;
+    // Always pull the live list — it's the most reliable source and lists the
+    // printer even when no Browser Print "default" has been configured.
+    zReq('GET', '/available', null, function (t) {
+      var list = parseAvailable(t);
+      if (!list.length) { err('noprinters'); return; }
+      if (name) {
         for (var i = 0; i < list.length; i++) {
-          if (list[i].name === name || list[i].uid === name) { d = list[i]; break; }
+          if (list[i].name === name || list[i].uid === name) { cb(list[i]); return; }
         }
-        if (d) cb(d); else err('noname');
-      }, err);
-    } else {
-      zReq('GET', '/default?type=printer', null, function (t) {
+        err('noname');
+        return;
+      }
+      // No name configured: prefer Browser Print's default, but fall back to
+      // the first available printer when no default is set (the common case).
+      zReq('GET', '/default?type=printer', null, function (dt) {
         var d = null;
-        try { d = JSON.parse(t); } catch (e) { d = null; }
-        if (d && (d.uid || d.name || d.connection)) cb(d); else err('nodefault');
-      }, err);
-    }
+        try { d = JSON.parse(dt); } catch (e) { d = null; }
+        if (d && (d.uid || d.name || d.connection)) cb(d); else cb(list[0]);
+      }, function () { cb(list[0]); });
+    }, err);
   }
 
   function zebraPrint(zpl, friendlyAction) {
@@ -3829,9 +3845,9 @@ function dismissSaveToast() {
       if (e === 'connect' || e === 'timeout') {
         flashScanStatus('Zebra Browser Print not reachable — open it on the desktop, and visit https://localhost:9101 once to accept its security prompt', 'error');
       } else if (e === 'noname') {
-        flashScanStatus('No Zebra printer named "' + name + '" — leave the name blank to use the default', 'error');
-      } else if (e === 'nodefault') {
-        flashScanStatus('No default printer set in Zebra Browser Print', 'error');
+        flashScanStatus('No Zebra printer named "' + name + '" — leave the name blank to use the first available printer', 'error');
+      } else if (e === 'noprinters' || e === 'nodefault') {
+        flashScanStatus('Browser Print sees no printers — connect/power on the Zebra, then check it appears in Browser Print', 'error');
       } else {
         flashScanStatus('Zebra error: ' + e, 'error');
       }
