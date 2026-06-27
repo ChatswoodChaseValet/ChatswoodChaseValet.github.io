@@ -3490,10 +3490,27 @@ function splitBrandModel(raw) {
   }
   const map = splitBrandModel._map;
   const words = s.split(/\s+/);
+  // 1) Exact match on the longest leading run of words (handles multi-word
+  //    brands and "Lexus LBX" → Lexus + LBX).
   for (let n = words.length; n >= 1; n--) {
     const key = words.slice(0, n).join(' ').toLowerCase();
     if (map[key]) return { brand: map[key], model: words.slice(n).join(' ') };
   }
+  // 2) Unique-prefix match on the first word (handles shorthand: "hyun" →
+  //    Hyundai, "merc" → Mercedes-Benz). Only snaps when EXACTLY one brand
+  //    matches, so ambiguous stubs ("to", "a") are left as typed. Needs ≥3
+  //    letters to avoid over-eager 2-letter guesses.
+  const first = words[0].toLowerCase();
+  if (first.length >= 3) {
+    const hits = [];
+    for (const key in map) {
+      if (key.startsWith(first) || key.split(' ')[0].startsWith(first)) {
+        if (!hits.includes(map[key])) hits.push(map[key]);
+      }
+    }
+    if (hits.length === 1) return { brand: hits[0], model: words.slice(1).join(' ') };
+  }
+  // 3) Unknown brand — keep as typed (just trimmed).
   return { brand: s, model: '' };
 }
 // Just the canonical brand (used for grouping/display in reports).
