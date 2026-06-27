@@ -546,8 +546,21 @@ body.dark-mode .ico-group{background:transparent}
 .modal-title{font-family:'Inter',sans-serif;font-size:18px;color:var(--maroon);margin-bottom:12px}
 .modal-body{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:20px}
 
-/* Required marker */
-.required{color:var(--red);margin-left:2px}
+/* Required marker — green pill badge (hides the literal "*") */
+.required{font-size:0;margin-left:6px;vertical-align:middle}
+.required::after{
+  content:'REQUIRED';
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.6px;
+  text-transform:none;
+  color:#fff;
+  background:var(--green);
+  padding:2px 7px;
+  border-radius:10px;
+  line-height:1.6;
+  white-space:nowrap;
+}
 
 /* ─── SCAN CONTROLS (header) ─── */
 .scan-controls{display:flex;gap:6px;flex-shrink:0}
