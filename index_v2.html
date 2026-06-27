@@ -1669,6 +1669,7 @@ body.dark-mode .scan-banner {
 
 <!-- ───────── ACTIVE CARS VIEW ───────── -->
 <div class="view" id="view-active">
+  <div id="nobay-banner"></div>
   <div id="overstay-banner"></div>
   <div class="section">
     <div class="section-header">
@@ -5948,7 +5949,52 @@ function renderOverstayBanner() {
   el.innerHTML = `<div class="section" style="border-left:4px solid #a83838;background:#fff7f7">${html}</div>`;
 }
 
+// Cars checked in but not yet given a bay. Because we don't print the key tag
+// until a bay exists, these are easy to forget — so surface them in a banner at
+// the top of Currently On Site with a quick "Assign bay" action.
+function renderNoBayBanner() {
+  const el = document.getElementById('nobay-banner');
+  if (!el) return;
+  const waiting = entries.filter(e => !e.timeOut && !(e.bay || '').trim())
+    .sort((a, b) => new Date(a.timeIn) - new Date(b.timeIn));
+  if (!waiting.length) { el.innerHTML = ''; return; }
+  const now = new Date();
+  const chips = waiting.map(e => {
+    const dur = fmtDuration(now - new Date(e.timeIn));
+    const car = [e.brand, e.model].filter(Boolean).join(' ');
+    return `<button onclick="assignBay('${e.id}')" title="Assign a bay to ${e.ticket}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #2f6db3;background:#fff;border-radius:20px;padding:4px 11px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit">
+      <span style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${e.ticket}</span>
+      <span style="color:var(--text-muted)">${[car, e.rego].filter(Boolean).join(' · ')} · ${dur}${e.name ? ' · ' + e.name : ''}</span>
+      <span style="color:#2f6db3;font-weight:600">+ Bay</span></button>`;
+  }).join('');
+  el.innerHTML = `<div class="section" style="border-left:4px solid #2f6db3;background:#f3f8fd">
+    <div style="margin-bottom:6px"><strong style="color:#2f6db3">🅿️ ${waiting.length} awaiting bay</strong> <span style="color:var(--text-muted);font-size:12px">— checked in, no bay assigned yet (key tag prints once a bay is set)</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>
+  </div>`;
+}
+
+// Quick bay assignment from the banner. Sets the bay, saves, and prints the key
+// tag (now that it has a bay to show).
+function assignBay(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  const car = [e.brand, e.model].filter(Boolean).join(' ');
+  const v = prompt(`Assign bay for ${e.ticket}${car ? ' · ' + car : ''}${e.rego ? ' · ' + e.rego : ''}:`, e.bay || '');
+  if (v === null) return;            // cancelled — still waiting
+  const bay = v.trim();
+  if (!bay) return;                  // left blank — still waiting
+  e.bay = bay;
+  saveData(e.id, { immediate: true });
+  cloudAudit('edit', 'entry', e.id, { ticket: e.ticket, bay });
+  if (printerConfigured()) { autoPrintedIds.add(e.id); printKeyTag(e); }
+  renderActive();
+  if (typeof renderDashboard === 'function') renderDashboard();
+  quickToast('✓ Bay ' + bay + ' assigned' + (printerConfigured() ? ' · key tag printing' : ''));
+  if (typeof hapticFeedback === 'function') hapticFeedback('success');
+}
+
 function renderActive() {
+  renderNoBayBanner();
   renderOverstayBanner();
   const active = entries.filter(e => !e.timeOut);
   document.getElementById('active-count').textContent =
