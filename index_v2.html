@@ -357,6 +357,8 @@ body.mobile-mode .tab.desktop-only{display:none}
 }
 .btn-primary{background:var(--maroon);color:var(--bone)}
 .btn-primary:hover{background:var(--maroon-light)}
+.btn-save-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-save-green:hover{background:#3d6943}
 .btn-secondary{background:var(--bone);color:var(--text);border:1px solid var(--border)}
 .btn-secondary:hover{background:var(--sandstone)}
 .btn-danger{background:var(--red);color:var(--white);font-size:11px;padding:6px 12px}
@@ -1523,7 +1525,7 @@ body.dark-mode .scan-banner {
     </div>
 
     <div class="btn-row" style="margin-top:18px">
-      <button class="btn btn-primary" onclick="saveEntry()">✓ Save Entry</button>
+      <button class="btn btn-primary btn-save-green" onclick="saveEntry()">✓ Save Entry</button>
       <button class="btn btn-secondary" onclick="resetForm()">↺ Clear</button>
       <span id="save-msg" style="font-size:13px;color:var(--green);font-weight:600;display:none">✓ Entry saved!</span>
     </div>
