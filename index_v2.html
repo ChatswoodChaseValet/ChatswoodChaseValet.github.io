@@ -1408,7 +1408,7 @@ body.dark-mode .scan-banner {
         <input type="text" id="f-colour" class="form-input" placeholder="e.g. Silver" autocomplete="off">
       </div>
       <div class="form-field">
-        <label class="form-label">Parking Bay<span class="required">*</span></label>
+        <label class="form-label">Parking Bay <span style="color:var(--text-muted);font-weight:normal;font-style:italic">(optional)</span></label>
         <input type="text" id="f-bay" class="form-input" placeholder="e.g. B-12" autocomplete="off">
       </div>
     </div>
@@ -3446,8 +3446,8 @@ function saveEntry() {
   const ticketInput = document.getElementById('f-ticket').value.trim();
   const ticketManual = document.getElementById('f-ticket-manual').checked;
 
-  if (!bay || !brand || !rego || !custName || !custPhone) {
-    alert('Please fill in Rego, Customer Name, Phone, Bay and Brand (required fields).');
+  if (!brand || !rego || !custName || !custPhone) {
+    alert('Please fill in Rego, Customer Name, Phone and Brand (required fields).');
     return;
   }
   if (!isValidAUMobile(custPhone)) {
@@ -3588,8 +3588,8 @@ function showSaveToast(entry) {
       <div class="save-modal-title">Entry Saved Successfully</div>
       <div class="save-modal-details">
         <div><strong style="font-family:${mono};color:#e0a640">${entry.ticket}</strong> · ${entry.rego}</div>
-        <div style="margin-top:3px">${vehicle || 'Vehicle logged'} in Bay <strong>${entry.bay}</strong> at <strong>${timeStr}</strong></div>
-        <div class="save-modal-keytag">Write on key tag: <strong style="font-family:${mono};font-size:17px;color:#e0a640">${entry.ticket} · ${entry.bay}</strong></div>
+        <div style="margin-top:3px">${vehicle || 'Vehicle logged'}${entry.bay ? ` in Bay <strong>${entry.bay}</strong>` : ''} at <strong>${timeStr}</strong></div>
+        <div class="save-modal-keytag">Write on key tag: <strong style="font-family:${mono};font-size:17px;color:#e0a640">${entry.ticket}${entry.bay ? ` · ${entry.bay}` : ''}</strong></div>
       </div>
       <div class="save-modal-meta">${cloudText}</div>
       <div class="save-modal-actions">
@@ -5962,7 +5962,7 @@ function renderActive() {
       <td style="font-weight:bold">${e.rego}</td>
       <td><b>${e.brand}</b></td>
       <td>${e.model || '—'}</td>
-      <td><b>${e.bay}</b></td>
+      <td><b>${e.bay || '—'}</b></td>
       <td>${fmtTime(new Date(e.timeIn))}</td>
       <td><span style="${durStyle}">${fmtDuration(dur)}${durBadge}</span></td>
       <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(fees.total)}</td>
@@ -5976,7 +5976,7 @@ function renderActive() {
       </div>
       <div class="acard-car"><b>${e.brand}</b>${e.model ? ' ' + e.model : ''} · <span class="mono">${e.rego}</span></div>
       <div class="acard-meta">
-        <span>Bay <b style="color:var(--text)">${e.bay}</b></span>
+        <span>Bay <b style="color:var(--text)">${e.bay || '—'}</b></span>
         <span>In ${fmtTime(new Date(e.timeIn))}</span>
         <span>${e.name || '—'}${vipTag(e.vip)}</span>
         <span class="acard-fee">${fmtMoney(fees.total)}</span>
