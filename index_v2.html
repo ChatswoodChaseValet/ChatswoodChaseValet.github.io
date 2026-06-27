@@ -4387,7 +4387,18 @@ function confirmAddDiscount() {
 
   let discount = null;
 
-  if (type === 'validation') {
+  if (type === 'lexus_encore') {
+    // Lexus Encore Basic: valet service fee reduced to $15 (saves VALET_FEE−15);
+    // parking time charges still apply as normal.
+    discount = { type: 'amount', amount: VALET_FEE - 15, reason: 'Lexus Encore Basic — valet $15' };
+  } else if (type === 'lexus_free_valet') {
+    // Lexus Free Valet: valet service fee fully waived; customer pays parking only.
+    discount = { type: 'amount', amount: VALET_FEE, reason: 'Lexus Free Valet — valet waived' };
+  } else if (type === 'lexus_platinum') {
+    // Lexus Platinum: valet + parking both waived → nothing to pay (car wash, if
+    // any, is still charged separately like every other discount).
+    discount = { type: 'percent', amount: 100, reason: 'Lexus Platinum — valet & parking free' };
+  } else if (type === 'validation') {
     let retailer = document.getElementById('discount-retailer').value;
     if (retailer === 'Other') {
       retailer = document.getElementById('discount-retailer-other').value.trim() || 'Other retailer';
@@ -13598,6 +13609,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <label class="form-label">Discount Type</label>
       <select id="discount-type" class="form-select" onchange="onDiscountTypeChange()">
         <option value="">— Choose type —</option>
+        <optgroup label="Lexus programs">
+          <option value="lexus_encore">Lexus Encore Basic — valet $15 (parking as normal)</option>
+          <option value="lexus_free_valet">Lexus Free Valet — valet free, parking only</option>
+          <option value="lexus_platinum">Lexus Platinum — valet &amp; parking free ($0)</option>
+        </optgroup>
         <option value="validation">Retailer Validation ($X off)</option>
         <option value="member">Member Discount (% off)</option>
         <option value="custom_amount">Custom $ Amount</option>
