@@ -7943,7 +7943,7 @@ function reportData() {
   const byDay = {}, byDayRev = {};
   list.forEach(e => { const d = e.timeIn.slice(0, 10); byDay[d] = (byDay[d] || 0) + 1; byDayRev[d] = (byDayRev[d] || 0) + (e.totalFee || 0); });
   const daily = Object.keys(byDay).sort().map(d => [d, byDay[d], byDayRev[d] || 0]);
-  const byBrand = {}; list.forEach(e => { const b = e.brand || '—'; byBrand[b] = (byBrand[b] || 0) + 1; });
+  const byBrand = {}; list.forEach(e => { const b = canonicalBrand(e.brand) || '—'; byBrand[b] = (byBrand[b] || 0) + 1; });
   const brands = Object.entries(byBrand).sort((a, b) => b[1] - a[1]);
   // Peak times + average customer stay (shared insights engine).
   const ins = computeInsights(list);
@@ -8272,8 +8272,10 @@ function renderReports() {
   const dayCount = Math.max(1, Math.round((new Date(to) - new Date(from)) / 86400000) + 1);
   document.getElementById('rep-avg').textContent = (filtered.length / dayCount).toFixed(1);
 
-  // Unique brands
-  const brands = new Set(filtered.map(e => e.brand));
+  // Unique brands — normalise casing/spacing and strip any model words typed
+  // into the brand field (Bmw / BMW / "BMW X5" all count as one), and ignore
+  // blanks, so this matches a manual count.
+  const brands = new Set(filtered.map(e => canonicalBrand(e.brand)).filter(Boolean));
   document.getElementById('rep-brands').textContent = brands.size;
 
   // Bag pickups (hands-free shopping) — every round across all cars in range.
@@ -9738,8 +9740,8 @@ function renderComparison() {
   const prevRev = prevEntries.reduce((s, e) => s + (e.totalFee || 0), 0);
   const curTips = curEntries.reduce((s, e) => s + (e.tip || 0), 0);
   const prevTips = prevEntries.reduce((s, e) => s + (e.tip || 0), 0);
-  const curBrands = new Set(curEntries.map(e => e.brand)).size;
-  const prevBrands = new Set(prevEntries.map(e => e.brand)).size;
+  const curBrands = new Set(curEntries.map(e => canonicalBrand(e.brand)).filter(Boolean)).size;
+  const prevBrands = new Set(prevEntries.map(e => canonicalBrand(e.brand)).filter(Boolean)).size;
 
   function deltaBlock(label, curVal, prevVal, isMoney) {
     const fmt = v => isMoney ? fmtMoney(v) : v;
