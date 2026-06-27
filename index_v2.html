@@ -675,6 +675,10 @@ body.dark-mode .ico-group{background:transparent}
      small to hit reliably on a phone. */
   .ico-btn{width:42px;height:40px}
   .ico-btn svg{width:18px;height:18px}
+
+  /* Temporarily hidden on phones (Attendant, shop-charge, car-wash fields).
+     Remove this rule + the .mobile-hide-now classes in the form to restore. */
+  #view-new-entry .mobile-hide-now{display:none}
 }
 
 @media (max-width: 500px) {
@@ -1446,13 +1450,13 @@ body.dark-mode .scan-banner {
           <button type="button" class="btn btn-secondary btn-sm" onclick="useNow()" id="now-btn" style="white-space:nowrap;display:none">⟳ Now</button>
         </div>
       </div>
-      <div class="form-field">
+      <div class="form-field mobile-hide-now">
         <label class="form-label">Attendant (taking car)</label>
         <input type="text" id="f-attendant" class="form-input" placeholder="e.g. JD" autocomplete="off" maxlength="6" style="text-transform:uppercase">
       </div>
     </div>
 
-    <div class="form-grid">
+    <div class="form-grid mobile-hide-now">
       <div class="form-field">
         <label class="form-label">Charge parking to shop
           <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">VIP — shop pays, settle later</span>
@@ -1467,7 +1471,7 @@ body.dark-mode .scan-banner {
       </div>
     </div>
 
-    <div class="form-grid">
+    <div class="form-grid mobile-hide-now">
       <div class="form-field">
         <label class="form-label">Car wash (optional)
           <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">Xtream Car Care · added to bill</span>
