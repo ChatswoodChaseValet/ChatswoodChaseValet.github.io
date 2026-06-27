@@ -3451,9 +3451,27 @@ function isValidAUMobile(raw) {
   return /^04\d{8}$/.test(normalizeAUMobile(raw));
 }
 
+// Brand is a free-text (type-or-pick) field, so casing/spacing varies —
+// "Lexus", "LEXUS" and "lexus " would otherwise be treated as different brands.
+// Snap any input to the canonical spelling from the brand datalist
+// (case-insensitive). Unknown brands are kept as typed, just trimmed.
+function canonicalBrand(raw) {
+  const s = (raw || '').trim();
+  if (!s) return '';
+  if (!canonicalBrand._map) {
+    const m = {};
+    document.querySelectorAll('#brand-list option').forEach(o => {
+      const v = (o.value || '').trim();
+      if (v) m[v.toLowerCase()] = v;
+    });
+    canonicalBrand._map = m;
+  }
+  return canonicalBrand._map[s.toLowerCase()] || s;
+}
+
 function saveEntry() {
   const bay = document.getElementById('f-bay').value.trim();
-  const brand = document.getElementById('f-brand').value;
+  const brand = canonicalBrand(document.getElementById('f-brand').value);
   const rego = document.getElementById('f-rego').value.trim();
   const custName = document.getElementById('f-name').value.trim();
   const custPhone = document.getElementById('f-phone').value.trim();
@@ -4811,7 +4829,7 @@ function saveEditCar() {
   const ticket = document.getElementById('edit-car-ticketno').value.trim();
   const name = document.getElementById('edit-car-name').value.trim();
   const phone = document.getElementById('edit-car-phone').value.trim();
-  const brand = document.getElementById('edit-car-brand').value.trim();
+  const brand = canonicalBrand(document.getElementById('edit-car-brand').value);
   const model = document.getElementById('edit-car-model').value.trim();
   const rego = document.getElementById('edit-car-rego').value.trim();
   const colour = document.getElementById('edit-car-colour').value.trim();
@@ -5138,7 +5156,7 @@ function renderDashInfographics() {
         return rows(hrs.map(x => ({ lbl:hr(x.h), pct:x.n/mx*100, val:x.n })));
       }
       case 'brands': {
-        const bm = {}; inByIn(inst.range).forEach(e => { if (e.brand) bm[e.brand] = (bm[e.brand]||0)+1; });
+        const bm = {}; inByIn(inst.range).forEach(e => { const b = canonicalBrand(e.brand); if (b) bm[b] = (bm[b]||0)+1; });
         let arr = Object.entries(bm).sort((a,b) => b[1]-a[1]);
         if (inst.limit) arr = arr.slice(0, inst.limit);
         const mx = Math.max(1, ...arr.map(b => b[1]));
@@ -5163,7 +5181,7 @@ function renderDashInfographics() {
         const cols = inst.cols.length ? inst.cols : ['name','rego','bay'];
         const list = inst.limit ? active.slice(0, inst.limit) : active;
         if (!list.length) return '<div class="dash-empty">No cars on site</div>';
-        const cell = (e,c) => c==='brand' ? ((e.brand||'')+(e.model?' '+e.model:'')) : c==='timein' ? fmtTime(new Date(e.timeIn)) : (e[c]||'—');
+        const cell = (e,c) => c==='brand' ? ((canonicalBrand(e.brand)||'')+(e.model?' '+e.model:'')) : c==='timein' ? fmtTime(new Date(e.timeIn)) : (e[c]||'—');
         return `<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">
           <tr style="text-align:left;color:var(--text-muted)">${cols.map(c => `<th style="padding:4px 8px 4px 0;font-weight:600;white-space:nowrap">${DASH_COLS[c]}</th>`).join('')}</tr>
           ${list.map(e => `<tr style="border-top:1px solid var(--border)">${cols.map(c => `<td style="padding:5px 8px 5px 0">${escAttr(String(cell(e,c)))}</td>`).join('')}</tr>`).join('')}
@@ -5363,7 +5381,7 @@ function widgetCell(e, c) {
     case 'name': return e.name || '—';
     case 'rego': return e.rego || '—';
     case 'bay': return e.bay || '—';
-    case 'brand': return ((e.brand||'') + (e.model ? ' ' + e.model : '')) || '—';
+    case 'brand': return ((canonicalBrand(e.brand)||'') + (e.model ? ' ' + e.model : '')) || '—';
     case 'timein': return e.timeIn ? fmtTime(new Date(e.timeIn)) : '—';
     case 'timeout': return e.timeOut ? fmtTime(new Date(e.timeOut)) : '—';
     case 'when': return e.timeIn ? fmtDate(new Date(e.timeIn)) : '—';
@@ -5437,7 +5455,7 @@ function openWidgetDetail(id) {
       data = todayIn.slice().sort((a,b) => new Date(a.timeIn) - new Date(b.timeIn));
       cols = ['name','rego','brand','timein']; note = data.length + ' cars in today'; break;
     case 'brands':
-      data = inByIn.slice().sort((a,b) => (a.brand||'').localeCompare(b.brand||''));
+      data = inByIn.slice().sort((a,b) => canonicalBrand(a.brand).localeCompare(canonicalBrand(b.brand)));
       cols = ['brand','name','rego', ...dcol, 'timein']; note = data.length + ' cars'; break;
     case 'revenue':
     case 'money':
@@ -5684,7 +5702,7 @@ function renderBrandList(list, containerId) {
   }
   // Count brands
   const brandMap = {};
-  list.forEach(e => { brandMap[e.brand] = (brandMap[e.brand] || 0) + 1 });
+  list.forEach(e => { const b = canonicalBrand(e.brand); if (b) brandMap[b] = (brandMap[b] || 0) + 1 });
   const sorted = Object.entries(brandMap).sort((a,b) => b[1] - a[1]);
   const max = sorted[0][1];
 
@@ -7390,7 +7408,7 @@ function printDailySummary() {
 
   // Brand counts
   const brandMap = {};
-  todayEntries.forEach(e => { brandMap[e.brand] = (brandMap[e.brand] || 0) + 1 });
+  todayEntries.forEach(e => { const b = canonicalBrand(e.brand); if (b) brandMap[b] = (brandMap[b] || 0) + 1 });
   const topBrands = Object.entries(brandMap).sort((a,b) => b[1] - a[1]).slice(0, 10);
 
   // Attendant performance
