@@ -548,6 +548,35 @@
     } catch (e) { return null; }
   }
 
+  // Short links carry only ?t= (ticket number), so the plate + check-in time
+  // under the QR come from the looked-up row instead of ?r=/?ci= params. Only
+  // fills when the details box is still empty, so older links that already
+  // rendered those from their params are left untouched.
+  function fillDetailsFromRow(row){
+    var details = document.getElementById('details');
+    if (!details || details.children.length) return;
+    var rrego = (row && row.rego ? String(row.rego) : '').trim().toUpperCase();
+    if (rrego && /^[A-Z0-9 -]{1,12}$/.test(rrego)) {
+      var plate = document.createElement('div');
+      plate.className = 'detail-plate';
+      plate.textContent = rrego;
+      details.appendChild(plate);
+    }
+    if (row && row.time_in) {
+      var d = new Date(row.time_in);
+      if (!isNaN(d.getTime())) {
+        var when = d.toLocaleString('en-AU', {
+          weekday: 'short', day: 'numeric', month: 'short',
+          hour: 'numeric', minute: '2-digit', hour12: true
+        });
+        var t = document.createElement('div');
+        t.className = 'detail-time';
+        t.textContent = 'Checked in ' + when;
+        details.appendChild(t);
+      }
+    }
+  }
+
   (async function init(){
     try {
       var results = await Promise.all([fetchTicket(), fetchFlags()]);
@@ -555,6 +584,7 @@
       var flags = results[1] || { handsfree: false, pickup: false };
       if (!row || !row.id) return;            // couldn't match a car — just show the QR
       entryId = row.id;
+      fillDetailsFromRow(row);                 // plate + check-in time for short links
       // Car-request controls only when the feature is on; keep the section
       // visible if the car's already collected so the rating can show.
       var ctrl = document.getElementById('req-controls');

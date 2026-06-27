@@ -6265,10 +6265,12 @@ function renderCheckedOutToday() {
 function buildTicketUrl(e) {
   // location.pathname is e.g. "/Valet/index_v2.html" — strip the file to get "/Valet/"
   const base = location.origin + location.pathname.replace(/[^/]*$/, '');
-  return base + 'ticket.html?t=' + encodeURIComponent(e.ticket)
-    + '&id=' + encodeURIComponent(e.id || '')
-    + '&r=' + encodeURIComponent(e.rego || '')
-    + '&ci=' + encodeURIComponent(e.timeIn || '');
+  // Short link: ticket number only, via the tiny t.html redirect. ticket.html
+  // resolves the car — and its plate + check-in time — from this ticket through
+  // the get_ticket_status lookup, so the customer SMS stays inside one GSM-7
+  // segment even while showing the full branded chatswoodchasevalet.github.io
+  // address (no tinyurl). Old links that still carry &id=/&r=/&ci= keep working.
+  return base + 't.html?t=' + encodeURIComponent(e.ticket);
 }
 
 async function sendQRSms(id) {
@@ -6277,8 +6279,9 @@ async function sendQRSms(id) {
   const url = buildTicketUrl(e);
   // Plain hyphen (not an em-dash) keeps the SMS in the cheaper GSM-7
   // encoding, so it stays fewer billable segments.
-  // Kept to one GSM-7 SMS segment (~115 chars after the link is shortened) so
-  // each check-in text bills as a single message, not two.
+  // Kept to one GSM-7 SMS segment: the short t.html?t=<ticket> link on the
+  // branded chatswoodchasevalet.github.io domain fits alongside this text in
+  // ~160 chars, so each check-in text bills as a single message (no shortener).
   // Identify the car by its plate/rego (what the customer recognises). Fall
   // back to the ticket number for the rare entry logged without a plate.
   const vref = e.rego ? ('rego ' + e.rego) : ('ticket ' + e.ticket);
@@ -6291,9 +6294,9 @@ async function sendQRSms(id) {
   if (e.phone && supa) {
     try {
       const { data, error } = await supa.functions.invoke('send-ticket-sms', {
-        // Pass the long URL so the function swaps it for a tidy tinyurl.com
-        // link (keeps the customer-facing SMS looking professional).
-        body: { to: e.phone, message: msg, shortenUrl: url }
+        // Send the branded short link as-is (no shortener) — it already fits one
+        // SMS segment and shows the real chatswoodchasevalet.github.io address.
+        body: { to: e.phone, message: msg }
       });
       if (!error && data && data.ok) {
         quickToast('Ticket texted to ' + e.phone);
@@ -6305,17 +6308,9 @@ async function sendQRSms(id) {
     }
   }
 
-  // The auto-send didn't go through — we're handing off to the operator's own
-  // Messages app / share sheet below. Swap the long ticket link for a short
-  // one first (same is.gd shortener the server uses) so the customer never
-  // sees the raw GitHub Pages address. Best-effort: if it fails, the long
-  // link still works.
-  if (supa) {
-    try {
-      const { data } = await supa.functions.invoke('send-ticket-sms', { body: { action: 'shorten', url } });
-      if (data && data.ok && data.url && data.url !== url) msg = msg.split(url).join(data.url);
-    } catch (_) { /* keep the long (still-working) link */ }
-  }
+  // The auto-send didn't go through — we hand off to the operator's own
+  // Messages app / share sheet below. The branded short link already looks
+  // professional and fits one segment, so we send it as-is (no shortener).
 
   // 2) Fallback: open the operator's Messages app pre-filled (one tap to send).
   // iOS expects sms:NUMBER&body=... while Android/W3C is sms:NUMBER?body=...
@@ -7481,7 +7476,7 @@ async function sendBagSms(e, j) {
   const url = buildTicketUrl(e);
   const msg = 'Chatswood Chase Valet: your shopping is now in your car (' + (e.rego ? e.rego : 'Ticket ' + e.ticket) + '). '
     + 'See the photo: ' + url;
-  try { await supa.functions.invoke('send-ticket-sms', { body: { to: e.phone, message: msg, shortenUrl: url } }); } catch (_) { /* best effort */ }
+  try { await supa.functions.invoke('send-ticket-sms', { body: { to: e.phone, message: msg } }); } catch (_) { /* best effort */ }
 }
 
 function renderPickupQueue() {
