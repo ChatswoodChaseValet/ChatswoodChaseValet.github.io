@@ -181,6 +181,8 @@ body{
 }
 .tab:hover .tab-label{opacity:1}
 .tab-badge{position:absolute;top:8px;right:12px;background:#a83838;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:bold;line-height:1.5}
+/* Blue "awaiting bay" badge sits opposite the red total-count badge. */
+.tab-badge-bay{right:auto;left:12px;background:#2f6db3}
 /* Mobile (simple) mode — hide desktop-only tabs for an easier staff view */
 body.mobile-mode .tab.desktop-only{display:none}
 
@@ -642,6 +644,7 @@ body.dark-mode .ico-group{background:transparent}
   /* phones have no hover — show the word under the icon */
   .tab-label{position:static;opacity:1;transform:none;background:none;box-shadow:none;color:inherit;padding:0;font-size:10px;letter-spacing:.3px;pointer-events:auto;text-transform:none}
   .tab-badge{top:2px;right:8px}
+  .tab-badge-bay{right:auto;left:8px}
   /* On phones the layout stacks; drop the auto centring margins so .main fills
      the screen width instead of sizing to its content (which caused the whole
      page to be ~2x wide and scroll sideways). Bottom padding clears the
@@ -1192,7 +1195,7 @@ body.dark-mode .scan-banner {
   <button class="tab" onclick="showView(&#39;quick-pickup&#39;)" aria-label="Quick Pickup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="tab-label">Quick Pickup</span></button>
   <button class="tab ff-pickup" onclick="showView(&#39;pickup-queue&#39;)" aria-label="Queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="tab-label">Queue</span><span class="tab-badge" id="pq-tab-badge" style="display:none">0</span></button>
   <button class="tab ff-bags" onclick="showView(&#39;bags&#39;)" aria-label="Bags"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="tab-label">Bags</span><span class="tab-badge" id="bag-tab-badge" style="display:none">0</span></button>
-  <button class="tab" onclick="showView(&#39;active&#39;)" aria-label="Active Cars"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg><span class="tab-label">Active Cars</span><span class="tab-badge" id="active-tab-badge" style="display:none">0</span></button>
+  <button class="tab" onclick="showView(&#39;active&#39;)" aria-label="Active Cars"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg><span class="tab-label">Active Cars</span><span class="tab-badge" id="active-tab-badge" style="display:none">0</span><span class="tab-badge tab-badge-bay" id="nobay-tab-badge" title="Awaiting bay assignment" style="display:none">0</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;customers&#39;)" aria-label="Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="tab-label">Customers</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;reports&#39;)" aria-label="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="tab-label">Reports</span></button>
   <button class="tab desktop-only" onclick="showView(&#39;settings&#39;)" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="tab-label">Settings</span></button>
@@ -5957,6 +5960,9 @@ function renderNoBayBanner() {
   if (!el) return;
   const waiting = entries.filter(e => !e.timeOut && !(e.bay || '').trim())
     .sort((a, b) => new Date(a.timeIn) - new Date(b.timeIn));
+  // Blue count badge on the Active Cars tab icon.
+  const badge = document.getElementById('nobay-tab-badge');
+  if (badge) { badge.textContent = waiting.length; badge.style.display = waiting.length > 0 ? '' : 'none'; }
   if (!waiting.length) { el.innerHTML = ''; return; }
   const now = new Date();
   const chips = waiting.map(e => {
