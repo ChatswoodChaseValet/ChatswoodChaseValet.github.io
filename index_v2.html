@@ -1688,10 +1688,10 @@ body.dark-mode .scan-banner {
             <th>Rego</th>
             <th>Brand</th>
             <th>Model</th>
-            <th id="active-bay-th" onclick="toggleBaySort()" style="cursor:pointer;user-select:none" title="Click to sort by bay number">Bay <span id="bay-sort-arrow" style="font-size:9px"></span></th>
-            <th>Time In</th>
+            <th onclick="toggleSort('bay')" style="cursor:pointer;user-select:none" title="Click to sort by bay number">Bay <span id="bay-sort-arrow" style="font-size:9px"></span></th>
+            <th onclick="toggleSort('timein')" style="cursor:pointer;user-select:none" title="Click to sort by check-in time">Time In <span id="timein-sort-arrow" style="font-size:9px"></span></th>
             <th>Duration</th>
-            <th>Running Fee</th>
+            <th onclick="toggleSort('fee')" style="cursor:pointer;user-select:none" title="Click to sort by running fee">Running Fee <span id="fee-sort-arrow" style="font-size:9px"></span></th>
             <th>Action</th>
           </tr>
         </thead>
@@ -6016,11 +6016,18 @@ function assignBay(id) {
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 
-// Bay-column sort for Active Cars: null = default (urgency) order, then toggles
-// 'asc' (small→big) ↔ 'desc' (big→small) each time the Bay header is clicked.
-let activeBaySort = null;
-function toggleBaySort() {
-  activeBaySort = activeBaySort === 'asc' ? 'desc' : 'asc';
+// Column sort for Active Cars. activeSortCol null = default (urgency) order.
+// Clicking a sortable header (Bay / Time In / Running Fee) sets that column and
+// toggles 'asc' (small→big) ↔ 'desc' (big→small) on repeat clicks.
+let activeSortCol = null;   // null | 'bay' | 'timein' | 'fee'
+let activeSortDir = 'asc';
+function toggleSort(col) {
+  if (activeSortCol === col) {
+    activeSortDir = activeSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    activeSortCol = col;
+    activeSortDir = 'asc';
+  }
   renderActive();
 }
 
@@ -6042,25 +6049,35 @@ function renderActive() {
   }
   const now = new Date();
 
-  // Update the Bay column sort arrow.
-  const bayArrow = document.getElementById('bay-sort-arrow');
-  if (bayArrow) {
-    bayArrow.textContent = activeBaySort === 'asc' ? '▲' : activeBaySort === 'desc' ? '▼' : '';
-    bayArrow.style.color = 'var(--maroon)';
-  }
+  // Update the sort arrows on the sortable column headers.
+  ['bay', 'timein', 'fee'].forEach(col => {
+    const el = document.getElementById(col + '-sort-arrow');
+    if (!el) return;
+    el.textContent = activeSortCol === col ? (activeSortDir === 'asc' ? '▲' : '▼') : '';
+    el.style.color = 'var(--maroon)';
+  });
 
   let sorted;
-  if (activeBaySort) {
-    // Sort by bay number when the operator clicked the Bay header. Numeric-aware
-    // so "10" sorts after "2", and mixed bays like "B4"/"B12" order naturally.
-    // Cars with no bay yet always sit at the bottom, either direction.
+  if (activeSortCol) {
+    const dir = activeSortDir === 'asc' ? 1 : -1;
     sorted = [...active].sort((a, b) => {
-      const ae = !(a.bay || '').trim(), be = !(b.bay || '').trim();
-      if (ae && be) return 0;
-      if (ae) return 1;
-      if (be) return -1;
-      const cmp = a.bay.localeCompare(b.bay, undefined, { numeric: true, sensitivity: 'base' });
-      return activeBaySort === 'asc' ? cmp : -cmp;
+      if (activeSortCol === 'bay') {
+        // Numeric-aware ("10" after "2"); cars with no bay always sit last.
+        const ae = !(a.bay || '').trim(), be = !(b.bay || '').trim();
+        if (ae && be) return 0;
+        if (ae) return 1;
+        if (be) return -1;
+        return dir * a.bay.localeCompare(b.bay, undefined, { numeric: true, sensitivity: 'base' });
+      }
+      if (activeSortCol === 'timein') {
+        return dir * (new Date(a.timeIn) - new Date(b.timeIn));
+      }
+      if (activeSortCol === 'fee') {
+        const fa = calculateTotalFee(now - new Date(a.timeIn)).total;
+        const fb = calculateTotalFee(now - new Date(b.timeIn)).total;
+        return dir * (fa - fb);
+      }
+      return 0;
     });
   } else {
     // Default: by pickup ETA urgency (overdue first), then longest-stay first
