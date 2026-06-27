@@ -3595,9 +3595,11 @@ function saveEntry() {
   showSaveToast(entry);
   hapticFeedback('success');
 
-  // Auto-print the key tag on check-in when a printer is set up. The toast
-  // still shows a button as a reprint option; stays silent with no printer.
-  if (printerConfigured()) {
+  // Auto-print the key tag on check-in when a printer is set up — but only once
+  // a bay is assigned. A key tag with no bay isn't useful, so if the car is
+  // checked in before it's parked we skip printing; the tag prints later when
+  // the bay is added via Edit Car. Stays silent with no printer.
+  if (printerConfigured() && entry.bay) {
     autoPrintedIds.add(entry.id);   // so the realtime echo doesn't reprint it
     printKeyTag(entry);
   }
@@ -3650,7 +3652,7 @@ function showSaveToast(entry) {
       </div>
       <div class="save-modal-meta">${cloudText}</div>
       <div class="save-modal-actions">
-        <button class="btn btn-secondary btn-sm" onclick="printKeyTag('${entry.id}')">Print Key Tag</button>
+        ${entry.bay ? `<button class="btn btn-secondary btn-sm" onclick="printKeyTag('${entry.id}')">Print Key Tag</button>` : ''}
         <button class="btn btn-primary" onclick="dismissSaveModal()">Done — Next Car</button>
       </div>
     </div>
@@ -11988,6 +11990,7 @@ function maybeAutoPrintTag(entry) {
   if (!settings.printStation) return;       // this device isn't the print station
   if (!printerConfigured()) return;         // no printer set up here
   if (entry.timeOut) return;                // already checked out — skip
+  if (!entry.bay) return;                   // no bay yet — print once it's assigned
   if (autoPrintedIds.has(entry.id)) return; // printed here already
   autoPrintedIds.add(entry.id);
   printKeyTag(entry);
