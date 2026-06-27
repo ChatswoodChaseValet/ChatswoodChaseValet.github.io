@@ -3451,27 +3451,45 @@ function isValidAUMobile(raw) {
   return /^04\d{8}$/.test(normalizeAUMobile(raw));
 }
 
-// Brand is a free-text (type-or-pick) field, so casing/spacing varies —
-// "Lexus", "LEXUS" and "lexus " would otherwise be treated as different brands.
-// Snap any input to the canonical spelling from the brand datalist
-// (case-insensitive). Unknown brands are kept as typed, just trimmed.
-function canonicalBrand(raw) {
+// Brand is a free-text (type-or-pick) field, so casing/spacing varies and staff
+// sometimes type the model into it too ("Lexus LBX"). Split a raw brand into a
+// canonical brand + any trailing model words by matching the LONGEST leading run
+// of words against the brand datalist (case-insensitive) — so multi-word brands
+// ("Land Rover", "Alfa Romeo", "Mercedes-Benz") aren't split. Unknown brands are
+// kept as typed (just trimmed), with no model split out.
+function splitBrandModel(raw) {
   const s = (raw || '').trim();
-  if (!s) return '';
-  if (!canonicalBrand._map) {
+  if (!s) return { brand: '', model: '' };
+  if (!splitBrandModel._map) {
     const m = {};
     document.querySelectorAll('#brand-list option').forEach(o => {
       const v = (o.value || '').trim();
       if (v) m[v.toLowerCase()] = v;
     });
-    canonicalBrand._map = m;
+    splitBrandModel._map = m;
   }
-  return canonicalBrand._map[s.toLowerCase()] || s;
+  const map = splitBrandModel._map;
+  const words = s.split(/\s+/);
+  for (let n = words.length; n >= 1; n--) {
+    const key = words.slice(0, n).join(' ').toLowerCase();
+    if (map[key]) return { brand: map[key], model: words.slice(n).join(' ') };
+  }
+  return { brand: s, model: '' };
+}
+// Just the canonical brand (used for grouping/display in reports).
+function canonicalBrand(raw) { return splitBrandModel(raw).brand; }
+// Display label "Brand Model" — uses the entry's model, or falls back to a model
+// that was typed into the brand field (legacy "Lexus LBX" records).
+function brandLabel(e) {
+  const sb = splitBrandModel(e.brand);
+  const m = (e.model || '').trim() || sb.model;
+  return sb.brand + (m ? ' ' + m : '');
 }
 
 function saveEntry() {
   const bay = document.getElementById('f-bay').value.trim();
-  const brand = canonicalBrand(document.getElementById('f-brand').value);
+  const bm = splitBrandModel(document.getElementById('f-brand').value);
+  const brand = bm.brand;
   const rego = document.getElementById('f-rego').value.trim();
   const custName = document.getElementById('f-name').value.trim();
   const custPhone = document.getElementById('f-phone').value.trim();
@@ -3527,7 +3545,9 @@ function saveEntry() {
     timeOut: null,
     bay,
     brand,
-    model: document.getElementById('f-model').value.trim(),
+    // If staff typed "Lexus LBX" into Brand, keep "Lexus" as brand and fall back
+    // to "LBX" as the model (unless they filled Model in themselves).
+    model: document.getElementById('f-model').value.trim() || bm.model,
     colour: document.getElementById('f-colour').value.trim(),
     rego,
     name: document.getElementById('f-name').value.trim(),
@@ -4829,8 +4849,9 @@ function saveEditCar() {
   const ticket = document.getElementById('edit-car-ticketno').value.trim();
   const name = document.getElementById('edit-car-name').value.trim();
   const phone = document.getElementById('edit-car-phone').value.trim();
-  const brand = canonicalBrand(document.getElementById('edit-car-brand').value);
-  const model = document.getElementById('edit-car-model').value.trim();
+  const ebm = splitBrandModel(document.getElementById('edit-car-brand').value);
+  const brand = ebm.brand;
+  const model = document.getElementById('edit-car-model').value.trim() || ebm.model;
   const rego = document.getElementById('edit-car-rego').value.trim();
   const colour = document.getElementById('edit-car-colour').value.trim();
   const bay = document.getElementById('edit-car-bay').value.trim();
@@ -5181,7 +5202,7 @@ function renderDashInfographics() {
         const cols = inst.cols.length ? inst.cols : ['name','rego','bay'];
         const list = inst.limit ? active.slice(0, inst.limit) : active;
         if (!list.length) return '<div class="dash-empty">No cars on site</div>';
-        const cell = (e,c) => c==='brand' ? ((canonicalBrand(e.brand)||'')+(e.model?' '+e.model:'')) : c==='timein' ? fmtTime(new Date(e.timeIn)) : (e[c]||'—');
+        const cell = (e,c) => c==='brand' ? (brandLabel(e)||'—') : c==='timein' ? fmtTime(new Date(e.timeIn)) : (e[c]||'—');
         return `<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">
           <tr style="text-align:left;color:var(--text-muted)">${cols.map(c => `<th style="padding:4px 8px 4px 0;font-weight:600;white-space:nowrap">${DASH_COLS[c]}</th>`).join('')}</tr>
           ${list.map(e => `<tr style="border-top:1px solid var(--border)">${cols.map(c => `<td style="padding:5px 8px 5px 0">${escAttr(String(cell(e,c)))}</td>`).join('')}</tr>`).join('')}
@@ -5381,7 +5402,7 @@ function widgetCell(e, c) {
     case 'name': return e.name || '—';
     case 'rego': return e.rego || '—';
     case 'bay': return e.bay || '—';
-    case 'brand': return ((canonicalBrand(e.brand)||'') + (e.model ? ' ' + e.model : '')) || '—';
+    case 'brand': return brandLabel(e) || '—';
     case 'timein': return e.timeIn ? fmtTime(new Date(e.timeIn)) : '—';
     case 'timeout': return e.timeOut ? fmtTime(new Date(e.timeOut)) : '—';
     case 'when': return e.timeIn ? fmtDate(new Date(e.timeIn)) : '—';
