@@ -1688,7 +1688,7 @@ body.dark-mode .scan-banner {
             <th>Rego</th>
             <th>Brand</th>
             <th>Model</th>
-            <th>Bay</th>
+            <th id="active-bay-th" onclick="toggleBaySort()" style="cursor:pointer;user-select:none" title="Click to sort by bay number">Bay <span id="bay-sort-arrow" style="font-size:9px"></span></th>
             <th>Time In</th>
             <th>Duration</th>
             <th>Running Fee</th>
@@ -6016,6 +6016,14 @@ function assignBay(id) {
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 
+// Bay-column sort for Active Cars: null = default (urgency) order, then toggles
+// 'asc' (small→big) ↔ 'desc' (big→small) each time the Bay header is clicked.
+let activeBaySort = null;
+function toggleBaySort() {
+  activeBaySort = activeBaySort === 'asc' ? 'desc' : 'asc';
+  renderActive();
+}
+
 function renderActive() {
   renderNoBayBanner();
   renderOverstayBanner();
@@ -6034,17 +6042,39 @@ function renderActive() {
   }
   const now = new Date();
 
-  // Sort: by pickup ETA urgency (overdue first), then longest-stay first
-  const sorted = [...active].sort((a, b) => {
-    if (a.pickupETA && b.pickupETA) {
-      return new Date(a.pickupETA) - new Date(b.pickupETA);
-    }
-    if (a.pickupETA && !b.pickupETA) return -1;
-    if (!a.pickupETA && b.pickupETA) return 1;
-    if (a.pickupRequested && !b.pickupRequested) return -1;
-    if (!a.pickupRequested && b.pickupRequested) return 1;
-    return new Date(a.timeIn) - new Date(b.timeIn);
-  });
+  // Update the Bay column sort arrow.
+  const bayArrow = document.getElementById('bay-sort-arrow');
+  if (bayArrow) {
+    bayArrow.textContent = activeBaySort === 'asc' ? '▲' : activeBaySort === 'desc' ? '▼' : '';
+    bayArrow.style.color = 'var(--maroon)';
+  }
+
+  let sorted;
+  if (activeBaySort) {
+    // Sort by bay number when the operator clicked the Bay header. Numeric-aware
+    // so "10" sorts after "2", and mixed bays like "B4"/"B12" order naturally.
+    // Cars with no bay yet always sit at the bottom, either direction.
+    sorted = [...active].sort((a, b) => {
+      const ae = !(a.bay || '').trim(), be = !(b.bay || '').trim();
+      if (ae && be) return 0;
+      if (ae) return 1;
+      if (be) return -1;
+      const cmp = a.bay.localeCompare(b.bay, undefined, { numeric: true, sensitivity: 'base' });
+      return activeBaySort === 'asc' ? cmp : -cmp;
+    });
+  } else {
+    // Default: by pickup ETA urgency (overdue first), then longest-stay first
+    sorted = [...active].sort((a, b) => {
+      if (a.pickupETA && b.pickupETA) {
+        return new Date(a.pickupETA) - new Date(b.pickupETA);
+      }
+      if (a.pickupETA && !b.pickupETA) return -1;
+      if (!a.pickupETA && b.pickupETA) return 1;
+      if (a.pickupRequested && !b.pickupRequested) return -1;
+      if (!a.pickupRequested && b.pickupRequested) return 1;
+      return new Date(a.timeIn) - new Date(b.timeIn);
+    });
+  }
 
   const built = sorted.map(e => {
     const dur = now - new Date(e.timeIn);
