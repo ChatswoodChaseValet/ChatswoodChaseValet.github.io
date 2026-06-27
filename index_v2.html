@@ -3155,6 +3155,18 @@ function updateClock() {
   document.getElementById('header-date').textContent =
     now.toLocaleDateString('en-AU', { day:'2-digit', month:'2-digit', year:'2-digit' });
   document.getElementById('header-clock').textContent = fmtTime(now);
+
+  // Keep the New Entry "Time In" field showing the live current time while the
+  // form is open and not being edited manually, so what staff see matches what
+  // gets saved (the actual save moment).
+  const tIn = document.getElementById('f-time');
+  const tManual = document.getElementById('f-time-manual');
+  const newView = document.getElementById('view-new-entry');
+  if (tIn && tManual && !tManual.checked && newView && newView.classList.contains('active')) {
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    tIn.value = hh + ':' + mm;
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -3498,6 +3510,7 @@ function saveEntry() {
   const custName = document.getElementById('f-name').value.trim();
   const custPhone = document.getElementById('f-phone').value.trim();
   const timeStr = document.getElementById('f-time').value;
+  const timeManual = document.getElementById('f-time-manual').checked;
   const ticketInput = document.getElementById('f-ticket').value.trim();
   const ticketManual = document.getElementById('f-ticket-manual').checked;
 
@@ -3533,13 +3546,20 @@ function saveEntry() {
     if (!confirm(`${rego} is already on site (bay ${onSiteDup.bay || '—'}, ticket ${onSiteDup.ticket}). Check in anyway?`)) return;
   }
 
-  // Build timestamp from today's date + entered time
+  // Time In. Unless the operator ticked "edit manually" and typed a specific
+  // time, stamp the ACTUAL moment of save — not the time the form was opened.
+  // (The field is pre-filled with "now" when the form loads; if the car is
+  // logged some minutes later, that pre-fill would otherwise be stale.)
   const now = new Date();
-  const [hh, mm] = timeStr.split(':').map(n => parseInt(n, 10));
-  const timeIn = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
-
-  if (timeIn > now) {
-    if (!confirm('The time you entered is in the future. Save anyway?')) return;
+  let timeIn;
+  if (timeManual) {
+    const [hh, mm] = timeStr.split(':').map(n => parseInt(n, 10));
+    timeIn = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
+    if (timeIn > now) {
+      if (!confirm('The time you entered is in the future. Save anyway?')) return;
+    }
+  } else {
+    timeIn = now;
   }
 
   const entry = {
