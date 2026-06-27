@@ -9,3 +9,6 @@ backup_*.json
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Claude Code local settings (personal, not published)
+.claude/settings.local.json
