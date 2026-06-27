@@ -6279,7 +6279,10 @@ async function sendQRSms(id) {
   // encoding, so it stays fewer billable segments.
   // Kept to one GSM-7 SMS segment (~115 chars after the link is shortened) so
   // each check-in text bills as a single message, not two.
-  let msg = 'Chatswood Chase Valet, ticket ' + e.ticket
+  // Identify the car by its plate/rego (what the customer recognises). Fall
+  // back to the ticket number for the rare entry logged without a plate.
+  const vref = e.rego ? ('rego ' + e.rego) : ('ticket ' + e.ticket);
+  let msg = 'Chatswood Chase Valet, ' + vref
     + '. View your QR ticket to collect your vehicle (enquiries 0427 000 822): ' + url;
 
   // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
@@ -6327,7 +6330,7 @@ async function sendQRSms(id) {
   // No phone on entry — try Web Share API (lets user pick any channel)
   if (navigator.share) {
     try {
-      await navigator.share({ title: 'Ticket ' + e.ticket, text: msg });
+      await navigator.share({ title: 'Vehicle ' + (e.rego || e.ticket), text: msg });
       return;
     } catch (err) {
       if (err && err.name === 'AbortError') return; // user cancelled
@@ -7476,7 +7479,7 @@ async function notifyBagAssignee(id, jobId) {
 async function sendBagSms(e, j) {
   if (!e.phone || !supa) return;
   const url = buildTicketUrl(e);
-  const msg = 'Chatswood Chase Valet: your shopping is now in your car (Ticket ' + e.ticket + '). '
+  const msg = 'Chatswood Chase Valet: your shopping is now in your car (' + (e.rego ? e.rego : 'Ticket ' + e.ticket) + '). '
     + 'See the photo: ' + url;
   try { await supa.functions.invoke('send-ticket-sms', { body: { to: e.phone, message: msg, shortenUrl: url } }); } catch (_) { /* best effort */ }
 }
