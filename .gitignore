@@ -1,0 +1,11 @@
+# Local screenshots & preview renders
+screenshots/
+
+# Pitch / report exports
+PITCH - *.html
+
+# Ad-hoc data backups
+backup_*.json
+
+# Supabase CLI temp files
+supabase/.temp/
