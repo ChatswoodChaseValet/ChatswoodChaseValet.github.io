@@ -3553,9 +3553,20 @@ function saveEntry() {
     return;
   }
 
-  // Check for duplicate ticket numbers (only when manually entered)
+  // Hard stop: two ACTIVE cars must never share a ticket number. The customer
+  // QR/SMS page and the staff scanner both resolve a car purely by its ticket,
+  // so a clash would silently point them at the wrong car. Block it outright —
+  // even an auto code (collisions are vanishingly rare, but not impossible).
+  const ticketClash = entries.find(e => !e.timeOut && e.ticket === ticketInput);
+  if (ticketClash) {
+    alert(`Ticket ${ticketInput} is already in use by an active car (${ticketClash.rego || 'a car'}, bay ${ticketClash.bay || '—'}).\n\nGenerate a new ticket or enter a different number.`);
+    document.getElementById('f-ticket').focus();
+    return;
+  }
+  // A checked-out car may share an old code harmlessly (it's off-site); still
+  // warn on manual entry so a typo doesn't reuse a recent code.
   if (ticketManual && entries.some(e => e.ticket === ticketInput)) {
-    if (!confirm(`Ticket number "${ticketInput}" already exists in the log. Save anyway?`)) return;
+    if (!confirm(`Ticket number "${ticketInput}" already exists in the log (a checked-out car). Save anyway?`)) return;
   }
 
   // Warn if this plate is already on site (checked in, not yet picked up).
@@ -4930,8 +4941,18 @@ function saveEditCar() {
   const tout = document.getElementById('edit-car-timeout').value;
 
   if (!ticket) { err.textContent = 'Ticket Number is required.'; return; }
+  // Hard stop: never let a car share a ticket with another ACTIVE car — the
+  // customer QR page and the scanner both look a car up by ticket, so a clash
+  // would resolve to the wrong car. (Excludes this car, so re-saving its own
+  // ticket is fine.)
+  const ticketClash = entries.find(x => x.id !== editingCarId && !x.timeOut && x.ticket === ticket);
+  if (ticketClash) {
+    err.textContent = `Ticket ${ticket} is already in use by an active car (${ticketClash.rego || 'a car'}, bay ${ticketClash.bay || '—'}). Use a different number.`;
+    return;
+  }
+  // Otherwise only a checked-out car shares it — keep the soft warning.
   if (ticket !== e.ticket && entries.some(x => x.id !== editingCarId && x.ticket === ticket)) {
-    if (!confirm(`Ticket number "${ticket}" already exists in the log. Save anyway?`)) return;
+    if (!confirm(`Ticket number "${ticket}" already exists in the log (a checked-out car). Save anyway?`)) return;
   }
   if (!name) { err.textContent = 'Customer Name is required.'; return; }
   if (phone && !isValidAUMobile(phone)) { err.textContent = 'Enter a valid Australian mobile (e.g. 0412 345 678), or leave blank.'; return; }
