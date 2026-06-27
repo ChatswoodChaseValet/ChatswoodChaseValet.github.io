@@ -3567,6 +3567,19 @@ function saveEntry() {
     if (!confirm(`${rego} is already on site (bay ${onSiteDup.bay || '—'}, ticket ${onSiteDup.ticket}). Check in anyway?`)) return;
   }
 
+  // A bay holds exactly one car — block checking a car into a spot another car
+  // is already parked in. Two cars in one bay would also hide one of them from
+  // the parking map (it keys by bay number). Staff must free the bay first or
+  // pick a different one. (Blank bay = unassigned, never conflicts.)
+  if (bay) {
+    const bayDup = bayOccupant(bay);
+    if (bayDup) {
+      alert(`Bay ${bay} is already taken by ${bayDup.rego || 'a car'} (ticket ${bayDup.ticket}).\n\nMark that car out, or choose a different bay.`);
+      document.getElementById('f-bay').focus();
+      return;
+    }
+  }
+
   // Time In. Unless the operator ticked "edit manually" and typed a specific
   // time, stamp the ACTUAL moment of save — not the time the form was opened.
   // (The field is pre-filled with "now" when the form loads; if the car is
@@ -4925,6 +4938,10 @@ function saveEditCar() {
   if (!brand) { err.textContent = 'Car Brand is required.'; return; }
   if (!rego) { err.textContent = 'Rego is required.'; return; }
   if (!bay) { err.textContent = 'Bay is required.'; return; }
+  // Don't let an edit move a car into a bay another active car already holds
+  // (excludes this car so re-saving its own bay is fine).
+  const bayDup = bayOccupant(bay, editingCarId);
+  if (bayDup) { err.textContent = `Bay ${bay} is already taken by ${bayDup.rego || 'a car'} (ticket ${bayDup.ticket}). Free that bay or choose another.`; return; }
   if (!/^\d{1,2}:\d{2}$/.test(tin)) { err.textContent = 'Enter a valid Time In.'; return; }
 
   // Keep each timestamp's original DATE, change only the time
@@ -5630,6 +5647,26 @@ function parseBayNum(b) {
   if (b == null) return null;
   const m = String(b).match(/\d+/);
   return m ? parseInt(m[0], 10) : null;
+}
+
+// A comparison key for a bay so two spellings of the same spot match: prefer the
+// bay number (so "12", "B-12", "Bay 12" all collide, matching the parking map),
+// falling back to the squashed text for number-less labels. Blank bay → null
+// (a car with no bay assigned never conflicts).
+function bayKey(b) {
+  const s = (b == null ? '' : String(b)).trim();
+  if (!s) return null;
+  const n = parseBayNum(s);
+  return n != null ? 'n' + n : 's' + s.toUpperCase().replace(/\s+/g, '');
+}
+
+// The active (not-yet-collected) car already parked in this bay, if any —
+// excluding the entry with id `exceptId` (so editing a car doesn't clash with
+// itself). Returns null for a blank bay or a free spot.
+function bayOccupant(b, exceptId) {
+  const k = bayKey(b);
+  if (k == null) return null;
+  return entries.find(e => !e.timeOut && e.id !== exceptId && bayKey(e.bay) === k) || null;
 }
 
 // Rotate a point (x,y) by PMAP_ROTATE degrees clockwise (screen coords, y down).
