@@ -186,6 +186,23 @@ body{
 /* Mobile (simple) mode — hide desktop-only tabs for an easier staff view */
 body.mobile-mode .tab.desktop-only{display:none}
 
+/* ── Sticky header + side menu (desktop sidebar layout) ──
+   Keep the top bar and the icon rail (plus the Settings flyout) in view while
+   the page scrolls. The sidebar sticks just below the header, whose live height
+   is published as --header-h from JS (syncHeaderHeight). The window stays the
+   scroll container, so window.scrollTo (scroll-to-top after save, etc.) still
+   works. No overflow on the rail so the hover tab-label tooltips aren't clipped.
+   Mobile keeps its own fixed bottom nav (see the max-width:900px block), so this
+   only targets the desktop sidebar layout. */
+@media (min-width: 901px) {
+  .header { position: sticky; top: 0; z-index: 200; }
+  .tabs, .nav-flyout {
+    position: sticky;
+    top: var(--header-h, 78px);
+    align-self: flex-start;
+  }
+}
+
 /* Pre-existing damage diagram (intake) */
 .damage-pad{position:relative;width:100%;max-width:680px;margin:8px 0;aspect-ratio:1600/893;background:var(--white);border:1px solid var(--border);border-radius:12px;cursor:crosshair;touch-action:manipulation;user-select:none}
 .damage-pad.readonly{cursor:default}
@@ -10456,6 +10473,16 @@ document.addEventListener('click', () => setTimeout(updateScanReady, 0));
 // Safety net for focus changes that don't fire a clean event (e.g. Alt-Tab on
 // some setups): cheap re-check a couple of times a second.
 setInterval(updateScanReady, 1500);
+
+// Publish the live header height so the desktop sticky sidebar (CSS, min-width
+// 901px) sits exactly below the sticky header instead of guessing a fixed value.
+function syncHeaderHeight() {
+  const h = document.querySelector('.header');
+  if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
+}
+syncHeaderHeight();
+window.addEventListener('resize', syncHeaderHeight);
+window.addEventListener('load', syncHeaderHeight);
 
 // Scanning is live the moment the page loads — show that on the button.
 function initScannerButton() {
