@@ -6396,9 +6396,18 @@ async function sendQRSms(id) {
     + '. View your QR ticket to collect your vehicle (enquiries 0427 000 822): ' + url;
 
   // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
-  //    If it isn't deployed/configured yet, or the send fails, we quietly
-  //    fall back to opening the Messages app below (one-tap send).
+  //    Two attempts before giving up: first through the supabase-js client
+  //    (which carries the logged-in staff session token), then a direct call
+  //    with the anon key — in case that session token was the problem (expired
+  //    or invalid JWT rejected by the function gateway). We also remember WHY it
+  //    failed so the fallback message below is accurate rather than guessing:
+  //      'blocked'  = couldn't reach the service at all (ad-blocker/extension,
+  //                   offline, CORS) — the request threw.
+  //      'rejected' = the service answered but refused (out of credit, invalid
+  //                   number, etc.).
+  let failReason = '';
   if (e.phone && supa) {
+    // Attempt A: supabase-js client (uses the current session token).
     try {
       const { data, error } = await supa.functions.invoke('send-ticket-sms', {
         // Send the branded short link as-is (no shortener) — it already fits one
@@ -6410,8 +6419,30 @@ async function sendQRSms(id) {
         hapticFeedback('success');
         return;
       }
+      if (data && data.ok === false) failReason = 'rejected';
     } catch (err) {
-      // network/function error — fall through to the manual composer
+      failReason = 'blocked';
+    }
+    // Attempt B: direct fetch with the anon key (no session token in play).
+    try {
+      const r = await fetch(SUPABASE_URL + '/functions/v1/send-ticket-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY
+        },
+        body: JSON.stringify({ to: e.phone, message: msg })
+      });
+      const data = await r.json().catch(() => null);
+      if (r.ok && data && data.ok) {
+        quickToast('Ticket texted to ' + e.phone);
+        hapticFeedback('success');
+        return;
+      }
+      failReason = 'rejected';   // reached the service, but it didn't accept
+    } catch (err) {
+      if (failReason !== 'rejected') failReason = 'blocked';
     }
   }
 
@@ -6434,13 +6465,20 @@ async function sendQRSms(id) {
     return;
   }
 
-  // 3) Desktop (no Messages app): a PC can't send an SMS itself, and the
-  // automatic ClickSend send just failed — most often because SMS credit ran
-  // out. Copy the full message so the operator can send it another way, and say
-  // plainly that the auto-text didn't go (so it's not mistaken for "sent").
-  const failNote = e.phone
-    ? 'The automatic text to ' + e.phone + " didn't send — this usually means SMS credit has run out (check SMS Credit in Settings)."
-    : 'There is no phone number on this entry, so no text could be sent.';
+  // 3) Desktop (no Messages app): a PC can't send an SMS itself. Explain why the
+  // auto-send didn't go — accurately, based on failReason — and copy the message
+  // so the operator can paste it. (Don't blame credit when the real cause is the
+  // browser blocking the request.)
+  let failNote;
+  if (!e.phone) {
+    failNote = 'There is no phone number on this entry, so no text could be sent.';
+  } else if (failReason === 'blocked') {
+    failNote = "Couldn't reach the SMS service from this browser (the SMS service itself is working). This is almost always a browser extension / ad-blocker blocking the request, or no internet. Try an Incognito window, turn off ad-blocking for this site, or use a different browser — and if it persists, log out and back in.";
+  } else if (failReason === 'rejected') {
+    failNote = 'The SMS service refused the text to ' + e.phone + '. Check SMS Credit in Settings, and that the number is a valid Australian mobile.';
+  } else {
+    failNote = "The automatic text to " + e.phone + " didn't send.";
+  }
   try {
     await navigator.clipboard.writeText(msg);
     alert(failNote + '\n\nThe message has been copied to your clipboard — paste it to the customer:\n\n' + msg);
