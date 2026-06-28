@@ -593,6 +593,27 @@ body.dark-mode .ico-group{background:transparent}
 }
 .scan-banner.show{display:block}
 
+/* Scanner-readiness pill. A handheld scanner is just a keyboard, so its codes
+   only reach this page while the window is in front AND no text field is
+   focused. This pill makes that state obvious at a glance: green = a scan will
+   register now, amber/red = it won't (with why). */
+.scan-ready-pill{
+  position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
+  display:none; align-items:center; gap:8px;
+  padding:8px 16px; border-radius:999px;
+  font-size:13px; font-weight:700; letter-spacing:.3px; white-space:nowrap;
+  box-shadow:0 6px 20px rgba(0,0,0,.28);
+  z-index:90; pointer-events:none; user-select:none;
+  border:2px solid transparent;
+}
+.scan-ready-pill.show{display:flex}
+.srp-dot{width:10px;height:10px;border-radius:50%;background:#fff;flex:none}
+.scan-ready-pill.ready{background:#1f7a36;color:#fff;border-color:#155c28}
+.scan-ready-pill.typing{background:#e0a640;color:#5a3a00;border-color:#a06400}
+.scan-ready-pill.away{background:#a83838;color:#fff;border-color:#7a2424}
+.scan-ready-pill.away .srp-dot{animation:srpPulse 1s ease-in-out infinite}
+@keyframes srpPulse{0%,100%{opacity:1}50%{opacity:.25}}
+
 /* Camera scanner modal */
 .camera-modal{
   display:none;position:fixed;inset:0;
@@ -640,6 +661,8 @@ body.dark-mode .ico-group{background:transparent}
   .tab{flex-direction:column;gap:3px;padding:8px 10px 7px;flex-shrink:0;min-width:58px;
     border-left:none;border-top:3px solid transparent}
   .tab.active{border-left-color:transparent;border-top-color:var(--champagne)}
+  /* Lift the scanner-ready pill clear of the fixed bottom tab bar on phones. */
+  .scan-ready-pill{bottom:calc(70px + env(safe-area-inset-bottom, 0px))}
   .tab svg{width:21px;height:21px}
   /* phones have no hover — show the word under the icon */
   .tab-label{position:static;opacity:1;transform:none;background:none;box-shadow:none;color:inherit;padding:0;font-size:10px;letter-spacing:.3px;pointer-events:auto;text-transform:none}
@@ -1162,6 +1185,14 @@ body.dark-mode .scan-banner {
 
 <div class="scan-banner" id="scan-banner">
   SCANNER ALWAYS ON — just scan a key tag anywhere; no need to click first
+</div>
+
+<!-- Live scanner-readiness indicator (driven by updateScanReady). Tells staff
+     at a glance whether the handheld scanner's next scan will actually land in
+     the dashboard. -->
+<div class="scan-ready-pill" id="scan-ready-pill" aria-live="polite">
+  <span class="srp-dot" id="scan-ready-dot"></span>
+  <span id="scan-ready-text">Ready to scan</span>
 </div>
 
 <div class="header">
@@ -10287,6 +10318,57 @@ document.addEventListener('keydown', e => {
   if (scanBufferTimer) clearTimeout(scanBufferTimer);
   scanBufferTimer = setTimeout(() => { scanBuffer = ''; }, 300);
 });
+
+// ── Scanner-readiness indicator ───────────────────────────────────────────
+// A handheld scanner gun is just a keyboard: Windows only delivers its codes
+// to the window that's in front, and the keydown handler above deliberately
+// ignores keys while a text field is focused (so it doesn't hijack typing).
+// Staff couldn't tell when either of those was the case ("sometimes it won't
+// scan"), so surface it plainly — a green pill when a scan WILL register, an
+// amber/red pill (plus a taskbar-title hint they can see from another program)
+// when it WON'T, and why.
+const _scanBaseTitle = document.title;
+function scanFieldFocused() {
+  const el = document.activeElement;
+  return !!(el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)));
+}
+function updateScanReady() {
+  const pill = document.getElementById('scan-ready-pill');
+  if (!pill) return;
+  const text = document.getElementById('scan-ready-text');
+  // Only meaningful once someone's signed in and using the dashboard.
+  if (!currentUser) { pill.classList.remove('show'); document.title = _scanBaseTitle; return; }
+  pill.classList.add('show');
+  pill.classList.remove('ready', 'typing', 'away');
+
+  if (!document.hasFocus()) {
+    // Dashboard isn't the front window — the scanner's keystrokes are going to
+    // whatever program is. The title hint shows in the Windows taskbar so they
+    // notice it from the other program.
+    pill.classList.add('away');
+    text.textContent = 'Click the dashboard, then scan';
+    document.title = '⚠ Click here to scan — ' + _scanBaseTitle;
+  } else if (scanFieldFocused()) {
+    // Focused, but a text box would swallow the scan as typing.
+    pill.classList.add('typing');
+    text.textContent = 'Tap an empty area, then scan';
+    document.title = _scanBaseTitle;
+  } else {
+    pill.classList.add('ready');
+    text.textContent = 'Ready to scan';
+    document.title = _scanBaseTitle;
+  }
+}
+window.addEventListener('focus', updateScanReady);
+window.addEventListener('blur', updateScanReady);
+document.addEventListener('visibilitychange', updateScanReady);
+document.addEventListener('focusin', updateScanReady);
+// focusout fires before focus moves, so recompute on the next tick.
+document.addEventListener('focusout', () => setTimeout(updateScanReady, 0));
+document.addEventListener('click', () => setTimeout(updateScanReady, 0));
+// Safety net for focus changes that don't fire a clean event (e.g. Alt-Tab on
+// some setups): cheap re-check a couple of times a second.
+setInterval(updateScanReady, 1500);
 
 // Scanning is live the moment the page loads — show that on the button.
 function initScannerButton() {
