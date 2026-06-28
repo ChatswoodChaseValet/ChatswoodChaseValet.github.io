@@ -1475,7 +1475,30 @@ body.dark-mode .scan-banner {
       </div>
       <div class="form-field">
         <label class="form-label">Colour</label>
-        <input type="text" id="f-colour" class="form-input" placeholder="e.g. Silver" autocomplete="off">
+        <input type="text" id="f-colour" class="form-input" placeholder="e.g. Silver" autocomplete="off" list="colour-list">
+        <!-- Common car colours so staff can type a letter or two and pick,
+             instead of typing the whole word (e.g. "Wh" → White, "Bl" → Black/Blue). -->
+        <datalist id="colour-list">
+          <option value="White"></option>
+          <option value="Black"></option>
+          <option value="Silver"></option>
+          <option value="Grey"></option>
+          <option value="Blue"></option>
+          <option value="Red"></option>
+          <option value="Green"></option>
+          <option value="Charcoal"></option>
+          <option value="Dark Grey"></option>
+          <option value="Dark Blue"></option>
+          <option value="Brown"></option>
+          <option value="Beige"></option>
+          <option value="Gold"></option>
+          <option value="Bronze"></option>
+          <option value="Yellow"></option>
+          <option value="Orange"></option>
+          <option value="Maroon"></option>
+          <option value="Purple"></option>
+          <option value="Pearl White"></option>
+        </datalist>
       </div>
       <div class="form-field">
         <label class="form-label">Parking Bay <span style="color:var(--text-muted);font-weight:normal;font-style:italic">(optional)</span></label>
@@ -13994,7 +14017,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="form-field" style="margin-bottom:12px">
         <label class="form-label">Colour</label>
-        <input type="text" id="edit-car-colour" class="form-input" maxlength="20" autocomplete="off">
+        <input type="text" id="edit-car-colour" class="form-input" maxlength="20" autocomplete="off" list="colour-list">
       </div>
     </div>
     <div class="form-grid">
