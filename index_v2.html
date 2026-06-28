@@ -607,6 +607,8 @@ body.dark-mode .ico-group{background:transparent}
   border:2px solid transparent;
 }
 .scan-ready-pill.show{display:flex}
+/* Desktop view only — the pill isn't shown in the simple Mobile view. */
+body.mobile-mode .scan-ready-pill{display:none}
 .srp-dot{width:10px;height:10px;border-radius:50%;background:#fff;flex:none}
 .scan-ready-pill.ready{background:#1f7a36;color:#fff;border-color:#155c28}
 .scan-ready-pill.typing{background:#e0a640;color:#5a3a00;border-color:#a06400}
@@ -661,8 +663,6 @@ body.dark-mode .ico-group{background:transparent}
   .tab{flex-direction:column;gap:3px;padding:8px 10px 7px;flex-shrink:0;min-width:58px;
     border-left:none;border-top:3px solid transparent}
   .tab.active{border-left-color:transparent;border-top-color:var(--champagne)}
-  /* Lift the scanner-ready pill clear of the fixed bottom tab bar on phones. */
-  .scan-ready-pill{bottom:calc(70px + env(safe-area-inset-bottom, 0px))}
   .tab svg{width:21px;height:21px}
   /* phones have no hover — show the word under the icon */
   .tab-label{position:static;opacity:1;transform:none;background:none;box-shadow:none;color:inherit;padding:0;font-size:10px;letter-spacing:.3px;pointer-events:auto;text-transform:none}
@@ -10336,8 +10336,11 @@ function updateScanReady() {
   const pill = document.getElementById('scan-ready-pill');
   if (!pill) return;
   const text = document.getElementById('scan-ready-text');
-  // Only meaningful once someone's signed in and using the dashboard.
-  if (!currentUser) { pill.classList.remove('show'); document.title = _scanBaseTitle; return; }
+  // Desktop view only, and only once someone's signed in. (The pill is also
+  // hidden via CSS in mobile-mode; bail here too so the title hint stays off.)
+  if (!currentUser || document.body.classList.contains('mobile-mode')) {
+    pill.classList.remove('show'); document.title = _scanBaseTitle; return;
+  }
   pill.classList.add('show');
   pill.classList.remove('ready', 'typing', 'away');
 
