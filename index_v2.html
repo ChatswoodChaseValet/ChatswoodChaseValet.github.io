@@ -6369,15 +6369,21 @@ function renderCheckedOutToday() {
 // to the customer-facing ticket.html page for this entry.
 // Build the customer-facing ticket URL, carrying the plate (r) and
 // check-in time (ci) so ticket.html can show them under the QR code.
+// The branded domain is hardcoded here ON PURPOSE. ClickSend's SMS link-safety
+// filter has blacklisted the OLD domain `chadmik71.github.io` ("not safe to send
+// websites", confirmed 2026-06-28), so every ticket text sent from the old site
+// is silently REFUSED before it reaches ClickSend. The branded site shares the
+// same Supabase database, so this link resolves identically — and ClickSend
+// accepts it. Using it unconditionally means the SMS works no matter which site
+// staff happen to be running on. (Both sites are kept in sync — see hosting note.)
+const TICKET_LINK_BASE = 'https://chatswoodchasevalet.github.io/';
 function buildTicketUrl(e) {
-  // location.pathname is e.g. "/Valet/index_v2.html" — strip the file to get "/Valet/"
-  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
   // Short link: ticket number only, via the tiny t.html redirect. ticket.html
   // resolves the car — and its plate + check-in time — from this ticket through
   // the get_ticket_status lookup, so the customer SMS stays inside one GSM-7
-  // segment even while showing the full branded chatswoodchasevalet.github.io
-  // address (no tinyurl). Old links that still carry &id=/&r=/&ci= keep working.
-  return base + 't.html?t=' + encodeURIComponent(e.ticket);
+  // segment while showing the full branded address (no shortener needed).
+  // Old links that still carry &id=/&r=/&ci= keep working.
+  return TICKET_LINK_BASE + 't.html?t=' + encodeURIComponent(e.ticket);
 }
 
 async function sendQRSms(id) {
