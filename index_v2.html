@@ -6419,32 +6419,33 @@ async function sendQRSms(id) {
   // Messages app / share sheet below. The branded short link already looks
   // professional and fits one segment, so we send it as-is (no shortener).
 
-  // 2) Fallback: open the operator's Messages app pre-filled (one tap to send).
+  // 2) Fallback: hand off to the operator's own Messages app — but ONLY on a
+  // device that actually has one. A phone (or a Mac, via Continuity) can open
+  // sms:; a Windows/Linux desktop can't, and the bare sms: link just triggers a
+  // useless "pick an app to open sms" dialog. So gate it to SMS-capable devices.
   // iOS expects sms:NUMBER&body=... while Android/W3C is sms:NUMBER?body=...
-  if (e.phone) {
+  const ua = navigator.userAgent;
+  const isApple = /(iPhone|iPad|iPod|Mac OS)/i.test(ua);
+  const canOpenSms = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || /Macintosh|Mac OS X/i.test(ua);
+  if (e.phone && canOpenSms) {
     const phone = e.phone.replace(/\s+/g, '');
-    const isApple = /(iPhone|iPad|iPod|Mac OS)/i.test(navigator.userAgent);
     const sep = isApple ? '&' : '?';
     location.href = 'sms:' + phone + sep + 'body=' + encodeURIComponent(msg);
     return;
   }
 
-  // No phone on entry — try Web Share API (lets user pick any channel)
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: 'Vehicle ' + (e.rego || e.ticket), text: msg });
-      return;
-    } catch (err) {
-      if (err && err.name === 'AbortError') return; // user cancelled
-    }
-  }
-
-  // Last resort: copy to clipboard so the operator can paste anywhere
+  // 3) Desktop (no Messages app): a PC can't send an SMS itself, and the
+  // automatic ClickSend send just failed — most often because SMS credit ran
+  // out. Copy the full message so the operator can send it another way, and say
+  // plainly that the auto-text didn't go (so it's not mistaken for "sent").
+  const failNote = e.phone
+    ? 'The automatic text to ' + e.phone + " didn't send — this usually means SMS credit has run out (check SMS Credit in Settings)."
+    : 'There is no phone number on this entry, so no text could be sent.';
   try {
-    await navigator.clipboard.writeText(url);
-    alert('No phone on this entry. Customer link copied to clipboard:\n\n' + url);
+    await navigator.clipboard.writeText(msg);
+    alert(failNote + '\n\nThe message has been copied to your clipboard — paste it to the customer:\n\n' + msg);
   } catch (err) {
-    prompt('Copy this link to send to customer:', url);
+    prompt(failNote + '\n\nCopy this message to send to the customer:', msg);
   }
 }
 
