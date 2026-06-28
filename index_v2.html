@@ -343,6 +343,22 @@ body.mobile-mode .tab.desktop-only{display:none}
   border-color:var(--maroon);
   box-shadow:0 0 0 2px rgba(107,29,36,.1);
 }
+/* Auto-filled from a past visit — flag it amber so staff verify it (the phone
+   especially, since that's where the QR text is sent) before saving. Cleared
+   the moment they edit the field, or when the form is reset. */
+.form-input.autofilled{
+  background:#fff7e6;
+  border-color:#e0a640;
+  box-shadow:0 0 0 2px rgba(224,166,64,.18);
+}
+body.dark-mode .form-input.autofilled{
+  background:#3a2f12;
+  border-color:#e0a640;
+}
+.autofill-hint{
+  font-size:11px;color:#9a6a00;font-weight:600;margin-top:4px;line-height:1.3;
+}
+body.dark-mode .autofill-hint{color:#e0a640}
 
 /* ─── BUTTON ─── */
 .btn{
@@ -1455,6 +1471,7 @@ body.dark-mode .scan-banner {
       <div class="form-field">
         <label class="form-label">Phone<span class="required">*</span></label>
         <input type="tel" id="f-phone" class="form-input" placeholder="e.g. 0412 345 678" autocomplete="off">
+        <div class="autofill-hint" id="phone-autofill-hint" style="display:none">↩ Auto-filled from last visit — check it's the customer's current number before saving.</div>
       </div>
       <div class="form-field">
         <label class="form-label">Colour</label>
@@ -4109,6 +4126,7 @@ function resetForm() {
   document.getElementById('customer-banner').style.display = 'none';
   const aiHint = document.getElementById('ai-fill-hint');
   if (aiHint) aiHint.style.display = 'none';
+  clearAllAutofillMarks();
   clearPendingExtras();
   // Note: f-attendant intentionally kept so you don't have to retype during a shift
 }
@@ -10888,6 +10906,34 @@ function normaliseRego(rego) {
   return (rego || '').toUpperCase().replace(/[\s\-_]/g, '');
 }
 
+// ── Auto-fill highlighting ──
+// Fields filled from a returning customer's past visit are flagged amber so
+// staff verify them — the phone above all, since a stale/wrong number there is
+// where the QR text would mistakenly go. The flag clears the instant staff edit
+// the field (they've taken ownership) or when the form is reset.
+const AUTOFILL_FIELDS = ['f-name', 'f-phone', 'f-brand', 'f-model', 'f-colour'];
+function markAutofilled(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('autofilled');
+  if (id === 'f-phone') {
+    const hint = document.getElementById('phone-autofill-hint');
+    if (hint) hint.style.display = '';
+  }
+}
+function clearAutofillMark(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('autofilled');
+  if (id === 'f-phone') {
+    const hint = document.getElementById('phone-autofill-hint');
+    if (hint) hint.style.display = 'none';
+  }
+}
+function clearAllAutofillMarks() { AUTOFILL_FIELDS.forEach(clearAutofillMark); }
+AUTOFILL_FIELDS.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => clearAutofillMark(id));
+});
+
 function findCustomerByRego(rego) {
   const target = normaliseRego(rego);
   if (!target || target.length < 3) return null;
@@ -10908,7 +10954,7 @@ function lookupCustomerByRego(rego) {
     const mc = getManualCustomers().find(c => (c.cars || []).some(car => normaliseRego(car.rego) === normaliseRego(rego)));
     if (mc) {
       const car = (mc.cars || []).find(c => normaliseRego(c.rego) === normaliseRego(rego)) || {};
-      const fill = (id, val) => { const el = document.getElementById(id); if (el && !el.value && val) el.value = val; };
+      const fill = (id, val) => { const el = document.getElementById(id); if (el && !el.value && val) { el.value = val; markAutofilled(id); } };
       fill('f-name', mc.name); fill('f-phone', mc.phone); fill('f-brand', car.brand);
       if (typeof updateModelOptions === 'function') updateModelOptions();
       fill('f-model', car.model);
@@ -10927,10 +10973,11 @@ function lookupCustomerByRego(rego) {
   // Total lifetime value
   const totalSpent = matches.reduce((s, e) => s + (e.totalFee || 0), 0);
 
-  // Auto-fill form fields (only the ones currently empty)
+  // Auto-fill form fields (only the ones currently empty), flagging each so
+  // staff verify the values (especially the phone) before saving.
   function fillIfEmpty(id, val) {
     const el = document.getElementById(id);
-    if (el && !el.value && val) el.value = val;
+    if (el && !el.value && val) { el.value = val; markAutofilled(id); }
   }
   fillIfEmpty('f-name', last.name);
   fillIfEmpty('f-phone', last.phone);
