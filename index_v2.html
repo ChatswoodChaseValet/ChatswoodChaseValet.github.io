@@ -4372,6 +4372,14 @@ function checkout(id) {
   document.getElementById('checkout-modal').dataset.parkingFee = fees.parking;
   document.getElementById('checkout-modal').dataset.valetFee = fees.valet;
 
+  // Start the "Payment & options" block collapsed (staff rarely change it); the
+  // bar shows the current method/status/attendant so it's visible at a glance.
+  const moreBody = document.getElementById('checkout-more-body');
+  const moreArrow = document.getElementById('checkout-more-arrow');
+  if (moreBody) moreBody.style.display = 'none';
+  if (moreArrow) moreArrow.style.transform = 'none';
+  updateCheckoutMoreSummary();
+
   renderDiscountList();
 }
 
@@ -4391,6 +4399,35 @@ function showCheckoutLoyaltyBanner(loyalty, earned) {
     el.style.display = 'none';
     el.innerHTML = '';
   }
+}
+
+// Collapsible "Payment & options" block on the checkout modal — staff rarely
+// touch these, so it starts collapsed. The bar summarises the current values.
+function toggleCheckoutMore() {
+  const body = document.getElementById('checkout-more-body');
+  const arrow = document.getElementById('checkout-more-arrow');
+  if (!body) return;
+  const open = body.style.display === 'none' || body.style.display === '';
+  body.style.display = open ? 'block' : 'none';
+  if (arrow) arrow.style.transform = open ? 'rotate(90deg)' : 'none';
+}
+function updateCheckoutMoreSummary() {
+  const el = document.getElementById('checkout-more-summary');
+  if (!el) return;
+  const statusSel = document.getElementById('checkout-pay-status');
+  const methodSel = document.getElementById('checkout-pay-method');
+  const attEl = document.getElementById('checkout-attendant-out');
+  const status = statusSel ? statusSel.value : 'paid';
+  const method = methodSel ? methodSel.value : 'card';
+  const att = (attEl && attEl.value || '').trim();
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  let label;
+  if (status === 'paid') label = cap(method) + ' · Paid';
+  else if (status === 'comp') label = 'Complimentary';
+  else if (status === 'unpaid') label = 'Unpaid';
+  else if (status === 'charged') label = 'Charged to account';
+  else label = cap(method);
+  el.textContent = att ? (label + ' · ' + att) : label;
 }
 
 // Calculate the final total taking discounts into account
@@ -13898,6 +13935,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="font-size:11px;color:var(--text-muted);font-style:italic;margin-top:6px" id="no-discounts-msg">No discounts applied. Tap "+ Add Discount" for validations or member discounts.</div>
     </div>
 
+    <!-- Collapsible "Payment & options" — staff rarely change these, so hidden by
+         default. The bar shows the current method/status/attendant at a glance. -->
+    <button type="button" id="checkout-more-toggle" onclick="toggleCheckoutMore()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--sandstone);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:14px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;text-align:left">
+      <span><span id="checkout-more-arrow" style="display:inline-block;transition:transform .15s">▸</span>&nbsp; Payment &amp; options</span>
+      <span id="checkout-more-summary" style="font-weight:400;color:var(--text-muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
+    </button>
+    <div id="checkout-more-body" style="display:none">
+
     <div class="form-grid" style="margin-bottom:14px">
       <div class="form-field">
         <label class="form-label">Override Total Fee</label>
@@ -13925,7 +13970,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="form-grid" style="margin-bottom:14px">
       <div class="form-field">
         <label class="form-label">Payment Status</label>
-        <select id="checkout-pay-status" class="form-select" onchange="updateCheckoutTotalDisplay()">
+        <select id="checkout-pay-status" class="form-select" onchange="updateCheckoutTotalDisplay();updateCheckoutMoreSummary()">
           <option value="paid">✓ Paid</option>
           <option value="unpaid">Unpaid</option>
           <option value="comp">⊘ Complimentary (no charge)</option>
@@ -13934,7 +13979,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="form-field">
         <label class="form-label">Payment Method</label>
-        <select id="checkout-pay-method" class="form-select">
+        <select id="checkout-pay-method" class="form-select" onchange="updateCheckoutMoreSummary()">
           <option value="card">Card</option>
           <option value="cash">Cash</option>
           <option value="eftpos">EFTPOS</option>
@@ -13943,9 +13988,11 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="form-field">
         <label class="form-label">Attendant (returning car)</label>
-        <input type="text" id="checkout-attendant-out" class="form-input" placeholder="e.g. JD" maxlength="6" style="text-transform:uppercase">
+        <input type="text" id="checkout-attendant-out" class="form-input" placeholder="e.g. JD" maxlength="6" style="text-transform:uppercase" oninput="updateCheckoutMoreSummary()">
       </div>
     </div>
+
+    </div><!-- /checkout-more-body -->
 
     <div id="square-pay-row" style="display:none;margin-bottom:14px">
       <button class="btn btn-primary" id="square-charge-btn" onclick="chargeOnTerminal()" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#3a0e16">
