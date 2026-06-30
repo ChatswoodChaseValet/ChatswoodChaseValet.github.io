@@ -3756,7 +3756,7 @@ function saveEntry() {
   // checked in before it's parked we skip printing; the tag prints later when
   // the bay is added via Edit Car. Stays silent with no printer.
   if (printerConfigured() && entry.bay) {
-    autoPrintedIds.add(entry.id);   // so the realtime echo doesn't reprint it
+    markPrinted(entry);   // record what we printed so the realtime echo doesn't reprint it
     printKeyTag(entry);
   }
 
@@ -5128,6 +5128,7 @@ function saveEditCar() {
   // reprint if any of those changed — but only when a printer is set up, so
   // editing stays silent until then.
   if (tagChanged && printerConfigured()) {
+    markPrinted(e);   // record what we printed so the realtime echo doesn't reprint it
     printKeyTag(e);
   }
 }
@@ -6203,7 +6204,7 @@ function assignBay(id) {
   e.bay = bay;
   saveData(e.id, { immediate: true });
   cloudAudit('edit', 'entry', e.id, { ticket: e.ticket, bay });
-  if (printerConfigured()) { autoPrintedIds.add(e.id); printKeyTag(e); }
+  if (printerConfigured()) { markPrinted(e); printKeyTag(e); }
   renderActive();
   if (typeof renderDashboard === 'function') renderDashboard();
   quickToast('✓ Bay ' + bay + ' assigned' + (printerConfigured() ? ' · key tag printing' : ''));
@@ -12207,9 +12208,15 @@ function bagStaffRoster() {
 let realtimeChannel = null;
 let cloudSettings = {}; // Settings synced from cloud
 let pendingWrites = []; // Offline queue
-// Print Station: ids already auto-printed on THIS device, so a check-in
-// that prints locally isn't printed again when its realtime echo arrives.
-let autoPrintedIds = new Set();
+// Print Station de-dupe. We remember, per car, the exact tag CONTENT last
+// printed on THIS device (bay·ticket·plate — everything that appears on the
+// key tag). A tag auto-prints only when that content first appears or changes,
+// so: a local print isn't repeated by its own realtime echo; a bay assigned
+// later (from ANY device) does print; and unrelated updates (pickup requests,
+// checkout) never reprint. Keyed by entry id.
+let autoPrintedSig = new Map();
+function tagSig(e) { return (e.bay || '') + '|' + (e.ticket || '') + '|' + (e.rego || ''); }
+function markPrinted(e) { if (e && e.id) autoPrintedSig.set(e.id, tagSig(e)); }
 
 // ─── Field name conversion (JS camelCase ↔ DB snake_case) ───
 function jsToDb(e) {
@@ -12475,12 +12482,12 @@ function startRealtimeSync() {
 // printed locally — isn't printed twice when its realtime echo returns.
 function maybeAutoPrintTag(entry) {
   if (!entry || !entry.id) return;
-  if (!settings.printStation) return;       // this device isn't the print station
-  if (!printerConfigured()) return;         // no printer set up here
-  if (entry.timeOut) return;                // already checked out — skip
-  if (!entry.bay) return;                   // no bay yet — print once it's assigned
-  if (autoPrintedIds.has(entry.id)) return; // printed here already
-  autoPrintedIds.add(entry.id);
+  if (!settings.printStation) return;                       // this device isn't the print station
+  if (!printerConfigured()) return;                         // no printer set up here
+  if (entry.timeOut) return;                                // already checked out — skip
+  if (!entry.bay) return;                                   // no bay yet — print once it's assigned
+  if (autoPrintedSig.get(entry.id) === tagSig(entry)) return; // this exact tag already printed here
+  markPrinted(entry);
   printKeyTag(entry);
 }
 
@@ -12488,13 +12495,22 @@ function handleRealtimeEntryChange(payload) {
   if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
     const newEntry = dbToJs(payload.new);
     const idx = entries.findIndex(e => e.id === newEntry.id);
+    const prevEntry = idx >= 0 ? entries[idx] : null;   // our copy BEFORE this change
     if (idx >= 0) entries[idx] = newEntry;
     else entries.unshift(newEntry);
     // Re-sort by time_in desc
     entries.sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
-    // Print Station: a new check-in arrived (possibly from a phone that
-    // can't reach this printer) → print its key tag here.
-    if (payload.eventType === 'INSERT') maybeAutoPrintTag(newEntry);
+    // Print Station: print the key tag here for any change that gives a car its
+    // tag content — a new check-in (INSERT) or a bay assigned/changed later
+    // (UPDATE, possibly from a phone that can't reach this printer). For UPDATEs
+    // we act only when the tag content (bay·ticket·plate) actually changed vs our
+    // prior copy, so unrelated updates (pickup requests, checkout) — and a page
+    // refresh followed by such updates — can't trigger a wave of reprints.
+    // maybeAutoPrintTag also de-dupes by signature so the device's own echo of a
+    // local print never reprints.
+    if (payload.eventType === 'INSERT' || (prevEntry && tagSig(prevEntry) !== tagSig(newEntry))) {
+      maybeAutoPrintTag(newEntry);
+    }
     // A customer just tapped "bring my car" on their SMS ticket link →
     // raise the alarm on this device (popup + chime + vibrate).
     maybeAlarmCustomerPickup(newEntry);
