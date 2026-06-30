@@ -4631,6 +4631,11 @@ function confirmAddDiscount() {
     // Lexus Platinum: valet + parking both waived → nothing to pay (car wash, if
     // any, is still charged separately like every other discount).
     discount = { type: 'percent', amount: 100, reason: 'Lexus Platinum — valet & parking free' };
+  } else if (type === 'free_parking') {
+    // Valet only: waive the (time-based) parking charge so the customer pays just
+    // the $20 valet fee. Amount is the parking portion calculated for this stay.
+    const parking = parseFloat(document.getElementById('checkout-modal').dataset.parkingFee) || 0;
+    discount = { type: 'amount', amount: parking, reason: 'Valet only ($20) — parking waived' };
   } else if (type === 'validation') {
     let retailer = document.getElementById('discount-retailer').value;
     if (retailer === 'Other') {
@@ -14149,6 +14154,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="lexus_free_valet">Lexus Free Valet — valet free, parking only</option>
           <option value="lexus_platinum">Lexus Platinum — valet &amp; parking free ($0)</option>
         </optgroup>
+        <option value="free_parking">Valet only ($20) — parking waived</option>
         <option value="validation">Retailer Validation ($X off)</option>
         <option value="member">Member Discount (% off)</option>
         <option value="custom_amount">Custom $ Amount</option>
