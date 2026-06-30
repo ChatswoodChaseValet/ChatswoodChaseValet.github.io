@@ -2583,6 +2583,24 @@ body.dark-mode .scan-banner {
     <button class="btn btn-primary" onclick="saveOverstayHours()">Save Overstay Alert</button>
   </div>
 
+  <div class="section set-section" data-setgroup="carpark">
+    <div class="section-header">
+      <div class="section-title">Loyalty Rewards</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">
+      Reward regulars: after a set number of paid valet visits, the customer's next valet is <strong>free</strong> (the whole valet bill is waived — any car wash is still charged). It's applied automatically at checkout and staff get a clear alert. Customers are matched by number plate, or phone if there's no plate.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
+      <input type="checkbox" id="s-loyalty-enabled" style="width:18px;height:18px">
+      <span style="font-size:13px;font-weight:600">Turn on the loyalty rewards program</span>
+    </label>
+    <div class="form-field">
+      <label class="form-label">Free valet after this many paid visits</label>
+      <input type="number" id="s-loyalty-threshold" class="form-input" min="2" max="100" step="1" placeholder="e.g. 10">
+    </div>
+    <button class="btn btn-primary" onclick="saveLoyaltySettings()">Save Loyalty Settings</button>
+  </div>
+
   <div class="section set-section" data-setgroup="carwash">
     <div class="section-header">
       <div class="section-title">Car Wash — Xtream Costs</div>
@@ -4292,6 +4310,17 @@ function checkout(id) {
   // Reset discounts state for fresh checkout
   pendingDiscounts = [];
 
+  // Loyalty reward: if this customer has earned a free valet, auto-apply it as a
+  // 100% discount (whole valet bill free) and flag the visit so the redemption
+  // is recorded on the entry. Staff still see it in the discount list (and can
+  // remove it) plus a prominent banner so they know this valet is free.
+  const loyalty = loyaltyStatus(e);
+  const loyaltyEarned = !!(loyalty && loyalty.available >= 1);
+  if (loyaltyEarned) {
+    pendingDiscounts.push({ type: 'percent', amount: 100, reason: '🎁 Loyalty reward — ' + loyalty.paidUses + ' visits, valet free', loyalty: true });
+  }
+  showCheckoutLoyaltyBanner(loyalty, loyaltyEarned);
+
   // Build checkout modal content
   document.getElementById('checkout-ticket').textContent = e.ticket;
   document.getElementById('checkout-info').innerHTML =
@@ -4344,6 +4373,24 @@ function checkout(id) {
   document.getElementById('checkout-modal').dataset.valetFee = fees.valet;
 
   renderDiscountList();
+}
+
+// Loyalty banner inside the checkout modal — a big green "this valet is FREE"
+// alert when a reward is being applied, or a small progress line otherwise.
+function showCheckoutLoyaltyBanner(loyalty, earned) {
+  const el = document.getElementById('checkout-loyalty-banner');
+  if (!el) return;
+  if (earned) {
+    el.style.display = '';
+    el.innerHTML = '<div style="background:#1f7a3d;color:#fff;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-weight:600;display:flex;align-items:flex-start;gap:8px;line-height:1.4">'
+      + '<span style="font-size:18px;line-height:1">🎁</span><span>LOYALTY REWARD — this valet is <u>FREE</u> (their reward after ' + loyalty.paidUses + ' visits). The whole valet bill is waived; collect any car-wash charge only.</span></div>';
+  } else if (loyalty && loyalty.paidUses > 0) {
+    el.style.display = '';
+    el.innerHTML = '<div style="background:var(--sandstone);color:var(--text-muted);border-radius:6px;padding:7px 12px;margin-bottom:14px;font-size:12px">Loyalty: ' + loyalty.paidUses + ' paid visits — ' + loyalty.toNext + ' more to a free valet.</div>';
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
 }
 
 // Calculate the final total taking discounts into account
@@ -5225,6 +5272,17 @@ function saveOverstayHours() {
   if (v && v.classList.contains('active')) { try { renderActive(); } catch (e) {} }
   if (typeof quickToast === 'function') quickToast('✓ Overstay alert set to ' + n + ' hours');
 }
+function saveLoyaltySettings() {
+  const enabled = document.getElementById('s-loyalty-enabled').checked;
+  const n = parseInt(document.getElementById('s-loyalty-threshold').value, 10);
+  if (enabled && (!n || n < 2)) { alert('Enter how many paid visits earn a free valet (2 or more).'); return; }
+  const cfg = { enabled: enabled, threshold: (n && n >= 2) ? n : 10 };
+  cloudSettings.loyalty = cfg;
+  try { cloudSaveSetting('loyalty', cfg); } catch (e) {}
+  cloudAudit('set_loyalty', 'settings', 'loyalty', cfg);
+  if (typeof quickToast === 'function') quickToast(enabled ? ('✓ Loyalty on — free valet every ' + cfg.threshold + ' visits') : '✓ Loyalty rewards turned off');
+  try { const cv = document.getElementById('view-customers'); if (cv && cv.classList.contains('active')) renderCustomers(); } catch (e) {}
+}
 // Car wash wholesale (Xtream) cost editor — one row per package, Small + Large.
 function renderWashSettings() {
   const c = document.getElementById('wash-cost-table');
@@ -5889,6 +5947,10 @@ function openBayMenu(id, ev) {
   const fees = calculateTotalFee(new Date() - new Date(e.timeIn));
   const pickupOn = !!e.pickupRequested;
   const sub = `Ticket ${e.ticket} · ${e.name || 'No name'} · in ${fmtTime(new Date(e.timeIn))} · ${fmtMoney(fees.total)}`;
+  const loy = loyaltyStatus(e);
+  const loyLine = (loy && loy.available >= 1)
+    ? '<div style="margin-top:6px;font-size:12px;font-weight:700;color:#ffe08a">🎁 Loyalty: this valet is FREE at checkout</div>'
+    : '';
   const call = e.phone
     ? `<a href="tel:${escAttr(e.phone)}" class="btn btn-secondary" onclick="closeBayMenu()">Call</a>`
     : '';
@@ -5902,6 +5964,7 @@ function openBayMenu(id, ev) {
         <div class="bm-bay">Bay ${escAttr(String(e.bay))}</div>
         <div class="bm-car">${escAttr(veh)}${e.rego ? ' · ' + escAttr(e.rego) : ''}</div>
         <div class="bm-sub">${escAttr(sub)}</div>
+        ${loyLine}
       </div>
       <div class="bay-menu-actions">
         <button class="btn btn-primary bm-full" onclick="closeBayMenu();checkout('${e.id}')">✓ Mark Out</button>
@@ -10081,6 +10144,9 @@ function renderSettings() {
   if (capEl) capEl.value = getCapacity();
   const osEl = document.getElementById('s-overstay');
   if (osEl) osEl.value = getOverstayHours();
+  const loyEn = document.getElementById('s-loyalty-enabled');
+  const loyTh = document.getElementById('s-loyalty-threshold');
+  if (loyEn || loyTh) { const lc = loyaltyCfg(); if (loyEn) loyEn.checked = lc.enabled; if (loyTh) loyTh.value = lc.threshold; }
   applyFeatureFlags();
   syncFeatureToggleButtons();
   renderWashSettings();
@@ -11829,6 +11895,54 @@ function saveCustomerEdit(origRego) {
 
 // ═══════════════════════════════════════════════════
 // CUSTOMER DATABASE
+// ═══════════════════════════════════════════════════
+// LOYALTY / REWARDS — "use the valet N times, the next valet is free"
+// Counts a customer's COMPLETED visits (matched by plate, else phone). Every
+// `threshold` paid visits earns one free valet; the free visit itself doesn't
+// count toward the next. A redemption is recorded on the entry's existing
+// `discounts` jsonb via a {loyalty:true} marker (no schema change), so the tally
+// stays correct across devices/sites. Config = synced cloudSettings.loyalty.
+// ═══════════════════════════════════════════════════
+function loyaltyCfg() {
+  const c = (typeof cloudSettings !== 'undefined' && cloudSettings && cloudSettings.loyalty) || null;
+  const threshold = (c && Number(c.threshold) >= 2) ? Math.floor(Number(c.threshold)) : 10;
+  return { enabled: c ? c.enabled !== false : false, threshold: threshold };
+}
+// Identify a customer for loyalty: plate first, else phone (digits only).
+function loyaltyKey(e) {
+  const r = normaliseRego(e && e.rego);
+  if (r) return 'r:' + r;
+  const p = (((e && e.phone) || '') + '').replace(/\D/g, '');
+  return p ? 'p:' + p : null;
+}
+function isLoyaltyFree(e) {
+  return !!(e && Array.isArray(e.discounts) && e.discounts.some(d => d && d.loyalty));
+}
+// Loyalty standing for a customer key, counting completed visits (optionally
+// excluding one entry id — used at checkout to look only at PRIOR visits).
+function loyaltyStandingByKey(key, exceptId) {
+  const cfg = loyaltyCfg();
+  if (!cfg.enabled || !key) return null;
+  const visits = entries.filter(x => x.id !== exceptId && x.timeOut && loyaltyKey(x) === key);
+  const redeemed = visits.filter(isLoyaltyFree).length;
+  const paidUses = Math.max(0, visits.length - redeemed);   // visits that count toward a reward
+  const earned = Math.floor(paidUses / cfg.threshold);
+  const available = Math.max(0, earned - redeemed);          // free valets ready to use now
+  return {
+    threshold: cfg.threshold,
+    paidUses: paidUses,
+    available: available,                                    // >=1 => the NEXT/CURRENT visit is free
+    toNext: available >= 1 ? 0 : (cfg.threshold - (paidUses % cfg.threshold)),
+  };
+}
+// Standing for the customer of `entry`, counting only their PRIOR visits — so at
+// checkout, available>=1 means THIS visit should be free.
+function loyaltyStatus(entry) {
+  const key = loyaltyKey(entry);
+  return key ? loyaltyStandingByKey(key, entry && entry.id) : null;
+}
+
+// ═══════════════════════════════════════════════════
 // Aggregates all entries into unique customers keyed by rego
 // ═══════════════════════════════════════════════════
 function buildCustomerList() {
@@ -12045,13 +12159,18 @@ function renderCustomers() {
     }
     const vehicle = (c.brand + (c.model ? ' ' + c.model : '')).trim() || '—';
     const vipCell = c.vip ? '<span style="display:inline-block;background:var(--bronze);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 7px;border-radius:10px">★ VIP</span>' : '<span style="color:var(--border)">—</span>';
+    const _lk = c.rego ? ('r:' + normaliseRego(c.rego)) : (c.phone ? ('p:' + (c.phone + '').replace(/\D/g, '')) : null);
+    const _ls = loyaltyStandingByKey(_lk);
+    const loyCell = _ls ? (_ls.available >= 1
+      ? '<div style="font-size:10px;font-weight:700;color:#1f7a3d;margin-top:2px">🎁 FREE READY</div>'
+      : '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">' + _ls.toNext + ' to free</div>') : '';
     return `<tr style="cursor:pointer" onclick="showCustomerDetail('${c.rego.replace(/'/g, "\\'")}')">
       <td style="text-align:center">${vipCell}</td>
       <td><b>${c.name || '—'}</b></td>
       <td>${c.phone ? `<a href="tel:${c.phone}" onclick="event.stopPropagation()">${c.phone}</a>` : '—'}</td>
       <td>${vehicle}</td>
       <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold">${c.rego}</td>
-      <td><b>${c.visitCount}</b></td>
+      <td><b>${c.visitCount}</b>${loyCell}</td>
       <td style="font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;font-weight:bold;color:var(--maroon)">${fmtMoney(c.lifetime)}</td>
       <td>${lastText}</td>
     </tr>`;
@@ -13729,6 +13848,8 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="modal-box" style="max-width:560px">
     <div class="modal-title">Checkout — <span id="checkout-ticket" style="font-family:ui-monospace,&#39;Cascadia Code&#39;,&#39;Segoe UI Mono&#39;,Menlo,Consolas,monospace"></span></div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px" id="checkout-info">—</div>
+
+    <div id="checkout-loyalty-banner" style="display:none"></div>
 
     <div id="checkout-damage" style="display:none;margin-bottom:16px"></div>
 
