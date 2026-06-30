@@ -2656,7 +2656,8 @@ body.dark-mode .scan-banner {
         <ol style="margin:6px 0 0 18px;padding:0">
           <li>Install <strong>Zebra Browser Print</strong> (free) from zebra.com, then plug the ZD421 in over USB and turn it on.</li>
           <li>Open <strong>Browser Print</strong> — it should list the ZD421. Set it as the <strong>default</strong> printer.</li>
-          <li>Because this site is HTTPS, visit <strong>https://localhost:9101</strong> once in this browser and accept its security warning (this trusts Browser Print). Then tap <strong>Test Print</strong> below.</li>
+          <li>That's it — tap <strong>Test Print</strong> below. The dashboard talks to Browser Print on its certificate-free port (<strong>http://127.0.0.1:9100</strong>), so there's nothing to accept and it keeps working after you close and reopen the browser.</li>
+          <li><em>Only if Test Print says "not reachable":</em> visit <strong>https://localhost:9101</strong> once and accept the security warning, then test again.</li>
         </ol>
       </div>
       <div class="form-field">
@@ -3995,16 +3996,26 @@ function dismissSaveToast() {
 // window._printKeyTagZebra(entryOrId) and window._printTestTagZebra().
 // ═══════════════════════════════════════════════════
 (function () {
-  // The agent listens on 9100 (http) and 9101 (https). When the app is
-  // served over HTTPS (GitHub Pages) we must use the https agent or the
-  // browser blocks it as mixed content.
-  function zBase() {
-    return (location.protocol === 'https:') ? 'https://localhost:9101' : 'http://localhost:9100';
-  }
+  // Browser Print listens on BOTH plain http://127.0.0.1:9100 and
+  // https://localhost:9101. The http loopback port has NO certificate, so it
+  // never needs the one-time "accept the security warning" step — and browsers
+  // let an HTTPS page reach http://127.0.0.1 because loopback is exempt from
+  // mixed-content blocking (Chrome 53+, all modern browsers). The https port's
+  // self-signed cert, by contrast, is only trusted for the current browser
+  // session, so after every browser restart the first https print failed until
+  // someone re-visited https://localhost:9101 and clicked through the warning.
+  // So we PREFER the cert-free http loopback port and fall back to the https
+  // one, caching whichever answers — printing then works on every fresh open
+  // with zero manual steps (no install / admin rights needed).
+  // Ref: https://developer.chrome.com/blog/local-network-access
+  var Z_BASES = (location.protocol === 'https:')
+    ? ['http://127.0.0.1:9100', 'http://localhost:9100', 'https://localhost:9101', 'https://127.0.0.1:9101']
+    : ['http://127.0.0.1:9100', 'http://localhost:9100'];
+  var zBase = null;   // last base that answered; cleared on a failed request so we re-probe
 
-  function zReq(method, path, body, ok, err) {
+  function zReqOn(base, method, path, body, ok, err) {
     var x = new XMLHttpRequest();
-    try { x.open(method, zBase() + path, true); } catch (e) { err('connect'); return; }
+    try { x.open(method, base + path, true); } catch (e) { err('connect'); return; }
     if (body != null) x.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
     x.timeout = 8000;
     x.onreadystatechange = function () {
@@ -4015,6 +4026,29 @@ function dismissSaveToast() {
     x.onerror = function () { err('connect'); };
     x.ontimeout = function () { err('timeout'); };
     x.send(body != null ? body : null);
+  }
+
+  // Find a Browser Print base that responds, trying the cert-free http loopback
+  // first. Caches the winner in zBase; calls err('connect') only if none answer.
+  function resolveBase(cb, err) {
+    if (zBase) { cb(zBase); return; }
+    var i = 0;
+    (function tryNext() {
+      if (i >= Z_BASES.length) { err('connect'); return; }
+      var base = Z_BASES[i++];
+      zReqOn(base, 'GET', '/available', null,
+        function () { zBase = base; cb(base); },
+        function () { tryNext(); });
+    })();
+  }
+
+  function zReq(method, path, body, ok, err) {
+    resolveBase(function (base) {
+      zReqOn(base, method, path, body, ok, function (e) {
+        if (e === 'connect' || e === 'timeout') zBase = null;  // agent moved/restarted — re-probe next call
+        err(e);
+      });
+    }, err);
   }
 
   // Parse the /available response into a flat list of device objects.
@@ -4059,7 +4093,7 @@ function dismissSaveToast() {
     var name = (settings.printerZebraName || '').trim();
     function onErr(e) {
       if (e === 'connect' || e === 'timeout') {
-        flashScanStatus('Zebra Browser Print not reachable — open it on the desktop, and visit https://localhost:9101 once to accept its security prompt', 'error');
+        flashScanStatus('Zebra Browser Print isn\'t running — open the Zebra Browser Print app on this desktop (and power on the printer), then try again', 'error');
       } else if (e === 'noname') {
         flashScanStatus('No Zebra printer named "' + name + '" — leave the name blank to use the first available printer', 'error');
       } else if (e === 'noprinters' || e === 'nodefault') {
