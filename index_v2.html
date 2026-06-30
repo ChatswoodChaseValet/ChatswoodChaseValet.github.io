@@ -5856,10 +5856,16 @@ function renderParkingMap() {
       ? `Bay ${s.n} — ${e.rego || 'occupied'}${veh ? ' · ' + veh : ''} · ticket ${e.ticket} · tap for actions`
       : `Bay ${s.n} — available`;
     const click = e ? ` onclick="openBayMenu('${e.id}', event)"` : '';
-    // Some clusters sit at 90° to the rest of the wall, so their numbers read
-    // sideways — rotate just the digits (not the box) for those bays.
+    // Some clusters sit at 90° to the rest of the wall, so draw their bays
+    // PORTRAIT (tall, 22×28 instead of 28×22) and rotate the digits to read
+    // sideways. Re-centre on the original 28×22 footprint so positions and tap
+    // targets don't move into a neighbour.
+    const portrait = !!s.rot;
+    const w = portrait ? 22 : 28, h = portrait ? 28 : 22;
+    const left = s.rx + (28 - w) / 2, top = s.ry + (22 - h) / 2;
+    const dims = portrait ? `;width:${w}px;height:${h}px` : '';
     const label = s.rot ? `<span style="display:inline-block;transform:rotate(${s.rot}deg)">${s.n}</span>` : s.n;
-    return `<div class="pmap-spot ${e ? 'occ' : 'free'}" style="left:${s.rx}px;top:${s.ry}px" title="${escAttr(title)}"${click}>${label}</div>`;
+    return `<div class="pmap-spot ${e ? 'occ' : 'free'}" style="left:${left}px;top:${top}px${dims}" title="${escAttr(title)}"${click}>${label}</div>`;
   }).join('');
 
   const occN = Object.keys(byBay).filter(n => +n >= 1 && +n <= PMAP_TOTAL).length;
