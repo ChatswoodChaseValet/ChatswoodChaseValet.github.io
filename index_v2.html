@@ -2425,7 +2425,7 @@ body.dark-mode .scan-banner {
       <div class="section-title">Retailer Validations</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
-      These retailers appear in the dropdown when staff adds a validation discount at checkout. Add the shops at Chatswood Chase that give parking validations.
+      These retailers appear in the dropdown when staff adds a validation discount at checkout. Add the shops at your centre that give parking validations.
     </p>
     <div id="retailers-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
     <div style="display:flex;gap:8px">
@@ -2776,6 +2776,53 @@ body.dark-mode .scan-banner {
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════
+// ★ CENTRE CONFIG — EDIT THIS ONE BLOCK TO CLONE FOR A NEW CENTRE ★
+// Everything centre-specific lives here. To spin up another site:
+//   1) Edit the fields below.  2) Swap the logo image files (keep the
+//   same filenames).  3) Point supabaseUrl/supabaseKey at that centre's
+//   own Supabase project.  See CLONE-NEW-CENTRE.md for the full checklist.
+// ═══════════════════════════════════════════════════
+const CENTRE = {
+  name: 'Chatswood Chase',                                  // proper-case, used as "<name> Valet"
+  address: '345 Victoria Avenue, Chatswood NSW 2067',
+  phone: '0427 000 822',
+  geo: { lat: -33.797, lon: 151.180 },                     // for weather/holiday demand reports
+
+  // Pricing — the valet fee plus time-based parking tiers (see calculateParkingFee)
+  valetFee: 20,                                            // flat valet service fee ($)
+  parkingRates: [
+    { maxHours: 2.0, fee: 0 },     // 0 - 2 hours: Free
+    { maxHours: 2.5, fee: 3 },     // 2 - 2.5 hours: $3
+    { maxHours: 3.0, fee: 5 },     // 2.5 - 3 hours: $5
+    { maxHours: 3.5, fee: 7 },     // 3 - 3.5 hours: $7
+    { maxHours: 4.0, fee: 10 },    // 3.5 - 4 hours: $10
+    { maxHours: 4.5, fee: 20 },    // 4 - 4.5 hours: $20
+    { maxHours: 5.0, fee: 25 },    // 4.5 - 5 hours: $25
+    { maxHours: 5.5, fee: 30 },    // 5 - 5.5 hours: $30
+    { maxHours: 6.0, fee: 35 },    // 5.5 - 6 hours: $35
+    { maxHours: 6.5, fee: 40 },    // 6 - 6.5 hours: $40
+    { maxHours: 7.0, fee: 45 },    // 6.5 - 7 hours: $45
+  ],
+  dailyMax: 80,                                           // charged beyond the last tier / 7+ hours
+
+  // Backend — this centre's OWN Supabase project (isolated data per centre)
+  supabaseUrl: 'https://ebqiitxiyzzbkgyfypss.supabase.co',
+  supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVicWlpdHhpeXp6YmtneWZ5cHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODI3MjQsImV4cCI6MjA5NTk1ODcyNH0.ZkR9PetFUtsrsxXens0SxpOAOJQA8mXoS7d8qXRUhYs',
+  salt: 'chatswood-salt-2026',                            // password-hash salt (keep in sync with the Edge Function)
+
+  logoMaroon: 'logo-maroon.png',                          // swap the FILE, keep the name
+  logoGold: 'logo-gold.png',
+};
+CENTRE.nameUpper = CENTRE.name.toUpperCase();             // e.g. "CHATSWOOD CHASE" for printed tickets
+try {
+  document.title = CENTRE.name + ' Valet Dashboard';
+  // Point the on-screen logos' alt text at the centre name (the logo image
+  // files keep their filenames — a clone just swaps the PNGs).
+  document.querySelectorAll('img[src="' + CENTRE.logoMaroon + '"], img[src="' + CENTRE.logoGold + '"]')
+    .forEach(function (im) { im.alt = CENTRE.name; });
+} catch (e) {}
+
 // ═══════════════════════════════════════════════════
 // STATE & STORAGE
 // ═══════════════════════════════════════════════════
@@ -3166,24 +3213,12 @@ function nextTicketNumber() {
 }
 
 // ═══════════════════════════════════════════════════
-// CHATSWOOD CHASE PARKING RATES
-// Source: https://www.chatswoodchase.com.au/centre-info/our-parking
+// PARKING RATES — values now live in the ★ CENTRE config block above.
+// Original source: https://www.chatswoodchase.com.au/centre-info/our-parking
 // ═══════════════════════════════════════════════════
-const VALET_FEE = 20; // $20 flat valet service fee
-const PARKING_RATES = [
-  { maxHours: 2.0, fee: 0 },     // 0 - 2 hours: Free
-  { maxHours: 2.5, fee: 3 },     // 2 - 2.5 hours: $3
-  { maxHours: 3.0, fee: 5 },     // 2.5 - 3 hours: $5
-  { maxHours: 3.5, fee: 7 },     // 3 - 3.5 hours: $7
-  { maxHours: 4.0, fee: 10 },    // 3.5 - 4 hours: $10
-  { maxHours: 4.5, fee: 20 },    // 4 - 4.5 hours: $20
-  { maxHours: 5.0, fee: 25 },    // 4.5 - 5 hours: $25
-  { maxHours: 5.5, fee: 30 },    // 5 - 5.5 hours: $30
-  { maxHours: 6.0, fee: 35 },    // 5.5 - 6 hours: $35
-  { maxHours: 6.5, fee: 40 },    // 6 - 6.5 hours: $40
-  { maxHours: 7.0, fee: 45 },    // 6.5 - 7 hours: $45
-];
-const DAILY_MAX = 80;            // 7+ hours: $80 daily max
+const VALET_FEE = CENTRE.valetFee;         // flat valet service fee (see ★ CENTRE config)
+const PARKING_RATES = CENTRE.parkingRates; // time-based tiers (see ★ CENTRE config)
+const DAILY_MAX = CENTRE.dailyMax;         // charged beyond the last tier / 7+ hours
 
 function calculateParkingFee(durationMs) {
   if (!durationMs || durationMs < 0) return 0;
@@ -3964,7 +3999,7 @@ function dismissSaveToast() {
     }
     applyTransportFromSettings();
     setPosId(Date.now());
-    printText("CHATSWOOD CHASE VALET\n", 0, 0, true, false, false, 0, 1);
+    printText(CENTRE.nameUpper + " VALET\n", 0, 0, true, false, false, 0, 1);
     printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
     printText("TICKET\n", 0, 0, false, false, false, 0, 1);
     printText(e.ticket + "\n", 1, 1, true, false, false, 0, 1);     // double-size, centred
@@ -3988,7 +4023,7 @@ function dismissSaveToast() {
     if (!name) { alert('Enter your BIXOLON printer name first, then Save.'); return; }
     applyTransportFromSettings();
     setPosId(Date.now());
-    printText("CHATSWOOD CHASE VALET\n", 0, 0, true, false, false, 0, 1);
+    printText(CENTRE.nameUpper + " VALET\n", 0, 0, true, false, false, 0, 1);
     printText("Printer test OK\n", 0, 0, false, false, false, 0, 1);
     printText("- - - - - - - - - - - -\n", 0, 0, false, false, false, 0, 1);
     printText("TEST-001\n", 1, 1, true, false, false, 0, 1);
@@ -4141,7 +4176,7 @@ function dismissSaveToast() {
     var sb = String(d.brand || '').trim().toUpperCase();   // full car brand name, UPPERCASE
     var z = '';
     z += '^XA^CI28^PW' + W + '^LL609^LH0,0';
-    z += '^FO0,18^A0N,26,26^FB' + W + ',1,0,C^FD' + zSan('CHATSWOOD CHASE VALET') + '^FS';
+    z += '^FO0,18^A0N,26,26^FB' + W + ',1,0,C^FD' + zSan(CENTRE.nameUpper + ' VALET') + '^FS';
     z += '^FO0,52^GB' + W + ',2,2^FS';
     z += '^FO0,66^A0N,28,28^FB' + W + ',1,0,C^FD' + zSan('TICKET  ' + (d.ticket || '-')) + '^FS';  // ticket# on the TICKET line, same size
     z += '^FO0,106^A0N,42,42^FB' + W + ',1,0,C^FD' + zSan('BAY ' + (d.bay || '-')) + '^FS';
@@ -6586,8 +6621,8 @@ async function sendQRSms(id) {
   // Identify the car by its plate/rego (what the customer recognises). Fall
   // back to the ticket number for the rare entry logged without a plate.
   const vref = e.rego ? ('rego ' + e.rego) : ('ticket ' + e.ticket);
-  let msg = 'Chatswood Chase Valet, ' + vref
-    + '. View your QR ticket to collect your vehicle (enquiries 0427 000 822): ' + url;
+  let msg = CENTRE.name + ' Valet, ' + vref
+    + '. View your QR ticket to collect your vehicle (enquiries ' + CENTRE.phone + '): ' + url;
 
   // 1) Fully-automatic send via the Supabase Edge Function → ClickSend.
   //    Two attempts before giving up: first through the supabase-js client
@@ -7564,12 +7599,12 @@ function printShopStatement(shop) {
     .tot{margin-top:16px;text-align:right;font-size:18px;font-weight:bold;color:#531620}
     .meta{margin-top:22px;font-size:12px;color:#666}@media print{button{display:none}}</style></head>
     <body>
-    <h1>Chatswood Chase Valet — Parking Statement</h1>
+    <h1>${CENTRE.name} Valet — Parking Statement</h1>
     <div class="sub">Charged to <b>${shop}</b> · Issued ${fmtDate(new Date())}</div>
     <table><thead><tr><th>Ticket</th><th>Date</th><th>In</th><th>Out</th><th>Duration</th><th>Vehicle</th><th>Customer</th><th style="text-align:right">Amount</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <div class="tot">Total due: ${fmtMoney(total)}</div>
-    <div class="meta">${list.length} parking session${list.length !== 1 ? 's' : ''} · Valet desk 0427 000 822</div>
+    <div class="meta">${list.length} parking session${list.length !== 1 ? 's' : ''} · Valet desk ${CENTRE.phone}</div>
     <button onclick="window.print()" style="margin-top:22px;padding:10px 20px;background:#531620;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print</button>
     </body></html>`);
   w.document.close();
@@ -7838,7 +7873,7 @@ async function notifyBagAssignee(id, jobId) {
 async function sendBagSms(e, j) {
   if (!e.phone || !supa) return;
   const url = buildTicketUrl(e);
-  const msg = 'Chatswood Chase Valet: your shopping is now in your car (' + (e.rego ? e.rego : 'Ticket ' + e.ticket) + '). '
+  const msg = CENTRE.name + ' Valet: your shopping is now in your car (' + (e.rego ? e.rego : 'Ticket ' + e.ticket) + '). '
     + 'See the photo: ' + url;
   try { await supa.functions.invoke('send-ticket-sms', { body: { to: e.phone, message: msg } }); } catch (_) { /* best effort */ }
 }
@@ -8013,7 +8048,7 @@ function printDailySummary() {
   <button class="btn" onclick="window.close()" style="background:#a48d53">Close</button>
 </div>
 
-<h1>CHATSWOOD CHASE VALET</h1>
+<h1>${CENTRE.nameUpper} VALET</h1>
 <div class="sub">Daily Summary — ${today.toLocaleDateString('en-AU', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })} · Generated at ${fmtTime(new Date())}</div>
 
 <div class="stat-grid">
@@ -8119,7 +8154,7 @@ ${unpaid.length > 0 ? `
 </div>
 
 <div class="footer">
-  Chatswood Chase Valet · 345 Victoria Avenue, Chatswood NSW 2067 · 0427 000 822
+  ${CENTRE.name} Valet · ${CENTRE.address} · ${CENTRE.phone}
 </div>
 
 </body></html>
@@ -8321,7 +8356,7 @@ function downloadReportSpreadsheet() {
   if (!r.list.length) { alert('No data in this date range to download.'); return; }
   const L = [];
   const row = (...c) => L.push(c.map(x => `"${String(x).replace(/"/g, '""')}"`).join(','));
-  row('Chatswood Chase Valet — Report');
+  row(CENTRE.name + ' Valet — Report');
   row('Range', r.from + ' to ' + r.to);
   row('');
   row('Summary');
@@ -8374,7 +8409,7 @@ function downloadReportPDF() {
     .sg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}
     .sc{background:#f1f0ee;border-radius:6px;padding:10px 12px}.sc b{display:block;font-size:20px;color:#531620}.sc span{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:1px}
     @media print{button{display:none}}</style></head><body>
-    <h1>Chatswood Chase Valet — Report</h1>
+    <h1>${CENTRE.name} Valet — Report</h1>
     <div class="sub">${fmtDate(new Date(r.from))} → ${fmtDate(new Date(r.to))}</div>
     <h2>Summary</h2>
     <div class="sg">
@@ -8768,7 +8803,7 @@ function renderReports() {
 //   • Public holidays — Nager.Date, filtered to NSW, with an offline fallback.
 //   • School holidays — NSW Eastern-division term breaks (edit the list yearly).
 // ═══════════════════════════════════════════════════
-const VALET_GEO = { lat: -33.797, lon: 151.180 }; // Chatswood Chase, Sydney
+const VALET_GEO = CENTRE.geo; // centre coordinates (see ★ CENTRE config)
 
 // NSW Eastern-division school holidays (kids off → centre traffic shifts).
 // Ranges are INCLUSIVE. Refresh once a year from education.nsw.gov.au/schooling/calendars
@@ -9068,7 +9103,7 @@ function downloadMonthlyPDF() {
     .sg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px}
     .sc{background:#f1f0ee;border-radius:6px;padding:10px 12px}.sc b{display:block;font-size:20px;color:#531620}.sc span{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:1px}
     @media print{button{display:none}}</style></head><body>
-    <h1>Chatswood Chase Valet — Monthly Report</h1>
+    <h1>${CENTRE.name} Valet — Monthly Report</h1>
     <div class="sub">${monthName} · Sydney weather &amp; NSW public/school holidays vs daily car volume</div>
     <h2>Demand by Day Type — avg cars/day</h2>
     <div class="sg">
@@ -9788,7 +9823,7 @@ function downloadMgmtPDF() {
     .sc{background:#f1f0ee;border-radius:6px;padding:10px 12px}.sc b{display:block;font-size:19px;color:#531620;margin-top:2px}.sc span{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:1px}.sc i{display:block;font-size:11px;color:#888;font-style:normal;margin-top:2px}
     table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}.r{text-align:right;font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace}.tot{font-weight:bold}
     @media print{button{display:none}}</style></head><body>
-    <h1>Chatswood Chase Valet — Management Summary</h1>
+    <h1>${CENTRE.name} Valet — Management Summary</h1>
     <div class="sub">${fmtDate(new Date(from))} &rarr; ${fmtDate(new Date(to))}</div>
     <div class="sg">
       ${stat('Cars handled', m.cars, m.completed + ' completed')}
@@ -12354,9 +12389,9 @@ function updateHapticsUI() {
 // ═══════════════════════════════════════════════════
 // CLOUD SYNC LAYER (Supabase)
 // ═══════════════════════════════════════════════════
-const SUPABASE_URL = 'https://ebqiitxiyzzbkgyfypss.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVicWlpdHhpeXp6YmtneWZ5cHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODI3MjQsImV4cCI6MjA5NTk1ODcyNH0.ZkR9PetFUtsrsxXens0SxpOAOJQA8mXoS7d8qXRUhYs';
-const SALT = 'chatswood-salt-2026';
+const SUPABASE_URL = CENTRE.supabaseUrl;   // see ★ CENTRE config
+const SUPABASE_KEY = CENTRE.supabaseKey;
+const SALT = CENTRE.salt;
 
 let supa = null;       // Supabase client
 let currentUser = null; // { username, displayName, role }
