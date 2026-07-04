@@ -3861,7 +3861,7 @@ function showSaveToast(entry) {
       </div>
       <div class="save-modal-meta">${cloudText}</div>
       <div class="save-modal-actions">
-        ${entry.bay ? `<button class="btn btn-secondary btn-sm" onclick="printKeyTag('${entry.id}')">Print Key Tag</button>` : ''}
+        ${entry.bay ? `<button class="btn btn-secondary btn-sm" onclick="requestPrintKeyTag('${entry.id}')">Print Key Tag</button>` : ''}
         <button class="btn btn-primary" onclick="dismissSaveModal()">Done — Next Car</button>
       </div>
     </div>
@@ -6487,7 +6487,7 @@ function renderActive() {
       + `<span class="ico-group">`
       + `${e.phone ? `<a href="tel:${e.phone}" class="ico-btn" onclick="event.stopPropagation()" title="Call ${e.phone}">${ACT_ICONS.call}</a>` : ''}`
       + `<button class="ico-btn" onclick="sendQRSms('${e.id}')" title="Send QR ticket link to customer">${ACT_ICONS.qr}</button>`
-      + `<button class="ico-btn" onclick="printKeyTag('${e.id}')" title="Print key tag">${ACT_ICONS.print}</button>`
+      + `<button class="ico-btn" onclick="requestPrintKeyTag('${e.id}')" title="Print key tag">${ACT_ICONS.print}</button>`
       + `<button class="ico-btn" onclick="openEditCar('${e.id}')" title="Edit bay, time in or customer details">${ACT_ICONS.edit}</button>`
       + `<button class="ico-btn ff-bags${bagOn ? ' on' : ''}" onclick="logBagRequest('${e.id}')" title="${bagOn ? 'Add another hands-free shopping pickup (new shop)' : 'Log a hands-free shopping bag pickup'}">${ACT_ICONS.bag}</button>`
       + `<button class="ico-btn${washOn ? ' on' : ''}" onclick="openWashDialog('${e.id}')" title="${e.carWash ? 'Manage car wash' : 'Add a car wash'}">${ACT_ICONS.wash}</button>`
@@ -12684,6 +12684,10 @@ function startRealtimeSync() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, payload => {
       handleRealtimeSettingsChange(payload);
     })
+    // A phone (no local printer) asked the print station to print a key tag.
+    .on('broadcast', { event: 'print-request' }, ({ payload }) => handleRemotePrintRequest(payload))
+    // The print station confirming it printed a tag we asked for.
+    .on('broadcast', { event: 'print-ack' }, ({ payload }) => handlePrintAck(payload))
     .subscribe(status => {
       if (status === 'SUBSCRIBED') {
         if (realtimeHadFirstSubscribe) reconcileFromCloud('reconnect');
@@ -12746,6 +12750,60 @@ function maybeAutoPrintTag(entry) {
   if (autoPrintedSig.get(entry.id) === tagSig(entry)) return; // this exact tag already printed here
   markPrinted(entry);
   printKeyTag(entry);
+}
+
+// ─── Print-anywhere: route a phone's manual print to the print station ───
+// A phone has no printer wired to it (the Zebra lives on the desk / BIXOLON on
+// one Android). So when someone taps "Print Key Tag" on a non-station device we
+// don't print locally (that just errors with "Browser Print isn't running") —
+// we ask the print station to print it over the realtime channel, and show an
+// ack when it confirms. requestPrintKeyTag() is the entry point for the buttons.
+let pendingPrintReq = new Map();   // entry id → the "no station answered" timeout
+
+function requestPrintKeyTag(id) {
+  const e = entries.find(x => x.id === id);
+  // This device IS the print station (desk wired to the printer) → print locally.
+  if (settings.printStation && printerConfigured()) { printKeyTag(id); return; }
+  if (!e) { printKeyTag(id); return; }                      // unknown car — fall back to a local attempt
+  if (!e.bay) { alert('Assign a bay first — the key tag needs a bay number.'); return; }
+  // Offline / no channel → nothing to route through; try locally as a last resort.
+  if (!realtimeChannel || !navigator.onLine) { printKeyTag(id); return; }
+  try {
+    realtimeChannel.send({ type: 'broadcast', event: 'print-request',
+      payload: { id: e.id, ticket: e.ticket, by: (currentUser && currentUser.displayName) || '' } });
+  } catch (_) { printKeyTag(id); return; }
+  quickToast('🖨 Sent ticket ' + (e.ticket || '') + ' to the print station…');
+  clearTimeout(pendingPrintReq.get(e.id));
+  pendingPrintReq.set(e.id, setTimeout(() => {
+    pendingPrintReq.delete(e.id);
+    quickToast('⚠ No print station responded — check the desk PC has the app open.');
+  }, 5000));
+}
+
+// Print station: a phone asked us to print this tag. Print it unconditionally
+// (it's an explicit reprint request) and confirm back so the phone can toast ✓.
+function handleRemotePrintRequest(payload) {
+  if (!payload || !payload.id) return;
+  if (!settings.printStation || !printerConfigured()) return;   // only a real station prints
+  const e = entries.find(x => x.id === payload.id);
+  if (!e || !e.bay) return;
+  markPrinted(e);
+  printKeyTag(e);
+  try {
+    realtimeChannel.send({ type: 'broadcast', event: 'print-ack',
+      payload: { id: e.id, ticket: e.ticket, station: (currentUser && currentUser.displayName) || 'the desk' } });
+  } catch (_) {}
+}
+
+// Requesting phone: the station confirmed it printed our tag. Only the device
+// that actually asked has a pending timer for this id — other idle phones on the
+// channel receive the same ack but stay quiet.
+function handlePrintAck(payload) {
+  if (!payload || !payload.id) return;
+  const t = pendingPrintReq.get(payload.id);
+  if (!t) return;                       // we didn't request this one — ignore
+  clearTimeout(t); pendingPrintReq.delete(payload.id);
+  quickToast('✓ Ticket ' + (payload.ticket || '') + ' printed at ' + (payload.station || 'the desk'));
 }
 
 function handleRealtimeEntryChange(payload) {
