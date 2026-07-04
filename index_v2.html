@@ -12670,6 +12670,11 @@ async function hashPassword(password) {
 }
 
 // ─── Real-time subscription ───
+// True once we've seen at least one SUBSCRIBED. The first SUBSCRIBED fires right
+// after the initial cloud load, so we skip reconciling then — but every later
+// one means the socket dropped and RE-connected, during which we may have MISSED
+// change events (Supabase does NOT replay them). So we re-pull to reconcile.
+let realtimeHadFirstSubscribe = false;
 function startRealtimeSync() {
   if (realtimeChannel) realtimeChannel.unsubscribe();
   realtimeChannel = supa.channel('valet-changes')
@@ -12679,8 +12684,35 @@ function startRealtimeSync() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, payload => {
       handleRealtimeSettingsChange(payload);
     })
-    .subscribe();
+    .subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        if (realtimeHadFirstSubscribe) reconcileFromCloud('reconnect');
+        realtimeHadFirstSubscribe = true;
+      }
+    });
 }
+
+// Silent re-pull from the cloud to correct any drift after a missed realtime
+// event (dropped socket, backgrounded phone). Reuses loadFromCloud but suppresses
+// the banner, and throttles so a burst of focus/visibility events can't hammer it.
+let lastReconcileAt = 0;
+async function reconcileFromCloud(reason) {
+  if (!supa || !currentUser || !navigator.onLine) return;
+  const now = Date.now();
+  if (now - lastReconcileAt < 8000) return;   // at most once per 8s
+  lastReconcileAt = now;
+  try {
+    await loadFromCloud(true);   // silent — no "Syncing…" banner for a background refresh
+    refreshActiveViews();
+  } catch (e) { /* loadFromCloud already logs; keep local cache */ }
+}
+
+// When the tab comes back to the foreground (phone woken, app re-opened), the
+// socket may have been asleep and missed check-outs/assignments — reconcile.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') reconcileFromCloud('visible');
+});
+window.addEventListener('focus', () => reconcileFromCloud('focus'));
 
 // Print Station auto-print. Only devices with "Print Station" turned ON
 // (typically the desktop wired to the Zebra) print incoming check-ins.
@@ -13413,9 +13445,10 @@ async function completeLogin() {
   maybeWarnLowSmsBalance();
 }
 
-async function loadFromCloud() {
-  // Show pending banner so the user knows a sync is in progress.
-  showCloudLoadStatus('Syncing from cloud…', 'pending');
+async function loadFromCloud(silent) {
+  // Show pending banner so the user knows a sync is in progress. Background
+  // reconciles (reconnect / tab-focus) pass silent=true to skip the banners.
+  if (!silent) showCloudLoadStatus('Syncing from cloud…', 'pending');
   try {
     // Defensive: ensure supa is initialized (handles edge cases where it wasn't)
     if (!supa) {
@@ -13436,13 +13469,13 @@ async function loadFromCloud() {
     // Cache locally for offline
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     // Show visible confirmation banner
-    showCloudLoadStatus('✓ Loaded ' + entries.length + ' entries from cloud', 'success');
+    if (!silent) showCloudLoadStatus('✓ Loaded ' + entries.length + ' entries from cloud', 'success');
   } catch (e) {
     console.error('Cloud load failed:', e);
     // entries may already be populated from local cache via completeLogin's
     // loadData() call — don't reload it here, just report and let the cached
     // data stand.
-    showCloudLoadStatus('Could not load from cloud: ' + (e.message || 'Unknown error') + ' — showing local cache (' + entries.length + ' entries)', 'error');
+    if (!silent) showCloudLoadStatus('Could not load from cloud: ' + (e.message || 'Unknown error') + ' — showing local cache (' + entries.length + ' entries)', 'error');
   }
 }
 
