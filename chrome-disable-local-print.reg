@@ -1,0 +1,13 @@
+Windows Registry Editor Version 5.00
+
+; Undo for chrome-enable-local-print.reg — removes the Local/Private Network
+; Access allow-lists for the valet app from Chrome and Edge (HKCU, no admin).
+; Double-click -> Yes -> OK, then fully quit and reopen the browser.
+
+[-HKEY_CURRENT_USER\Software\Policies\Google\Chrome\LocalNetworkAccessAllowedForUrls]
+
+[-HKEY_CURRENT_USER\Software\Policies\Google\Chrome\InsecurePrivateNetworkRequestsAllowedForUrls]
+
+[-HKEY_CURRENT_USER\Software\Policies\Microsoft\Edge\LocalNetworkAccessAllowedForUrls]
+
+[-HKEY_CURRENT_USER\Software\Policies\Microsoft\Edge\InsecurePrivateNetworkRequestsAllowedForUrls]

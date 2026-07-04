@@ -1,0 +1,39 @@
+Windows Registry Editor Version 5.00
+
+; ============================================================================
+;  Chatswood Chase Valet — let the app reach the local key-tag printer in Chrome
+; ============================================================================
+;  WHY: Chrome 142+ (Oct 2025) added a "Local Network Access" permission. A public
+;  https site (the valet app) talking to the local Zebra Browser Print agent at
+;  http://127.0.0.1:9100 is now blocked unless the site's origin is allow-listed,
+;  which is why the BRANDED url printed nothing while the OLD url still worked.
+;
+;  This allow-lists BOTH valet urls so key-tag printing works from either one.
+;  It is written under HKEY_CURRENT_USER, so it needs NO admin rights.
+;
+;  APPLY ON: the print-station desk PC (the one wired to the Zebra), in the
+;  Windows user that runs Chrome.
+;  HOW: double-click this file -> Yes -> OK, then fully quit and reopen Chrome.
+;  VERIFY: open chrome://policy — you should see LocalNetworkAccessAllowedForUrls
+;  listed; then load the branded url and do Settings -> Test Print.
+;  UNDO: re-run chrome-disable-local-print.reg (or delete these keys in regedit).
+; ============================================================================
+
+; Chrome 142+ — the current Local Network Access allow-list
+[HKEY_CURRENT_USER\Software\Policies\Google\Chrome\LocalNetworkAccessAllowedForUrls]
+"1"="https://chatswoodchasevalet.github.io"
+"2"="https://chadmik71.github.io"
+
+; Older Chrome (pre-142) — the legacy Private Network Access allow-list, harmless on new Chrome
+[HKEY_CURRENT_USER\Software\Policies\Google\Chrome\InsecurePrivateNetworkRequestsAllowedForUrls]
+"1"="https://chatswoodchasevalet.github.io"
+"2"="https://chadmik71.github.io"
+
+; Same two allow-lists for Microsoft Edge (also Chromium), in case the desk ever uses Edge
+[HKEY_CURRENT_USER\Software\Policies\Microsoft\Edge\LocalNetworkAccessAllowedForUrls]
+"1"="https://chatswoodchasevalet.github.io"
+"2"="https://chadmik71.github.io"
+
+[HKEY_CURRENT_USER\Software\Policies\Microsoft\Edge\InsecurePrivateNetworkRequestsAllowedForUrls]
+"1"="https://chatswoodchasevalet.github.io"
+"2"="https://chadmik71.github.io"
