@@ -12701,9 +12701,28 @@ async function reconcileFromCloud(reason) {
   const now = Date.now();
   if (now - lastReconcileAt < 8000) return;   // at most once per 8s
   lastReconcileAt = now;
+  // Snapshot (id → tag content) BEFORE the re-pull. The print station uses this
+  // to find check-ins / bay assignments it MISSED while its realtime socket was
+  // down and print those tags — the reconcile path doesn't go through
+  // handleRealtimeEntryChange, which is what normally fires auto-print. Because
+  // the snapshot already holds every car we currently know about, a plain page
+  // reload produces no diff → no reprint storm.
+  const before = new Map(entries.map(e => [e.id, tagSig(e)]));
   try {
-    await loadFromCloud(true);   // silent — no "Syncing…" banner for a background refresh
+    await loadFromCloud(true);   // silent — no "Syncing…" banner; replaces `entries`
     refreshActiveViews();
+    // Only the print station prints, and only if we had a prior snapshot (guards
+    // against a storm if this ever runs before the initial load populated entries).
+    if (settings.printStation && printerConfigured() && before.size) {
+      entries.forEach(e => {
+        if (e.timeOut || !e.bay) return;               // only active, bay-assigned cars get a tag
+        const prevSig = before.get(e.id);
+        // New to us (missed INSERT) or the tag content changed while we were away
+        // (e.g. a bay assigned from a phone). maybeAutoPrintTag still de-dupes via
+        // autoPrintedSig, so anything already printed here won't reprint.
+        if (prevSig === undefined || prevSig !== tagSig(e)) maybeAutoPrintTag(e);
+      });
+    }
   } catch (e) { /* loadFromCloud already logs; keep local cache */ }
 }
 
