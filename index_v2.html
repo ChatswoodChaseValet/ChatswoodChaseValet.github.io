@@ -3804,11 +3804,14 @@ function saveEntry() {
   showSaveToast(entry);
   hapticFeedback('success');
 
-  // Auto-print the key tag on check-in when a printer is set up — but only once
-  // a bay is assigned. A key tag with no bay isn't useful, so if the car is
-  // checked in before it's parked we skip printing; the tag prints later when
-  // the bay is added via Edit Car. Stays silent with no printer.
-  if (printerConfigured() && entry.bay) {
+  // Auto-print the key tag on check-in — but only on THIS device if it's the
+  // print station (wired to a printer) and a bay is assigned. A phone (station
+  // OFF) must NOT print locally: it has no printer agent, so printKeyTag would
+  // just flash a "Zebra not connecting" error. The desk print station prints the
+  // tag anyway via the realtime INSERT (maybeAutoPrintTag). A key tag with no bay
+  // isn't useful, so a car checked in before it's parked prints later when the
+  // bay is added via Edit Car.
+  if (settings.printStation && printerConfigured() && entry.bay) {
     markPrinted(entry);   // record what we printed so the realtime echo doesn't reprint it
     printKeyTag(entry);
   }
@@ -5249,9 +5252,10 @@ function saveEditCar() {
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 
   // The key tag shows ticket, bay and plate (ticket is also the barcode), so
-  // reprint if any of those changed — but only when a printer is set up, so
-  // editing stays silent until then.
-  if (tagChanged && printerConfigured()) {
+  // reprint if any of those changed — but only on the print station itself. A
+  // phone has no printer agent, so printing locally would flash a "Zebra not
+  // connecting" error; the desk station reprints via the realtime UPDATE instead.
+  if (tagChanged && settings.printStation && printerConfigured()) {
     markPrinted(e);   // record what we printed so the realtime echo doesn't reprint it
     printKeyTag(e);
   }
@@ -6354,10 +6358,14 @@ function assignBay(id) {
   e.bay = bay;
   saveData(e.id, { immediate: true });
   cloudAudit('edit', 'entry', e.id, { ticket: e.ticket, bay });
-  if (printerConfigured()) { markPrinted(e); printKeyTag(e); }
+  // Only print locally if this device is the print station; otherwise the desk
+  // station prints it via the realtime UPDATE (bay change → tag content changed).
+  // A phone printing locally would just flash a "Zebra not connecting" error.
+  const printsHere = settings.printStation && printerConfigured();
+  if (printsHere) { markPrinted(e); printKeyTag(e); }
   renderActive();
   if (typeof renderDashboard === 'function') renderDashboard();
-  quickToast('✓ Bay ' + bay + ' assigned' + (printerConfigured() ? ' · key tag printing' : ''));
+  quickToast('✓ Bay ' + bay + ' assigned' + (printsHere ? ' · key tag printing' : ''));
   if (typeof hapticFeedback === 'function') hapticFeedback('success');
 }
 
