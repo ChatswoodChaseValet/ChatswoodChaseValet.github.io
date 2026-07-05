@@ -377,6 +377,19 @@ body.dark-mode .form-input.autofilled{
 }
 body.dark-mode .autofill-hint{color:#e0a640}
 
+/* Log New Car form: make the entered values (rego, brand, name, etc.) and
+   their labels bigger and bold so they're easy to read at a glance. Scoped to
+   #view-new-entry so the rest of the app's inputs are unaffected. */
+#view-new-entry .form-input,
+#view-new-entry .form-select{
+  font-size:18px;
+  font-weight:700;
+}
+#view-new-entry .form-label{
+  font-size:13px;
+  font-weight:700;
+}
+
 /* ─── BUTTON ─── */
 .btn{
   padding:10px 22px;
@@ -764,9 +777,9 @@ body.mobile-mode .scan-ready-pill{display:none}
      fixed-width Snap/Voice buttons stay on screen, no sideways scroll */
   #view-new-entry .form-field > div{min-width:0}
   #view-new-entry .form-input{min-width:0}
-  #view-new-entry .form-label{font-size:13px;letter-spacing:1px}
+  #view-new-entry .form-label{font-size:13px;letter-spacing:1px;font-weight:700}
   #view-new-entry .form-input,
-  #view-new-entry .form-select{font-size:16px;padding:13px 13px}
+  #view-new-entry .form-select{font-size:17px;padding:13px 13px;font-weight:700}
 }
 
 /* Print-friendly */
