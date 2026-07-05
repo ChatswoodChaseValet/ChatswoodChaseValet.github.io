@@ -384,6 +384,7 @@ body.dark-mode .autofill-hint{color:#e0a640}
 #view-new-entry .form-select{
   font-size:18px;
   font-weight:700;
+  border:2px solid var(--maroon);
 }
 #view-new-entry .form-label{
   font-size:13px;
@@ -1347,7 +1348,6 @@ body.dark-mode .scan-banner {
   <div class="section">
     <div class="section-header">
       <div class="section-title">Log New Car</div>
-      <div style="font-size:12px;color:var(--text-muted)">Ticket # auto-generated</div>
     </div>
 
     <div id="customer-banner" style="display:none;background:linear-gradient(90deg,#faf9f7,#fafafa);border-left:4px solid var(--bronze);padding:12px 14px;border-radius:4px;margin-bottom:16px;cursor:pointer" onclick="showCustomerDetail()">
@@ -1364,7 +1364,7 @@ body.dark-mode .scan-banner {
       </div>
     </div>
 
-    <div class="form-grid">
+    <div class="form-grid" style="display:none">
       <div class="form-field">
         <label class="form-label">
           Ticket Number
