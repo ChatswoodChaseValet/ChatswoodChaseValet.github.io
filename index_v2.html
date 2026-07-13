@@ -2850,6 +2850,109 @@ let entries = [];
 let settings = { prefix: 'A-', nextNum: 1 };
 
 // ═══════════════════════════════════════════════════
+// DEMO / PITCH MODE  (add ?demo=1 to the URL)
+// ───────────────────────────────────────────────────
+// When on, the real `entries` (customer) table is NEVER fetched and NEVER
+// written to. The dashboard is populated with synthetic sample records so
+// the app can be shown to third parties (e.g. a pitch) without exposing any
+// real customer data. Staff data still loads normally. Gated in:
+// cloudLoadAllEntries, startRealtimeSync, and the cloud write helpers.
+const _demoParam = new URLSearchParams(location.search).get('demo');
+const DEMO_MODE = _demoParam !== null && _demoParam !== '0' && _demoParam !== 'false';
+
+function generateDemoEntries() {
+  const now = Date.now();
+  const H = 3600000, MIN = 60000, DAY = 86400000;
+  const attn  = ['Liam','Noah','Aria','Chloe','Ethan','Mia'];
+  const cars  = [
+    ['Toyota','RAV4','White'], ['Mazda','CX-5','Grey'], ['BMW','X3','Black'],
+    ['Mercedes-Benz','C200','Silver'], ['Audi','Q5','Blue'], ['Lexus','NX','Pearl White'],
+    ['Tesla','Model 3','White'], ['Volkswagen','Golf','Red'], ['Hyundai','i30','Silver'],
+    ['Kia','Sportage','Black'], ['Subaru','Forester','Green'], ['Honda','CR-V','Grey'],
+    ['Range Rover','Evoque','Black'], ['Nissan','X-Trail','White'], ['Ford','Ranger','Blue'],
+    ['Volvo','XC60','Grey'], ['Porsche','Macan','White'], ['Mitsubishi','Outlander','Bronze'],
+  ];
+  const firsts = ['James','Olivia','William','Charlotte','Jack','Amelia','Henry','Isla','Lucas','Grace','Oliver','Sophie','Thomas','Ella','Leo','Zoe','Noah','Ruby','Max','Ivy'];
+  const lasts  = ['Chen','Nguyen','Smith','Patel','Wong','Kumar','Taylor','Lee','Brown','Singh','Wilson','Kim','Martin','Ali','Tran','Clarke','Robinson','Park','Ahmed','Ng'];
+  const L = 'ABCDEFGHJKLMNPRSTUVWXYZ';
+  const lt = n => L[Math.abs(n) % L.length];
+  const plate = i => `${lt(i*5)}${lt(i*7+1)}${String((i*17)%90+10)}${lt(i*11+3)}${lt(i*3+2)}`;
+  const phone = i => `04${String(10+(i*7)%89)} ${String(100+(i*131)%899)} ${String(100+(i*271)%899)}`;
+
+  const out = [];
+  const mk = (i, o) => {
+    const c = cars[i % cars.length];
+    const valet = CENTRE.valetFee;
+    const parking = o.parking != null ? o.parking : [0,0,3,5,10,0][i % 6];
+    const total = valet + parking;
+    out.push({
+      id: 'demo-' + i,
+      ticket: 'A-' + String(1000 + i),
+      timeIn: new Date(o.in).toISOString(),
+      timeOut: o.out != null ? new Date(o.out).toISOString() : null,
+      bay: o.out == null ? String(1 + (i % 40)) : null,
+      brand: c[0], model: c[1], colour: c[2],
+      rego: plate(i),
+      name: firsts[i % firsts.length] + ' ' + lasts[(i*3) % lasts.length],
+      phone: phone(i),
+      notes: '',
+      attendantIn: attn[i % attn.length],
+      attendantOut: o.out != null ? attn[(i+2) % attn.length] : null,
+      parkingFee: parking, valetFee: valet, totalFee: total,
+      feeOverridden: false,
+      tip: o.tip || undefined,
+      paymentStatus: o.out == null ? 'unpaid' : (o.pay || 'paid'),
+      paymentMethod: o.out == null ? null : (o.method || 'card'),
+      photo: null, gps: null,
+      pickupRequested: false, pickupETA: null, pickupSource: null, pickupStatus: null,
+      discounts: [], discountTotal: 0,
+      bagJobs: [],
+      rating: o.rating != null ? o.rating : null,
+      ratingAt: null, ratingComment: null,
+      shopAccount: o.pay === 'shop' ? 'Country Road' : null,
+      shopCover: null, shopSettledAt: null, shopSettledBy: null,
+      carWash: o.wash ? { service: 'Premium Wash', price: 45, paidAt: new Date(o.out).toISOString() } : null,
+      incident: null,
+      vip: !!o.vip,
+      squarePayment: null,
+    });
+  };
+
+  // Currently on-site (no timeOut) — fills the live "On Site" board.
+  let i = 0;
+  [45, 80, 110, 25, 160, 200].forEach(mins => mk(i++, { in: now - mins*MIN }));
+
+  // Collected earlier today — feeds today's totals, payments, avg-stay.
+  for (let k = 0; k < 10; k++, i++) {
+    const inT = now - (7*H) + k*35*MIN;
+    const stay = (60 + (k*23)%210) * MIN;
+    mk(i, { in: inT, out: inT + stay,
+      parking: [0,3,5,10,0,20,0,7,0,5][k],
+      pay: ['card','card','cash','card','shop','card','card','comp','card','card'][k],
+      tip: [0,0,0,5,0,0,10,0,0,3][k] || undefined,
+      rating: [5,5,4,5,0,5,4,0,5,5][k] || null,
+      wash: k===3 || k===7, vip: k===5 });
+  }
+
+  // Previous 12 days — gives the reports/charts history and trends.
+  for (let d = 1; d <= 12; d++) {
+    const perDay = 6 + (d % 4);
+    for (let k = 0; k < perDay; k++, i++) {
+      const inT = now - d*DAY - (6*H) + k*40*MIN;
+      const stay = (50 + (k*29)%230) * MIN;
+      mk(i, { in: inT, out: inT + stay,
+        parking: [0,0,3,5,10,20,0,7][k % 8],
+        pay: (k % 9 === 0) ? 'cash' : (k % 13 === 0 ? 'shop' : 'card'),
+        tip: (k % 5 === 0) ? 5 : undefined,
+        rating: (k % 3 === 0) ? 5 : (k % 4 === 0 ? 4 : null),
+        wash: (k % 7 === 0), vip: (k % 11 === 0) });
+    }
+  }
+
+  return out;
+}
+
+// ═══════════════════════════════════════════════════
 // AUTO-SAVE SYSTEM
 // Primary: File System Access API (Chrome/Edge) — silent file save
 // Fallback: Auto-download with debouncing (other browsers)
@@ -3056,7 +3159,10 @@ function doAutoSave() {
 }
 
 function loadData() {
-  try {
+  // DEMO/PITCH MODE: never read the real cached customer entries — seed the
+  // dashboard with samples so no real PII can flash before the cloud load.
+  if (DEMO_MODE) { entries = generateDemoEntries(); }
+  else try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) entries = JSON.parse(raw);
   } catch(e) { entries = [] }
@@ -10471,7 +10577,7 @@ function importJSONMerge(event) {
 
       // Bulk-push the new rows to Supabase in chunks; queue any failures for retry.
       let pushed = 0, failed = 0, lastErr = '';
-      if (typeof supa !== 'undefined' && supa) {
+      if (typeof supa !== 'undefined' && supa && !DEMO_MODE) {
         const CHUNK = 100;
         for (let i = 0; i < fresh.length; i += CHUNK) {
           const slice = fresh.slice(i, i + CHUNK);
@@ -12532,6 +12638,8 @@ async function initSupabase() {
 
 // ─── Cloud operations ───
 async function cloudLoadAllEntries() {
+  // DEMO/PITCH MODE: never touch the real customer table — return samples.
+  if (DEMO_MODE) return generateDemoEntries();
   const { data, error } = await supa
     .from('entries')
     .select('*')
@@ -12542,6 +12650,7 @@ async function cloudLoadAllEntries() {
 }
 
 async function cloudUpsertEntry(entry) {
+  if (DEMO_MODE) return;   // demo edits stay in-memory, never hit the real DB
   const dbRow = jsToDb(entry);
   const { error } = await supa.from('entries').upsert(dbRow);
   if (error) {
@@ -12556,6 +12665,7 @@ async function cloudUpsertEntry(entry) {
 }
 
 async function cloudDeleteEntry(id) {
+  if (DEMO_MODE) return;   // demo edits stay in-memory, never hit the real DB
   const { error } = await supa.from('entries').delete().eq('id', id);
   if (error) {
     console.error('[cloud delete failed]', error.message, '·', error.code, error);
@@ -12707,6 +12817,9 @@ async function hashPassword(password) {
 let realtimeHadFirstSubscribe = false;
 function startRealtimeSync() {
   if (realtimeChannel) realtimeChannel.unsubscribe();
+  // DEMO/PITCH MODE: skip the whole realtime channel so no real customer
+  // (entries) rows can stream into the browser during a demo.
+  if (DEMO_MODE) return;
   realtimeChannel = supa.channel('valet-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, payload => {
       handleRealtimeEntryChange(payload);
@@ -13573,8 +13686,9 @@ async function loadFromCloud(silent) {
     if (cloudSettings.next_ticket_num !== undefined && cloudSettings.next_ticket_num !== null) {
       settings.nextNum = cloudSettings.next_ticket_num;
     }
-    // Cache locally for offline
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    // Cache locally for offline (skip in demo mode so sample data never
+    // overwrites the operator's real offline cache).
+    if (!DEMO_MODE) localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     // Show visible confirmation banner
     if (!silent) showCloudLoadStatus('✓ Loaded ' + entries.length + ' entries from cloud', 'success');
   } catch (e) {
@@ -13921,6 +14035,16 @@ window.addEventListener('load', () => {
 });
 
 // Handle Enter key on PIN and password inputs
+// DEMO/PITCH MODE: show a persistent badge so it's obvious the data on
+// screen is synthetic — and, by its absence, that the plain link is live.
+document.addEventListener('DOMContentLoaded', () => {
+  if (!DEMO_MODE) return;
+  const b = document.createElement('div');
+  b.textContent = 'DEMO MODE · sample data';
+  b.style.cssText = 'position:fixed;bottom:10px;left:10px;z-index:9999;background:#7a1f2b;color:#fff;font:600 11px/1 system-ui,sans-serif;letter-spacing:.5px;padding:7px 12px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:none;text-transform:uppercase';
+  document.body.appendChild(b);
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   const pinInput = document.getElementById('login-pin');
   const pwInput = document.getElementById('login-password');
