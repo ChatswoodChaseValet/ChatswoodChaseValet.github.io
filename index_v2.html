@@ -403,6 +403,10 @@ body.dark-mode .autofill-hint{color:#e0a640}
    of the form (was pushing Colour / Parking Bay off the right edge). */
 #view-new-entry .intake-top-row .form-field,
 #view-new-entry .intake-top-row .form-input{min-width:0}
+/* Keep each intake label on ONE line so every box lines up across the row —
+   the Customer Name label (REQUIRED badge + ★ VIP toggle) was wrapping to two
+   lines and dropping its box below the rest. */
+#view-new-entry .intake-top-row .form-label{white-space:nowrap;letter-spacing:.8px}
 @media (min-width:1080px){
   #view-new-entry .intake-top-row{
     grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.25fr) minmax(0,0.95fr) minmax(0,0.8fr) minmax(0,0.8fr);
