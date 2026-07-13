@@ -394,13 +394,17 @@ body.dark-mode .autofill-hint{color:#e0a640}
   font-size:13px;
   font-weight:700;
 }
-/* Keep every answer box in a row on the SAME line: a taller or wrapping label
-   (Customer Name's "★ VIP customer" toggle, Parking Bay's "(optional)") would
-   otherwise push its input lower than the rest of the row. Bottom-aligning the
-   inputs makes them all level — same fix we used on the Chadstone app. */
-#view-new-entry .form-field{justify-content:flex-end}
-#view-new-entry .form-field > .form-input,
-#view-new-entry .form-field > .form-select{margin-top:auto}
+/* Match Chadstone: the sample/placeholder text is normal weight (only the
+   values staff actually type stay bold), so the empty boxes look lighter. */
+#view-new-entry .form-input::placeholder{font-weight:400}
+/* Wide-screen intake row: keep Customer Name on one line and make Phone /
+   Colour / Parking Bay a little narrower, like Chadstone. Labels are single
+   line, so the boxes sit up and level across the row (default top alignment). */
+@media (min-width:1080px){
+  #view-new-entry .intake-top-row{
+    grid-template-columns:1.1fr 1fr 1.25fr 0.95fr 0.8fr 0.8fr;
+  }
+}
 
 /* ─── BUTTON ─── */
 .btn{
@@ -1404,7 +1408,7 @@ body.dark-mode .scan-banner {
       </div>
     </div>
 
-    <div class="form-grid">
+    <div class="form-grid intake-top-row">
       <div class="form-field">
         <label class="form-label">Car Brand<span class="required">*</span></label>
         <input type="text" id="f-brand" class="form-input" list="brand-list" placeholder="Type or pick a brand…" autocomplete="off">
@@ -1504,7 +1508,7 @@ body.dark-mode .scan-banner {
         <label class="form-label">Customer Name<span class="required">*</span>
           <span style="font-weight:normal;text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">
             <input type="checkbox" id="f-vip" style="vertical-align:middle;margin-right:3px">
-            <label for="f-vip" style="cursor:pointer;color:var(--bronze);font-weight:700">★ VIP customer</label>
+            <label for="f-vip" style="cursor:pointer;color:var(--bronze);font-weight:700">★ VIP</label>
           </span>
         </label>
         <input type="text" id="f-name" class="form-input" placeholder="Required" autocomplete="off">
@@ -1594,9 +1598,7 @@ body.dark-mode .scan-banner {
     </div>
     <div class="form-grid mobile-hide-now" id="wash-fields" style="display:none">
       <div class="form-field">
-        <label class="form-label">Car wash (optional)
-          <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">Xtream Car Care · added to bill</span>
-        </label>
+        <label class="form-label">Car wash (optional)</label>
         <select id="f-wash-service" class="form-select" onchange="updateWashPriceHint('f')">
           <option value="">— No car wash —</option>
           <option value="xtream">Xtream Wash</option>
