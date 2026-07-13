@@ -398,11 +398,14 @@ body.dark-mode .autofill-hint{color:#e0a640}
    values staff actually type stay bold), so the empty boxes look lighter. */
 #view-new-entry .form-input::placeholder{font-weight:400}
 /* Wide-screen intake row: keep Customer Name on one line and make Phone /
-   Colour / Parking Bay a little narrower, like Chadstone. Labels are single
-   line, so the boxes sit up and level across the row (default top alignment). */
+   Colour / Parking Bay a little narrower, like Chadstone. minmax(0,…) plus the
+   min-width:0 below let the boxes shrink to fit the row so nothing spills out
+   of the form (was pushing Colour / Parking Bay off the right edge). */
+#view-new-entry .intake-top-row .form-field,
+#view-new-entry .intake-top-row .form-input{min-width:0}
 @media (min-width:1080px){
   #view-new-entry .intake-top-row{
-    grid-template-columns:1.1fr 1fr 1.25fr 0.95fr 0.8fr 0.8fr;
+    grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.25fr) minmax(0,0.95fr) minmax(0,0.8fr) minmax(0,0.8fr);
   }
 }
 
