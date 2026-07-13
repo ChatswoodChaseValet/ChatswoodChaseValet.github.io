@@ -4878,6 +4878,28 @@ function squareDueCents() {
   return Math.round((parseFloat(t) || 0) * 100);
 }
 async function chargeOnTerminal() {
+  // DEMO/PITCH MODE: no real terminal or charge — simulate an approved tap so
+  // the card-checkout flow can be shown end-to-end (no Square Device ID needed).
+  if (DEMO_MODE) {
+    const amountCents = squareDueCents();
+    if (amountCents <= 0) { alert('Nothing to charge — the customer total is $0.'); return; }
+    const btn = document.getElementById('square-charge-btn');
+    const lbl = document.getElementById('square-charge-label');
+    const st = document.getElementById('square-status');
+    if (btn) btn.disabled = true;
+    if (lbl) lbl.textContent = 'Waiting for tap…';
+    if (st) { st.style.color = 'var(--text-muted)'; st.textContent = 'Demo terminal — simulating a card tap…'; }
+    setTimeout(() => {
+      document.getElementById('checkout-pay-status').value = 'paid';
+      document.getElementById('checkout-pay-method').value = 'card';
+      if (typeof updateCheckoutTotalDisplay === 'function') updateCheckoutTotalDisplay();
+      if (st) { st.style.color = 'var(--green)'; st.textContent = '✓ Paid on terminal (demo) — checking out…'; }
+      if (lbl) lbl.textContent = '✓ Paid';
+      if (typeof hapticFeedback === 'function') hapticFeedback('success');
+      setTimeout(() => { try { confirmCheckout(); } catch (e) {} }, 800);
+    }, 1500);
+    return;
+  }
   const deviceId = (settings.squareDeviceId || '').trim();
   if (!deviceId) { alert('Set a Square Terminal Device ID in Settings first.'); return; }
   const amountCents = squareDueCents();
@@ -6748,6 +6770,12 @@ function buildTicketUrl(e) {
 async function sendQRSms(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
+  // DEMO/PITCH MODE: never actually send a text (ClickSend costs money and
+  // would message a real number). Show the feature working without sending.
+  if (DEMO_MODE) {
+    quickToast('Demo: QR ticket SMS not actually sent' + (e.phone ? ' to ' + e.phone : ''));
+    return;
+  }
   const url = buildTicketUrl(e);
   // Plain hyphen (not an em-dash) keeps the SMS in the cheaper GSM-7
   // encoding, so it stays fewer billable segments.
@@ -8002,11 +8030,13 @@ function addBagShopPhoto(id, jobId) { collectBagPhoto(id, jobId); }
 // app is closed. The Edge Function re-reads the entry and targets only that
 // person's devices; best-effort (the in-app alarm covers open tabs).
 async function notifyBagAssignee(id, jobId) {
+  if (DEMO_MODE) return;   // don't push to real staff phones during a demo
   if (!supa) return;
   try { await supa.functions.invoke('notify-bag-assign', { body: { id, job: jobId } }); } catch (_) { /* best effort */ }
 }
 
 async function sendBagSms(e, j) {
+  if (DEMO_MODE) { quickToast('Demo: SMS not sent'); return; }
   if (!e.phone || !supa) return;
   const url = buildTicketUrl(e);
   const msg = CENTRE.name + ' Valet: your shopping is now in your car (' + (e.rego ? e.rego : 'Ticket ' + e.ticket) + '). '
@@ -10500,6 +10530,7 @@ async function updateBackupStatus() {
 
 async function backupNow() {
   const btn = document.getElementById('btn-backup-now');
+  if (DEMO_MODE) { alert('Demo mode — backup disabled.'); return; }
   if (!supa) { alert('Not connected to the cloud.'); return; }
   if (btn) { btn.disabled = true; btn.textContent = 'Backing up…'; }
   try {
@@ -12794,6 +12825,7 @@ async function cloudUpdateStaff(username, updates) {
 
 async function cloudAudit(action, entityType, entityId, details) {
   // Fire and forget - audit shouldn't block UI
+  if (DEMO_MODE) return;   // demo actions must not write audit rows to the real DB
   if (!supa || !currentUser) return;
   supa.from('audit_log').insert({
     user_name: currentUser?.username,
