@@ -381,17 +381,17 @@ body.dark-mode .form-input.autofilled{
 }
 body.dark-mode .autofill-hint{color:#e0a640}
 
-/* Log New Car form: make the entered values (rego, brand, name, etc.) and
-   their labels bigger and bold so they're easy to read at a glance. Scoped to
-   #view-new-entry so the rest of the app's inputs are unaffected. */
+/* Log New Car form: keep the values bold for at-a-glance reading, but match
+   Chadstone's font SIZES (16px values / 11px labels) so the boxes aren't wider
+   than the row. Scoped to #view-new-entry so the rest of the app is unaffected. */
 #view-new-entry .form-input,
 #view-new-entry .form-select{
-  font-size:18px;
+  font-size:16px;
   font-weight:700;
   border:2px solid var(--maroon);
 }
 #view-new-entry .form-label{
-  font-size:13px;
+  font-size:11px;
   font-weight:700;
 }
 /* Match Chadstone: the sample/placeholder text is normal weight (only the
@@ -798,7 +798,7 @@ body.mobile-mode .scan-ready-pill{display:none}
   #view-new-entry .form-input{min-width:0}
   #view-new-entry .form-label{font-size:13px;letter-spacing:1px;font-weight:700}
   #view-new-entry .form-input,
-  #view-new-entry .form-select{font-size:17px;padding:13px 13px;font-weight:700}
+  #view-new-entry .form-select{font-size:16px;padding:13px 13px;font-weight:700}
 }
 
 /* Print-friendly */
@@ -1551,7 +1551,7 @@ body.dark-mode .scan-banner {
         </datalist>
       </div>
       <div class="form-field">
-        <label class="form-label">Parking Bay <span style="color:var(--text-muted);font-weight:normal;font-style:italic">(optional)</span></label>
+        <label class="form-label">Parking Bay</label>
         <input type="text" id="f-bay" class="form-input" placeholder="e.g. B-12" autocomplete="off">
       </div>
     </div>
