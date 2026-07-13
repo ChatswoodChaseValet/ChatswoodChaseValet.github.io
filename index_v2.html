@@ -1588,7 +1588,11 @@ body.dark-mode .scan-banner {
       </div>
     </div>
 
-    <div class="form-grid mobile-hide-now">
+    <!-- Car wash is hidden until staff choose to add it — keeps the form short -->
+    <div class="mobile-hide-now" id="add-wash-row" style="margin-bottom:14px">
+      <button type="button" class="btn btn-secondary btn-sm" id="add-wash-btn" onclick="showCarWashFields()">+ Add car wash</button>
+    </div>
+    <div class="form-grid mobile-hide-now" id="wash-fields" style="display:none">
       <div class="form-field">
         <label class="form-label">Car wash (optional)
           <span style="font-weight:normal;color:var(--text-muted);text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">Xtream Car Care · added to bill</span>
@@ -3415,6 +3419,22 @@ function washCostOf(cw) {
 }
 // Live price hint under a wash picker. `prefix` is the field id prefix ('f' for
 // the check-in form, 'cw' for the manage-wash dialog).
+// Car wash starts hidden on the Log New Car form (like the Chadstone app);
+// staff click "+ Add car wash" to reveal the service + size selectors.
+function showCarWashFields() {
+  const fields = document.getElementById('wash-fields');
+  const btnRow = document.getElementById('add-wash-row');
+  if (fields) fields.style.display = '';
+  if (btnRow) btnRow.style.display = 'none';
+  const svc = document.getElementById('f-wash-service'); if (svc) svc.focus();
+}
+function hideCarWashFields() {
+  const fields = document.getElementById('wash-fields');
+  const btnRow = document.getElementById('add-wash-row');
+  if (fields) fields.style.display = 'none';
+  if (btnRow) btnRow.style.display = '';
+}
+
 function updateWashPriceHint(prefix) {
   const svc = document.getElementById(prefix + '-wash-service');
   const size = document.getElementById(prefix + '-wash-size');
@@ -4385,6 +4405,7 @@ function resetForm() {
   const washSvc = document.getElementById('f-wash-service'); if (washSvc) washSvc.value = '';
   const washSize = document.getElementById('f-wash-size'); if (washSize) washSize.value = 'small';
   const washHint = document.getElementById('f-wash-hint'); if (washHint) washHint.textContent = '';
+  hideCarWashFields();   // collapse the car-wash section back down for the next car
   document.getElementById('customer-banner').style.display = 'none';
   const aiHint = document.getElementById('ai-fill-hint');
   if (aiHint) aiHint.style.display = 'none';
