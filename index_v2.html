@@ -381,13 +381,13 @@ body.dark-mode .form-input.autofilled{
 }
 body.dark-mode .autofill-hint{color:#e0a640}
 
-/* Log New Car form: keep the values bold for at-a-glance reading, but match
-   Chadstone's font SIZES (16px values / 11px labels) so the boxes aren't wider
-   than the row. Scoped to #view-new-entry so the rest of the app is unaffected. */
+/* Log New Car form: match Chadstone — 16px values in normal weight / 11px
+   labels — so the boxes aren't wider than the row. Scoped to #view-new-entry
+   so the rest of the app is unaffected. */
 #view-new-entry .form-input,
 #view-new-entry .form-select{
   font-size:16px;
-  font-weight:700;
+  font-weight:400;
   border:2px solid var(--maroon);
 }
 #view-new-entry .form-label{
@@ -798,7 +798,7 @@ body.mobile-mode .scan-ready-pill{display:none}
   #view-new-entry .form-input{min-width:0}
   #view-new-entry .form-label{font-size:13px;letter-spacing:1px;font-weight:700}
   #view-new-entry .form-input,
-  #view-new-entry .form-select{font-size:16px;padding:13px 13px;font-weight:700}
+  #view-new-entry .form-select{font-size:16px;padding:13px 13px;font-weight:400}
 }
 
 /* Print-friendly */
