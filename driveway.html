@@ -314,10 +314,21 @@
     if (norm === lastNorm && (now - lastNormAt) < 90000){ setStatus('Already alerted ' + read.plate); return; }
     lastNorm = norm; lastNormAt = now;
 
+    // Identify the vehicle (make/model/colour) off the same frame — best-effort,
+    // once per real arrival. Carried to the check-in form, most useful for new cars.
+    setStatus('Identifying ' + read.plate + '…');
+    var veh = null;
+    try { veh = await identifyVehicle(makeColourThumb(canvas)); } catch(e){}
+
     setStatus('Looking up ' + read.plate + '…');
     try {
       var resp = await supa.functions.invoke('plate-detected', {
-        body: { plate: read.plate, confidence: read.confidence, camera: cfg.camera }
+        body: {
+          plate: read.plate, confidence: read.confidence, camera: cfg.camera,
+          brand: veh ? veh.make : undefined,
+          model: veh ? veh.model : undefined,
+          colour: veh ? veh.colour : undefined,
+        }
       });
       if (resp.error){
         // Session likely expired → prompt re-login.
@@ -350,6 +361,36 @@
     return { plate:(best.plate||'').toUpperCase(), confidence:best.score };
   }
 
+  // Downscale the frame to a small colour JPEG so the AI upload stays tiny/cheap.
+  function makeColourThumb(srcCanvas){
+    try {
+      var maxW = 800, scale = Math.min(1, maxW / srcCanvas.width);
+      var w = Math.round(srcCanvas.width * scale), h = Math.round(srcCanvas.height * scale);
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(srcCanvas, 0, 0, w, h);
+      return c.toDataURL('image/jpeg', 0.7);
+    } catch(e){ return null; }
+  }
+
+  // Make/model/colour from the photo via the identify-vehicle function (same one
+  // the main app's Snap uses; Claude vision). Best-effort — returns null if the
+  // function isn't configured or the call fails, and we just skip the vehicle info.
+  async function identifyVehicle(dataUrl){
+    if (!dataUrl) return null;
+    try {
+      var r = await fetch(SUPABASE_URL + '/functions/v1/identify-vehicle', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + SUPABASE_KEY },
+        body: JSON.stringify({ image: dataUrl })
+      });
+      var d = await r.json();
+      if (d && d.ok && (d.make || d.model || d.colour)) {
+        return { make: d.make || '', model: d.model || '', colour: d.colour || '' };
+      }
+    } catch(e){}
+    return null;
+  }
+
   // ── Show the outcome on screen ──
   function showResult(plate, m){
     var el = document.getElementById('result');
@@ -359,10 +400,11 @@
     var who = document.getElementById('r-who');
     var meta = document.getElementById('r-meta');
 
+    var carDesc = [m.colour, m.brand, m.model].filter(Boolean).join(' ');
     if (!m.matched){
       who.textContent = 'New car';
-      meta.textContent = 'Not in customer records.';
-      setStatus('New car — ' + plate);
+      meta.textContent = carDesc || 'Not in customer records.';
+      setStatus('New car — ' + plate + (carDesc ? ' · ' + carDesc : ''));
     } else {
       var name = m.name || 'Returning customer';
       var badges = '';
@@ -370,8 +412,7 @@
       if (m.vip) badges += '<span class="badge vip">⭐ VIP</span>';
       who.innerHTML = escapeHtml(name) + badges;
       var parts = [];
-      var car = [m.brand, m.model].filter(Boolean).join(' ');
-      if (car) parts.push(car);
+      if (carDesc) parts.push(carDesc);
       if (m.on_site) parts.push('car already parked');
       else if (m.source === 'pre_registered') parts.push('pre-registered');
       else if (m.visit_count) parts.push(m.visit_count + (m.visit_count===1?' visit':' visits'));

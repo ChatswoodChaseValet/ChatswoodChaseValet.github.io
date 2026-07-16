@@ -6160,18 +6160,19 @@ function arrivalRowHtml(r){
   const onsite = matched && !!r.on_site;
   const cls = !matched ? 'newcar' : (onsite ? 'onsite' : 'known');
 
+  const carDesc = [r.colour, r.brand, r.model].filter(Boolean).join(' ');
   let who, meta;
   if (!matched){
     who = 'New car';
-    meta = 'Not in customer records';
+    meta = carDesc ? arvEsc(carDesc) : 'Not in customer records';
   } else {
     who = arvEsc(r.customer_name || 'Returning customer');
     if (r.vip) who += '<span class="arow-badge vip">⭐ VIP</span>';
     if (onsite) who += '<span class="arow-badge onsite">On-site</span>';
     const bits = [];
+    if (carDesc) bits.push(arvEsc(carDesc));
     if (onsite) bits.push('car already parked');
     else if (r.visit_count != null && r.visit_count > 0) bits.push(r.visit_count + (r.visit_count === 1 ? ' visit' : ' visits'));
-    if (r.camera) bits.push(arvEsc(r.camera));
     meta = bits.join(' · ') || 'Returning customer';
   }
 
@@ -6180,7 +6181,8 @@ function arrivalRowHtml(r){
   const checkinBtn = onsite ? ''
     : '<button class="btn btn-secondary btn-sm arow-checkin" onclick="checkInFromArrival(this)">Check in →</button>';
 
-  return '<div class="arow ' + cls + '" data-id="' + arvEsc(r.id) + '" data-time="' + arvEsc(r.detected_at) + '" data-plate="' + arvEsc(r.plate) + '">' +
+  return '<div class="arow ' + cls + '" data-id="' + arvEsc(r.id) + '" data-time="' + arvEsc(r.detected_at) + '" data-plate="' + arvEsc(r.plate) + '"' +
+           ' data-brand="' + arvEsc(r.brand || '') + '" data-model="' + arvEsc(r.model || '') + '" data-colour="' + arvEsc(r.colour || '') + '">' +
            '<div class="arow-plate">' + arvEsc(r.plate) + '</div>' +
            '<div class="arow-body"><div class="arow-who">' + who + '</div>' +
              '<div class="arow-meta">' + meta + '</div></div>' +
@@ -6203,6 +6205,14 @@ function checkInFromArrival(btn){
   const el = document.getElementById('f-rego');
   if (el) el.value = plate.toUpperCase();
   try { lookupCustomerByRego(plate); } catch (e) {}   // auto-fill + returning-customer banner
+  // Fill make/model/colour the scanner read — only blank fields, so a returning
+  // customer's known car (from history, filled above) always wins.
+  if (row && typeof applyVehicleInfo === 'function') {
+    const make = row.getAttribute('data-brand') || '';
+    const model = row.getAttribute('data-model') || '';
+    const colour = row.getAttribute('data-colour') || '';
+    if (make || model || colour) { try { applyVehicleInfo({ make, model, colour }); } catch (e) {} }
+  }
   const bay = document.getElementById('f-bay');
   if (bay) { try { bay.focus(); } catch (e) {} }
   if (typeof quickToast === 'function') quickToast('Checking in ' + plate.toUpperCase() + ' — add bay & save');
@@ -6216,7 +6226,7 @@ async function loadArrivals(){
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const { data, error } = await supa
       .from('plate_detections')
-      .select('id,plate,matched,customer_name,visit_count,on_site,vip,camera,detected_at')
+      .select('id,plate,matched,customer_name,visit_count,on_site,vip,camera,brand,model,colour,detected_at')
       .gte('detected_at', since)
       .order('detected_at', { ascending: false })
       .limit(25);

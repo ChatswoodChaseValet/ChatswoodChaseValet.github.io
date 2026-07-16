@@ -100,6 +100,10 @@ Deno.serve(async (req: Request) => {
   const confidence = body.confidence != null ? Number(body.confidence) : null;
   const camera = (body.camera ?? "").toString().trim() || null;
   const secret = (body.secret ?? "").toString();
+  // Scanner-detected vehicle (optional) — carried through to the check-in form.
+  const detBrand  = (body.brand  ?? "").toString().trim().slice(0, 40) || null;
+  const detModel  = (body.model  ?? "").toString().trim().slice(0, 40) || null;
+  const detColour = (body.colour ?? "").toString().trim().slice(0, 30) || null;
 
   if (plate_norm.length < 3) {
     return json({ ok: true, matched: false, ignored: "plate too short", plate: plateRaw });
@@ -157,6 +161,11 @@ Deno.serve(async (req: Request) => {
     visit_count: m.visit_count ?? null,
     on_site: m.on_site ?? false,
     vip: m.vip ?? false,
+    // Prefer the customer's known car from history; fall back to what the
+    // scanner read off the photo (the useful case for a brand-new car).
+    brand: m.brand ?? detBrand,
+    model: m.model ?? detModel,
+    colour: detColour,
   });
 
   let pushed = 0;
@@ -165,7 +174,14 @@ Deno.serve(async (req: Request) => {
   }
 
   console.log(`[plate-detected] plate=${plate_norm} matched=${m.matched} on_site=${m.on_site ?? false} pushed=${pushed}`);
-  return json({ ok: true, plate: plateRaw, ...m, pushed });
+  // Merge scanner-detected vehicle into the response so the dashboard row (and
+  // check-in) can use it. History values (in m) win where present.
+  return json({
+    ok: true, plate: plateRaw, ...m, pushed,
+    brand: m.brand ?? detBrand,
+    model: m.model ?? detModel,
+    colour: (m as { colour?: string }).colour ?? detColour,
+  });
 });
 
 // ── Push an arrival alert to every opted-in staff device (mirrors notify-pickup) ──
