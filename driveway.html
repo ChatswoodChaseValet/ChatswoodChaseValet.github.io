@@ -144,6 +144,7 @@
     <button class="btn btn-go" id="toggle" onclick="toggleScan()">Start scanning</button>
   </div>
   <div class="counter" id="counter"></div>
+  <div class="counter" id="credit"></div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -243,6 +244,7 @@
 
     document.getElementById('setup').classList.remove('show');
     await startCamera();
+    refreshCredit(true);
     if (!scanning) toggleScan();
   };
 
@@ -336,6 +338,7 @@
         throw new Error((resp.error.message||'server error') + ' — try signing in again');
       }
       showResult(read.plate, resp.data || {});
+      refreshCredit(false);   // reflect the scan just used (throttled)
     } catch(err){
       setStatus('Alert failed: ' + err.message);
     }
@@ -390,6 +393,36 @@
     } catch(e){}
     return null;
   }
+
+  // ── Live Plate Recognizer credit readout (statistics endpoint; separate from
+  //    the plate-reading quota). Refreshed on start, every 2 min, and after a scan. ──
+  var lastCreditAt = 0;
+  async function refreshCredit(force){
+    var el = document.getElementById('credit');
+    if (!el || !cfg.prKey) return;
+    var now = Date.now();
+    if (!force && (now - lastCreditAt) < 25000) return;   // throttle
+    lastCreditAt = now;
+    try {
+      var r = await fetch('https://api.platerecognizer.com/v1/statistics/', {
+        headers: { 'Authorization': 'Token ' + cfg.prKey }
+      });
+      if (!r.ok) { el.textContent = ''; return; }
+      var d = await r.json();
+      if (d && d.usage) {
+        var calls = d.usage.calls || 0;
+        if (d.usage.max_calls) {
+          var left = Math.max(0, d.usage.max_calls - calls);
+          el.textContent = '≈ ' + left.toLocaleString() + ' scans left this month';
+          el.style.color = left < 100 ? '#FFB37C' : '';
+        } else {
+          el.textContent = calls.toLocaleString() + ' scans used this month';
+          el.style.color = '';
+        }
+      }
+    } catch(e){ /* leave the last value shown */ }
+  }
+  setInterval(function(){ refreshCredit(false); }, 120000);
 
   // ── Show the outcome on screen ──
   function showResult(plate, m){
@@ -458,6 +491,7 @@
     if (signedIn && cfg.prKey){
       setStatus('Signed in. Tap Start scanning.');
       startCamera();
+      refreshCredit(true);
     } else {
       openSetup();   // needs login and/or token
     }

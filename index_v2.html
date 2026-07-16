@@ -10554,8 +10554,13 @@ async function testPlateRecognizer() {
     const data = await res.json();
     let info = '<strong>Connection successful!</strong>';
     if (data.usage) {
-      info += '<br>Calls this month: ' + (data.usage.calls || 0);
-      if (data.usage.max_calls) info += ' / ' + data.usage.max_calls;
+      const calls = data.usage.calls || 0;
+      info += '<br>Calls this month: ' + calls;
+      if (data.usage.max_calls) {
+        const left = Math.max(0, data.usage.max_calls - calls);
+        info += ' / ' + data.usage.max_calls
+          + '<br><strong>≈ ' + left.toLocaleString() + ' scans left this month</strong>';
+      }
     }
     resEl.innerHTML = '<span style="color:var(--green)">' + info + '</span>';
   } catch (err) {
