@@ -509,6 +509,9 @@ body.ff-pickup-off .ff-pickup{display:none !important}
 body.ff-arrivals-off .ff-arrivals{display:none !important}
 
 /* Driveway arrivals feed (Dashboard) — most recent plate detections up top. */
+.arrivals-count{display:inline-block;font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;
+  background:var(--maroon);color:#fff;margin-left:10px;vertical-align:middle;white-space:nowrap}
+.arrivals-count.none{background:var(--sandstone);color:var(--text-muted)}
 .arrivals-list{display:flex;flex-direction:column;gap:8px}
 .arrivals-empty{font-size:13px;color:var(--text-muted);font-style:italic;padding:6px 2px}
 .arow{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);
@@ -1368,7 +1371,7 @@ body.dark-mode .scan-banner {
        (Settings → Features); hidden entirely via .ff-arrivals-off otherwise. -->
   <div class="section ff-arrivals" id="arrivals-section" style="margin-top:18px">
     <div class="section-header">
-      <div class="section-title">🚗 Driveway Arrivals</div>
+      <div class="section-title">🚗 Driveway Arrivals<span class="arrivals-count none" id="arrivals-count" style="display:none"></span></div>
       <div style="font-size:12px;color:var(--text-muted)">Live — last few plates seen at the driveway</div>
     </div>
     <div class="arrivals-list" id="arrivals-list">
@@ -6170,7 +6173,7 @@ function arrivalRowHtml(r){
     meta = bits.join(' · ') || 'Returning customer';
   }
 
-  return '<div class="arow ' + cls + '" data-id="' + arvEsc(r.id) + '">' +
+  return '<div class="arow ' + cls + '" data-id="' + arvEsc(r.id) + '" data-time="' + arvEsc(r.detected_at) + '">' +
            '<div class="arow-plate">' + arvEsc(r.plate) + '</div>' +
            '<div class="arow-body"><div class="arow-who">' + who + '</div>' +
              '<div class="arow-meta">' + meta + '</div></div>' +
@@ -6193,9 +6196,11 @@ async function loadArrivals(){
     if (error) return;
     if (!data || data.length === 0){
       list.innerHTML = '<div class="arrivals-empty">No arrivals yet today. Plates read at the driveway will appear here.</div>';
+      updateArrivalsCount();
       return;
     }
     list.innerHTML = data.map(arrivalRowHtml).join('');
+    updateArrivalsCount();
   } catch (e) { /* leave the current list in place on a transient error */ }
 }
 
@@ -6211,7 +6216,28 @@ function handleArrivalInsert(row){
   const first = list.firstElementChild;
   if (first) first.classList.add('flash-in');
   while (list.children.length > 25) list.removeChild(list.lastElementChild);
+  updateArrivalsCount();
 }
+
+// Count badge: how many arrivals landed in the last hour. Recomputed from each
+// row's data-time so it decays correctly as detections age past the hour mark.
+function updateArrivalsCount(){
+  const badge = document.getElementById('arrivals-count');
+  const list = document.getElementById('arrivals-list');
+  if (!badge || !list) return;
+  const cutoff = Date.now() - 3600 * 1000;
+  let n = 0;
+  list.querySelectorAll('.arow[data-time]').forEach(el => {
+    const t = new Date(el.getAttribute('data-time')).getTime();
+    if (!isNaN(t) && t >= cutoff) n++;
+  });
+  badge.style.display = '';
+  badge.textContent = n === 0 ? 'None in the last hour' : (n + ' in the last hour');
+  badge.classList.toggle('none', n === 0);
+}
+
+// Refresh the count each minute so it ages out on its own (time-relative window).
+setInterval(() => { if (arrivalsOn()) { try { updateArrivalsCount(); } catch (e) {} } }, 60000);
 
 // ─── LIVE PARKING MAP ───
 // Schematic recreation of the printed car-park layout (bays 1–77). Each cluster
