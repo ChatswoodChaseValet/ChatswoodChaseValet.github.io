@@ -121,24 +121,38 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "unauthorised" }, 401);
   }
 
+  // Auto-learning: apply any staff-taught correction for this (mis)read plate, so
+  // the same misread self-corrects everywhere from now on — alert, feed, check-in.
+  // Aliases live in app_settings.plate_aliases ({ misreadNorm: correctNorm }),
+  // written when staff fix a plate on the dashboard.
+  let effNorm = plate_norm;
+  let effPlate = plateRaw;
+  {
+    const { data: aliasRow } = await admin
+      .from("app_settings").select("value").eq("key", "plate_aliases").maybeSingle();
+    const aliases = (aliasRow?.value ?? {}) as Record<string, string>;
+    const corrected = aliases[plate_norm];
+    if (corrected && corrected !== plate_norm) { effNorm = corrected; effPlate = corrected; }
+  }
+
   // De-dupe: same plate seen very recently → don't alert again.
   const since = new Date(Date.now() - COOLDOWN_SECONDS * 1000).toISOString();
   const { data: recent } = await admin
     .from("plate_detections")
     .select("id, matched, customer_name, detected_at")
-    .eq("plate_norm", plate_norm)
+    .eq("plate_norm", effNorm)
     .gte("detected_at", since)
     .order("detected_at", { ascending: false })
     .limit(1);
   if (recent && recent.length) {
     return json({
-      ok: true, deduped: true, plate: plateRaw,
+      ok: true, deduped: true, plate: effPlate,
       matched: recent[0].matched, name: recent[0].customer_name,
     });
   }
 
   // Look the plate up (history + pre-registered), all in SQL under the service role.
-  const { data: look, error: lookErr } = await admin.rpc("lookup_plate", { p_norm: plate_norm });
+  const { data: look, error: lookErr } = await admin.rpc("lookup_plate", { p_norm: effNorm });
   if (lookErr) {
     console.error(`[plate-detected] lookup_plate error: ${lookErr.message}`);
   }
@@ -151,8 +165,8 @@ Deno.serve(async (req: Request) => {
   // Record the detection (feeds a future "arrivals" list on the dashboard, and
   // powers the de-dupe above).
   await admin.from("plate_detections").insert({
-    plate: plateRaw,
-    plate_norm,
+    plate: effPlate,
+    plate_norm: effNorm,
     confidence,
     camera,
     matched: !!m.matched,
@@ -170,14 +184,14 @@ Deno.serve(async (req: Request) => {
 
   let pushed = 0;
   if (m.matched) {
-    pushed = await pushArrival(admin, plateRaw, m);
+    pushed = await pushArrival(admin, effPlate, m);
   }
 
-  console.log(`[plate-detected] plate=${plate_norm} matched=${m.matched} on_site=${m.on_site ?? false} pushed=${pushed}`);
+  console.log(`[plate-detected] plate=${effNorm} matched=${m.matched} on_site=${m.on_site ?? false} pushed=${pushed}`);
   // Merge scanner-detected vehicle into the response so the dashboard row (and
   // check-in) can use it. History values (in m) win where present.
   return json({
-    ok: true, plate: plateRaw, ...m, pushed,
+    ok: true, plate: effPlate, ...m, pushed,
     brand: m.brand ?? detBrand,
     model: m.model ?? detModel,
     colour: (m as { colour?: string }).colour ?? detColour,

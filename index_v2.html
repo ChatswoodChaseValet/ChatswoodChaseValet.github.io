@@ -526,7 +526,11 @@ body.ff-arrivals-off .ff-arrivals{display:none !important}
 .arow-meta{font-size:12px;color:var(--text-muted)}
 .arow-time{font-size:12px;color:var(--text-muted);white-space:nowrap}
 .arow-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
+.arow-btns{display:flex;gap:6px}
 .arow-checkin{white-space:nowrap}
+.arow-edit-btn{padding:4px 8px}
+.arow-plate-edit{width:96px;font:inherit;font-weight:bold;text-transform:uppercase;padding:4px 6px;
+  border:1px solid var(--maroon);border-radius:5px}
 .arow-badge{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;margin-left:6px}
 .arow-badge.vip{background:var(--bronze);color:#fff}
 .arow-badge.onsite{background:#2c6fb0;color:#fff}
@@ -6180,6 +6184,8 @@ function arrivalRowHtml(r){
   // only offer "Check in" for arrivals that aren't already parked.
   const checkinBtn = onsite ? ''
     : '<button class="btn btn-secondary btn-sm arow-checkin" onclick="checkInFromArrival(this)">Check in →</button>';
+  // ✎ lets staff correct a plate the camera misread — right here on the feed.
+  const editBtn = '<button class="btn btn-secondary btn-sm arow-edit-btn" title="Correct the plate the camera read" onclick="editArrivalPlate(this)">✎</button>';
 
   return '<div class="arow ' + cls + '" data-id="' + arvEsc(r.id) + '" data-time="' + arvEsc(r.detected_at) + '" data-plate="' + arvEsc(r.plate) + '"' +
            ' data-brand="' + arvEsc(r.brand || '') + '" data-model="' + arvEsc(r.model || '') + '" data-colour="' + arvEsc(r.colour || '') + '">' +
@@ -6188,9 +6194,97 @@ function arrivalRowHtml(r){
              '<div class="arow-meta">' + meta + '</div></div>' +
            '<div class="arow-right">' +
              '<div class="arow-time">' + arrivalTime(r.detected_at) + '</div>' +
-             checkinBtn +
+             '<div class="arow-btns">' + editBtn + checkinBtn + '</div>' +
            '</div>' +
          '</div>';
+}
+
+// ── Correct a mis-read plate on a feed row (the ✎ button) ──
+// Turns the plate into an inline input; on save it re-looks-up who it is, updates
+// the row + the stored detection, and TEACHES the correction so the same misread
+// auto-corrects everywhere next time (see savePlateAlias / plate_aliases).
+function editArrivalPlate(btn){
+  const row = btn && btn.closest ? btn.closest('.arow') : null;
+  if (!row) return;
+  const plateEl = row.querySelector('.arow-plate');
+  if (!plateEl || plateEl.querySelector('input')) return;   // already editing
+  const current = row.getAttribute('data-plate') || '';
+  plateEl.innerHTML =
+    '<input class="arow-plate-edit" value="' + arvEsc(current) + '" ' +
+      'onkeydown="if(event.key===\'Enter\'){saveArrivalPlate(this)}else if(event.key===\'Escape\'){loadArrivals()}">';
+  const inp = plateEl.querySelector('input');
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+async function saveArrivalPlate(inp){
+  const row = inp.closest('.arow');
+  if (!row) return;
+  const id = row.getAttribute('data-id');
+  const oldNorm = normaliseRego(row.getAttribute('data-plate') || '');
+  const corrected = (inp.value || '').trim().toUpperCase();
+  const newNorm = normaliseRego(corrected);
+  if (newNorm.length < 3) { if (typeof quickToast === 'function') quickToast('Plate too short'); return; }
+
+  // Who is it, now that the plate's fixed? (local lookup — history + pre-registered)
+  const info = localPlateLookup(newNorm);
+  const updated = {
+    id, plate: corrected, matched: info.matched, customer_name: info.name || null,
+    visit_count: info.visit_count || null, on_site: info.on_site || false, vip: info.vip || false,
+    brand: info.brand || (row.getAttribute('data-brand') || null),
+    model: info.model || (row.getAttribute('data-model') || null),
+    colour: row.getAttribute('data-colour') || null,
+    detected_at: row.getAttribute('data-time'),
+    source: info.source,
+  };
+
+  // Persist: fix the stored detection, and learn the correction for next time.
+  try { if (id && supa) await supa.from('plate_detections').update({
+    plate: updated.plate, plate_norm: newNorm, matched: updated.matched,
+    customer_name: updated.customer_name, visit_count: updated.visit_count,
+    on_site: updated.on_site, vip: updated.vip, brand: updated.brand, model: updated.model,
+  }).eq('id', id); } catch (e) {}
+  if (oldNorm && oldNorm !== newNorm) { try { await savePlateAlias(oldNorm, newNorm); } catch (e) {} }
+
+  // Re-render the row in place.
+  row.outerHTML = arrivalRowHtml(updated);
+  if (typeof quickToast === 'function') {
+    quickToast('✓ Corrected to ' + corrected + (oldNorm !== newNorm ? ' — will auto-correct next time' : ''));
+  }
+}
+
+// Local equivalent of the server's lookup_plate — visit history + pre-registered.
+function localPlateLookup(norm){
+  const res = { matched:false, source:'', name:'', visit_count:0, on_site:false, vip:false, brand:'', model:'' };
+  const matches = (typeof findCustomerByRego === 'function') ? findCustomerByRego(norm) : null;
+  if (matches && matches.length){
+    const recent = matches[0];
+    res.matched = true; res.source = 'history';
+    res.name = (matches.find(e => e.name) || {}).name || recent.name || '';
+    res.visit_count = matches.filter(e => e.timeIn).length;
+    res.on_site = matches.some(e => e.timeIn && !e.timeOut);
+    res.vip = matches.some(e => e.vip);
+    res.brand = recent.brand || ''; res.model = recent.model || '';
+    return res;
+  }
+  const mc = (typeof getManualCustomers === 'function')
+    ? getManualCustomers().find(c => (c.cars || []).some(car => normaliseRego(car.rego) === norm)) : null;
+  if (mc){
+    const car = (mc.cars || []).find(c => normaliseRego(c.rego) === norm) || {};
+    res.matched = true; res.source = 'pre_registered';
+    res.name = mc.name || ''; res.vip = !!mc.vip; res.brand = car.brand || ''; res.model = car.model || '';
+  }
+  return res;
+}
+
+// Teach a correction: camera-read (misread) → the plate staff typed. Cloud-synced
+// in app_settings.plate_aliases so every device + the server function auto-apply it.
+async function savePlateAlias(oldNorm, newNorm){
+  if (!oldNorm || !newNorm || oldNorm === newNorm) return;
+  const aliases = Object.assign({}, (cloudSettings && cloudSettings.plate_aliases) || {});
+  aliases[oldNorm] = newNorm;
+  if (cloudSettings) cloudSettings.plate_aliases = aliases;
+  try { await cloudSaveSetting('plate_aliases', aliases); } catch (e) {}
+  try { cloudAudit('plate_alias', 'settings', oldNorm, { to: newNorm }); } catch (e) {}
 }
 
 // Tapping "Check in" on an arrival row opens New Entry pre-filled with the plate
