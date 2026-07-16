@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#531620">
+<title>Driveway Plate Scanner — Chatswood Chase Valet</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=4">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=4">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:#1a0a0e;color:#fff;min-height:100%;
+    display:flex;flex-direction:column;
+  }
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;background:#531620;
+  }
+  header .title{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:#e9d8a6}
+  header button{
+    background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;
+    border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;
+  }
+  .stage{position:relative;flex:1;min-height:0;background:#000;overflow:hidden}
+  video{width:100%;height:100%;object-fit:cover;display:block}
+  .reticle{
+    position:absolute;inset:18% 8% auto 8%;height:34%;
+    border:2px dashed rgba(255,255,255,.5);border-radius:12px;pointer-events:none;
+  }
+  .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .12s}
+  .flash.on{opacity:.35}
+
+  .result{
+    position:absolute;left:0;right:0;bottom:0;padding:14px 16px 18px;
+    background:linear-gradient(to top,rgba(0,0,0,.92),rgba(0,0,0,0));
+    transform:translateY(101%);transition:transform .25s ease;
+  }
+  .result.show{transform:translateY(0)}
+  .result .plate{
+    font-family:'Courier New',monospace;font-size:34px;font-weight:bold;
+    letter-spacing:3px;line-height:1;margin-bottom:6px;
+  }
+  .result .who{font-size:19px;font-weight:600}
+  .result .meta{font-size:14px;color:#d9c9cc;margin-top:3px}
+  .result.known .plate{color:#7CFFB2}
+  .result.onsite .plate{color:#7CC8FF}
+  .result.newcar .plate{color:#FFD27C}
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle}
+  .badge.vip{background:#a48d53;color:#1a0a0e}
+  .badge.onsite{background:#2c6fb0;color:#fff}
+
+  footer{padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#2a1116}
+  .statusline{font-size:13px;color:#d9c9cc;min-height:18px;margin-bottom:10px;text-align:center}
+  .controls{display:flex;gap:10px}
+  .btn{
+    flex:1;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:700;
+    cursor:pointer;color:#fff;
+  }
+  .btn-go{background:#2e7d46}
+  .btn-stop{background:#8a2b2b}
+  .btn.secondary{flex:0 0 auto;background:#3d1820;border:1px solid rgba(255,255,255,.2)}
+  .btn:disabled{opacity:.45}
+  .counter{font-size:11px;color:#8a7378;text-align:center;margin-top:8px}
+
+  /* setup / login panel */
+  .setup{position:absolute;inset:0;background:#1a0a0e;padding:22px;overflow:auto;display:none;z-index:10}
+  .setup.show{display:block}
+  .setup h2{font-size:16px;color:#e9d8a6;margin:0 0 4px}
+  .setup p{font-size:13px;color:#b9a7ab;margin:0 0 14px;line-height:1.5}
+  .setup label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#c9a9b0;margin:14px 0 5px}
+  .setup input{
+    width:100%;padding:12px;border-radius:9px;border:1px solid #5a2b34;
+    background:#2a1116;color:#fff;font-size:15px;
+  }
+  .setup .hint{font-size:11px;color:#8a7378;margin-top:5px}
+  .setup .save{margin-top:22px;width:100%;background:#2e7d46;border:none;color:#fff;padding:15px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}
+  .setup .save:disabled{opacity:.5}
+  .setup .err{color:#ff9a9a;font-size:13px;margin-top:12px;min-height:16px}
+  .setup .section{border-top:1px solid #3d1820;margin-top:20px;padding-top:6px}
+  .setup .signedin{font-size:13px;color:#7CFFB2;margin:4px 0 0}
+  a{color:#e9b3bf}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="title">🚗 Driveway Scanner</span>
+  <button onclick="openSetup()">⚙ Setup</button>
+</header>
+
+<div class="stage">
+  <video id="video" playsinline muted></video>
+  <div class="reticle"></div>
+  <div class="flash" id="flash"></div>
+
+  <div class="result" id="result">
+    <div class="plate" id="r-plate">—</div>
+    <div class="who" id="r-who"></div>
+    <div class="meta" id="r-meta"></div>
+  </div>
+
+  <!-- Setup + staff login -->
+  <div class="setup" id="setup">
+    <h2>Driveway scanner setup</h2>
+    <p>Runs on a spare phone propped at the driveway. It reads number plates and
+       alerts staff phones when a returning customer arrives.</p>
+
+    <!-- STAFF LOGIN — required. Customer lookups only work for signed-in staff. -->
+    <div>
+      <label>Staff login</label>
+      <p style="margin:0 0 8px" id="login-state">Sign in with your valet staff username &amp; password.</p>
+      <input id="cfg-user" type="text" placeholder="Username" autocomplete="username" autocapitalize="none">
+      <input id="cfg-pass" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px">
+      <div class="hint">Same login as the main dashboard. Required — this is what
+        keeps customer details private (the public key can't look up plates).</div>
+    </div>
+
+    <div class="section">
+      <label>Plate Recognizer API token</label>
+      <input id="cfg-pr" type="text" placeholder="Token from platerecognizer.com" autocomplete="off">
+      <div class="hint">Same token as the main app's Settings → Plate scanning.
+        Free tier is plenty for a demo. <a href="https://app.platerecognizer.com" target="_blank" rel="noopener">Get one →</a></div>
+
+      <label>Camera / lane name</label>
+      <input id="cfg-cam" type="text" placeholder="driveway-1" autocomplete="off">
+
+      <label>Scan every</label>
+      <input id="cfg-interval" type="number" min="2" max="30" step="1" value="4">
+      <div class="hint">Seconds between scans (only fires when it sees movement).</div>
+    </div>
+
+    <div class="err" id="setup-err"></div>
+    <button class="save" id="setup-save" onclick="saveSetup()">Save &amp; start</button>
+  </div>
+</div>
+
+<footer>
+  <div class="statusline" id="status">Tap Setup to begin.</div>
+  <div class="controls">
+    <button class="btn secondary" onclick="scanOnce(true)" title="Scan right now">Scan now</button>
+    <button class="btn btn-go" id="toggle" onclick="toggleScan()">Start scanning</button>
+  </div>
+  <div class="counter" id="counter"></div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ── Supabase connection (same project + public anon key as the app) ──
+  var SUPABASE_URL = 'https://ebqiitxiyzzbkgyfypss.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVicWlpdHhpeXp6YmtneWZ5cHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODI3MjQsImV4cCI6MjA5NTk1ODcyNH0.ZkR9PetFUtsrsxXens0SxpOAOJQA8mXoS7d8qXRUhYs';
+  var supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ── Local (non-secret) config in localStorage; the staff SESSION is persisted
+  //    separately by supabase-js and is what authorises plate lookups. ──
+  var CFG_KEY = 'valet_driveway_cfg';
+  var cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch(e){ cfg = {}; }
+
+  var stream = null, scanning = false, timer = null, signedIn = false;
+  var lastNorm = '', lastNormAt = 0;
+  var prevGray = null;
+  var prCalls = 0;
+
+  var video = document.getElementById('video');
+  var statusEl = document.getElementById('status');
+  var counterEl = document.getElementById('counter');
+
+  function setStatus(t){ statusEl.textContent = t; }
+  function normPlate(s){ return (s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+
+  // ── Staff login (mirrors the dashboard's cloudLogin: staff-auth → setSession) ──
+  async function doLogin(username, password){
+    var r = await supa.functions.invoke('staff-auth', { body:{ action:'login', username:username, password:password }});
+    if (r.error) throw new Error(r.error.message || 'login failed');
+    var data = r.data;
+    if (!data || !data.user) throw new Error('Wrong username or password');
+    if (data.session && data.session.access_token){
+      await supa.auth.setSession(data.session);   // now runs as the authenticated role
+    } else {
+      throw new Error('Server did not return a session');
+    }
+    return data.user;
+  }
+  async function refreshSignedIn(){
+    try {
+      var s = await supa.auth.getSession();
+      signedIn = !!(s && s.data && s.data.session);
+    } catch(e){ signedIn = false; }
+    return signedIn;
+  }
+
+  // ── Setup panel ──
+  window.openSetup = function(){
+    document.getElementById('cfg-pr').value = cfg.prKey || '';
+    document.getElementById('cfg-cam').value = cfg.camera || 'driveway-1';
+    document.getElementById('cfg-interval').value = cfg.interval || 4;
+    var ls = document.getElementById('login-state');
+    ls.textContent = signedIn
+      ? '✓ Signed in — leave the login fields blank to stay signed in.'
+      : 'Sign in with your valet staff username & password.';
+    ls.className = signedIn ? 'signedin' : '';
+    document.getElementById('setup-err').textContent = '';
+    document.getElementById('setup').classList.add('show');
+  };
+
+  window.saveSetup = async function(){
+    var err = document.getElementById('setup-err');
+    var saveBtn = document.getElementById('setup-save');
+    err.textContent = '';
+
+    cfg.prKey = document.getElementById('cfg-pr').value.trim();
+    cfg.camera = document.getElementById('cfg-cam').value.trim() || 'driveway-1';
+    cfg.interval = Math.max(2, Math.min(30, parseInt(document.getElementById('cfg-interval').value,10) || 4));
+    localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+
+    // Log in if credentials were entered (or if not yet signed in).
+    var u = document.getElementById('cfg-user').value.trim();
+    var p = document.getElementById('cfg-pass').value;
+    if (u && p){
+      saveBtn.disabled = true; saveBtn.textContent = 'Signing in…';
+      try {
+        var user = await doLogin(u, p);
+        signedIn = true;
+        setStatus('Signed in as ' + (user.displayName || user.username));
+        document.getElementById('cfg-pass').value = '';
+      } catch(e){
+        err.textContent = e.message;
+        saveBtn.disabled = false; saveBtn.textContent = 'Save & start';
+        return;
+      }
+      saveBtn.disabled = false; saveBtn.textContent = 'Save & start';
+    }
+
+    await refreshSignedIn();
+    if (!signedIn){ err.textContent = 'Please sign in first — customer lookup needs staff login.'; return; }
+    if (!cfg.prKey){ err.textContent = 'Add your Plate Recognizer token above.'; return; }
+
+    document.getElementById('setup').classList.remove('show');
+    await startCamera();
+    if (!scanning) toggleScan();
+  };
+
+  // ── Camera ──
+  async function startCamera(){
+    try {
+      if (stream) stream.getTracks().forEach(function(t){ t.stop(); });
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal:'environment' }, width:{ideal:1920}, height:{ideal:1080} },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+      setStatus('Camera ready.');
+      keepAwake();
+    } catch(err){
+      setStatus('Could not open camera: ' + err.message);
+    }
+  }
+
+  var wakeLock = null;
+  async function keepAwake(){
+    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+  }
+
+  // ── Motion gate: skip OCR when the scene is static (saves quota) ──
+  var mc = document.createElement('canvas'); mc.width = 64; mc.height = 48;
+  var mctx = mc.getContext('2d', { willReadFrequently:true });
+  function motionScore(){
+    if (!video.videoWidth) return 0;
+    mctx.drawImage(video, 0, 0, 64, 48);
+    var d = mctx.getImageData(0,0,64,48).data;
+    var gray = new Float32Array(64*48);
+    for (var i=0,p=0; i<d.length; i+=4,p++) gray[p] = 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    if (!prevGray){ prevGray = gray; return 999; }
+    var diff = 0;
+    for (var j=0;j<gray.length;j++) diff += Math.abs(gray[j]-prevGray[j]);
+    prevGray = gray;
+    return diff / gray.length;
+  }
+
+  // ── One scan: grab frame → Plate Recognizer → server lookup ──
+  window.scanOnce = async function(force){
+    if (!signedIn){ setStatus('Sign in first (Setup).'); if(force) openSetup(); return; }
+    if (!video.videoWidth){ setStatus('Camera not ready.'); return; }
+    if (!cfg.prKey){ setStatus('Add your Plate Recognizer token in Setup.'); if(force) openSetup(); return; }
+
+    if (!force){
+      var m = motionScore();
+      if (m < 3.5){ setStatus('Watching… (no movement)'); return; }
+    }
+
+    var canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    setStatus('Reading plate…');
+    flash();
+    var read;
+    try { read = await readPlate(canvas, cfg.prKey); }
+    catch(err){ setStatus('OCR error: ' + err.message); return; }
+    prCalls++; counterEl.textContent = prCalls + ' scans this session';
+
+    if (!read || !read.plate){ setStatus('No plate in frame.'); return; }
+    var norm = normPlate(read.plate);
+    if (norm.length < 3){ setStatus('Unclear read — ' + read.plate); return; }
+
+    var now = Date.now();
+    if (norm === lastNorm && (now - lastNormAt) < 90000){ setStatus('Already alerted ' + read.plate); return; }
+    lastNorm = norm; lastNormAt = now;
+
+    setStatus('Looking up ' + read.plate + '…');
+    try {
+      var resp = await supa.functions.invoke('plate-detected', {
+        body: { plate: read.plate, confidence: read.confidence, camera: cfg.camera }
+      });
+      if (resp.error){
+        // Session likely expired → prompt re-login.
+        signedIn = false;
+        throw new Error((resp.error.message||'server error') + ' — try signing in again');
+      }
+      showResult(read.plate, resp.data || {});
+    } catch(err){
+      setStatus('Alert failed: ' + err.message);
+    }
+  };
+
+  // ── Plate Recognizer (same endpoint the main app uses) ──
+  async function readPlate(canvas, token){
+    var blob = await new Promise(function(res){ canvas.toBlob(res, 'image/jpeg', 0.85); });
+    var form = new FormData();
+    form.append('upload', blob, 'plate.jpg');
+    form.append('regions', 'au');
+    var r = await fetch('https://api.platerecognizer.com/v1/plate-reader/', {
+      method:'POST', headers:{ 'Authorization':'Token ' + token }, body:form
+    });
+    if (!r.ok){
+      if (r.status===401||r.status===403) throw new Error('bad API token');
+      if (r.status===429) throw new Error('monthly quota reached');
+      throw new Error('status ' + r.status);
+    }
+    var data = await r.json();
+    if (!data.results || !data.results.length) return null;
+    var best = data.results.sort(function(a,b){ return (b.score||0)-(a.score||0); })[0];
+    return { plate:(best.plate||'').toUpperCase(), confidence:best.score };
+  }
+
+  // ── Show the outcome on screen ──
+  function showResult(plate, m){
+    var el = document.getElementById('result');
+    el.className = 'result show ' + (!m.matched ? 'newcar' : (m.on_site ? 'onsite' : 'known'));
+    document.getElementById('r-plate').textContent = plate;
+
+    var who = document.getElementById('r-who');
+    var meta = document.getElementById('r-meta');
+
+    if (!m.matched){
+      who.textContent = 'New car';
+      meta.textContent = 'Not in customer records.';
+      setStatus('New car — ' + plate);
+    } else {
+      var name = m.name || 'Returning customer';
+      var badges = '';
+      if (m.on_site && m.bay) badges += '<span class="badge onsite">Bay ' + m.bay + '</span>';
+      if (m.vip) badges += '<span class="badge vip">⭐ VIP</span>';
+      who.innerHTML = escapeHtml(name) + badges;
+      var parts = [];
+      var car = [m.brand, m.model].filter(Boolean).join(' ');
+      if (car) parts.push(car);
+      if (m.on_site) parts.push('car already parked');
+      else if (m.source === 'pre_registered') parts.push('pre-registered');
+      else if (m.visit_count) parts.push(m.visit_count + (m.visit_count===1?' visit':' visits'));
+      meta.textContent = parts.join(' · ');
+      setStatus((m.pushed ? '✓ Alerted ' + m.pushed + ' phone' + (m.pushed===1?'':'s') : '✓ Matched') + ' — ' + plate);
+    }
+    clearTimeout(showResult._t);
+    showResult._t = setTimeout(function(){ el.classList.remove('show'); }, 8000);
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+
+  function flash(){ var f=document.getElementById('flash'); f.classList.add('on'); setTimeout(function(){ f.classList.remove('on'); }, 120); }
+
+  // ── Start/stop the auto loop ──
+  window.toggleScan = function(){
+    if (!signedIn || !cfg.prKey){ openSetup(); return; }
+    scanning = !scanning;
+    var btn = document.getElementById('toggle');
+    if (scanning){
+      btn.textContent = 'Stop scanning'; btn.className = 'btn btn-stop';
+      setStatus('Scanning every ' + (cfg.interval||4) + 's…');
+      keepAwake();
+      loop();
+    } else {
+      btn.textContent = 'Start scanning'; btn.className = 'btn btn-go';
+      setStatus('Paused.'); clearTimeout(timer);
+    }
+  };
+  function loop(){
+    if (!scanning) return;
+    scanOnce(false).finally(function(){
+      if (scanning) timer = setTimeout(loop, (cfg.interval||4)*1000);
+    });
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible' && scanning) keepAwake();
+  });
+
+  // ── Boot ──
+  (async function(){
+    await refreshSignedIn();
+    if (signedIn && cfg.prKey){
+      setStatus('Signed in. Tap Start scanning.');
+      startCamera();
+    } else {
+      openSetup();   // needs login and/or token
+    }
+  })();
+})();
+</script>
+</body>
+</html>
