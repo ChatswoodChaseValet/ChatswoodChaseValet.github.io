@@ -404,21 +404,18 @@
     if (!force && (now - lastCreditAt) < 25000) return;   // throttle
     lastCreditAt = now;
     try {
-      var r = await fetch('https://api.platerecognizer.com/v1/statistics/', {
-        headers: { 'Authorization': 'Token ' + cfg.prKey }
-      });
-      if (!r.ok) { el.textContent = ''; return; }
-      var d = await r.json();
-      if (d && d.usage) {
-        var calls = d.usage.calls || 0;
-        if (d.usage.max_calls) {
-          var left = Math.max(0, d.usage.max_calls - calls);
-          el.textContent = '≈ ' + left.toLocaleString() + ' scans left this month';
-          el.style.color = left < 100 ? '#FFB37C' : '';
-        } else {
-          el.textContent = calls.toLocaleString() + ' scans used this month';
-          el.style.color = '';
-        }
+      // Via the pr-usage function — the PR statistics endpoint has no CORS header.
+      var resp = await supa.functions.invoke('pr-usage', { body: { token: cfg.prKey } });
+      if (resp.error || !resp.data || !resp.data.ok) return;
+      var d = resp.data;
+      var calls = d.calls || 0;
+      if (d.total_calls != null) {
+        var left = Math.max(0, d.total_calls - calls);
+        el.textContent = '≈ ' + left.toLocaleString() + ' scans left this month';
+        el.style.color = left < 100 ? '#FFB37C' : '';
+      } else {
+        el.textContent = calls.toLocaleString() + ' scans used this month';
+        el.style.color = '';
       }
     } catch(e){ /* leave the last value shown */ }
   }

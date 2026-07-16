@@ -10540,31 +10540,27 @@ async function testPlateRecognizer() {
   }
   resEl.innerHTML = 'Testing connection…';
   try {
-    const res = await fetch('https://api.platerecognizer.com/v1/statistics/', {
-      headers: { 'Authorization': 'Token ' + key },
-    });
-    if (res.status === 401 || res.status === 403) {
-      resEl.innerHTML = '<span style="color:var(--red)">Token rejected — check it\'s correct</span>';
+    // Routed through the pr-usage Edge Function: Plate Recognizer's statistics
+    // endpoint sends no CORS header, so a direct browser fetch fails.
+    const { data, error } = await supa.functions.invoke('pr-usage', { body: { token: key } });
+    if (error) {
+      resEl.innerHTML = '<span style="color:var(--red)">Could not check: ' + (error.message || 'error') + '</span>';
       return;
     }
-    if (!res.ok) {
-      resEl.innerHTML = '<span style="color:var(--red)">Error: HTTP ' + res.status + '</span>';
+    if (!data || !data.ok) {
+      resEl.innerHTML = '<span style="color:var(--red)">' + ((data && data.error) || 'Token rejected — check it\'s correct') + '</span>';
       return;
     }
-    const data = await res.json();
-    let info = '<strong>Connection successful!</strong>';
-    if (data.usage) {
-      const calls = data.usage.calls || 0;
-      info += '<br>Calls this month: ' + calls;
-      if (data.usage.max_calls) {
-        const left = Math.max(0, data.usage.max_calls - calls);
-        info += ' / ' + data.usage.max_calls
-          + '<br><strong>≈ ' + left.toLocaleString() + ' scans left this month</strong>';
-      }
+    const calls = data.calls || 0;
+    let info = '<strong>Connection successful!</strong><br>Calls this month: ' + calls;
+    if (data.total_calls != null) {
+      const left = Math.max(0, data.total_calls - calls);
+      info += ' / ' + data.total_calls
+        + '<br><strong>≈ ' + left.toLocaleString() + ' scans left this month</strong>';
     }
     resEl.innerHTML = '<span style="color:var(--green)">' + info + '</span>';
   } catch (err) {
-    resEl.innerHTML = '<span style="color:var(--red)">Network error: ' + err.message + '</span>';
+    resEl.innerHTML = '<span style="color:var(--red)">Error: ' + err.message + '</span>';
   }
 }
 
