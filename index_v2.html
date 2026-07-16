@@ -4002,6 +4002,8 @@ function saveEntry() {
   if (entry.attendantIn) settings.lastAttendant = entry.attendantIn;
 
   entries.unshift(entry);
+  // This car is now checked in — clear it from the driveway arrivals feed.
+  try { removeArrivalByRego(entry.rego); } catch (e) {}
 
   // Ticket codes are random and uniqueness-checked at generation time, so
   // there's no sequential counter to maintain here anymore.
@@ -6351,6 +6353,24 @@ function pruneArrivals(){
   });
   if (!list.querySelector('.arow')) list.innerHTML = ARRIVAL_EMPTY_HTML;
   updateArrivalsCount();
+}
+
+// A car got checked in → drop its arrival row from the feed (it's handled now).
+// Called both locally (on save) and from the entries realtime handler, so it
+// works whether the check-in happened here or on another device.
+function removeArrivalByRego(rego){
+  const norm = (typeof normaliseRego === 'function') ? normaliseRego(rego || '') : '';
+  if (!norm) return;
+  const list = document.getElementById('arrivals-list');
+  if (!list) return;
+  let removed = false;
+  list.querySelectorAll('.arow[data-plate]').forEach(el => {
+    if (normaliseRego(el.getAttribute('data-plate') || '') === norm) { el.remove(); removed = true; }
+  });
+  if (removed) {
+    if (!list.querySelector('.arow')) list.innerHTML = ARRIVAL_EMPTY_HTML;
+    updateArrivalsCount();
+  }
 }
 
 // A new detection streamed in via realtime → prepend it live.
@@ -13331,6 +13351,8 @@ function handlePrintAck(payload) {
 function handleRealtimeEntryChange(payload) {
   if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
     const newEntry = dbToJs(payload.new);
+    // A check-in elsewhere → clear that car from this device's arrivals feed too.
+    if (payload.eventType === 'INSERT') { try { removeArrivalByRego(newEntry.rego); } catch (e) {} }
     const idx = entries.findIndex(e => e.id === newEntry.id);
     const prevEntry = idx >= 0 ? entries[idx] : null;   // our copy BEFORE this change
     if (idx >= 0) entries[idx] = newEntry;
