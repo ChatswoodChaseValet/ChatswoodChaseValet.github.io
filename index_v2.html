@@ -525,6 +525,8 @@ body.ff-arrivals-off .ff-arrivals{display:none !important}
 .arow-who{font-size:14px;font-weight:600;color:var(--text)}
 .arow-meta{font-size:12px;color:var(--text-muted)}
 .arow-time{font-size:12px;color:var(--text-muted);white-space:nowrap}
+.arow-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
+.arow-checkin{white-space:nowrap}
 .arow-badge{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;margin-left:6px}
 .arow-badge.vip{background:var(--bronze);color:#fff}
 .arow-badge.onsite{background:#2c6fb0;color:#fff}
@@ -6173,12 +6175,37 @@ function arrivalRowHtml(r){
     meta = bits.join(' · ') || 'Returning customer';
   }
 
-  return '<div class="arow ' + cls + '" data-id="' + arvEsc(r.id) + '" data-time="' + arvEsc(r.detected_at) + '">' +
+  // A car that's already on-site is here to be collected, not checked in — so
+  // only offer "Check in" for arrivals that aren't already parked.
+  const checkinBtn = onsite ? ''
+    : '<button class="btn btn-secondary btn-sm arow-checkin" onclick="checkInFromArrival(this)">Check in →</button>';
+
+  return '<div class="arow ' + cls + '" data-id="' + arvEsc(r.id) + '" data-time="' + arvEsc(r.detected_at) + '" data-plate="' + arvEsc(r.plate) + '">' +
            '<div class="arow-plate">' + arvEsc(r.plate) + '</div>' +
            '<div class="arow-body"><div class="arow-who">' + who + '</div>' +
              '<div class="arow-meta">' + meta + '</div></div>' +
-           '<div class="arow-time">' + arrivalTime(r.detected_at) + '</div>' +
+           '<div class="arow-right">' +
+             '<div class="arow-time">' + arrivalTime(r.detected_at) + '</div>' +
+             checkinBtn +
+           '</div>' +
          '</div>';
+}
+
+// Tapping "Check in" on an arrival row opens New Entry pre-filled with the plate
+// and auto-fills the returning customer's details (name/phone/car) from history,
+// exactly like the Snap flow — staff just add the bay and save.
+function checkInFromArrival(btn){
+  const row = (btn && btn.closest) ? btn.closest('.arow') : null;
+  const plate = row ? (row.getAttribute('data-plate') || '') : (typeof btn === 'string' ? btn : '');
+  if (!plate) return;
+  showView('new-entry');          // navigates + prepares ticket/time
+  try { resetForm(); } catch (e) {}
+  const el = document.getElementById('f-rego');
+  if (el) el.value = plate.toUpperCase();
+  try { lookupCustomerByRego(plate); } catch (e) {}   // auto-fill + returning-customer banner
+  const bay = document.getElementById('f-bay');
+  if (bay) { try { bay.focus(); } catch (e) {} }
+  if (typeof quickToast === 'function') quickToast('Checking in ' + plate.toUpperCase() + ' — add bay & save');
 }
 
 async function loadArrivals(){
