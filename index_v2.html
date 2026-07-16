@@ -506,6 +506,27 @@ tr:hover td{background:var(--bg)}
    bit of its UI carrying the matching class is hidden across the dashboard. */
 body.ff-bags-off .ff-bags{display:none !important}
 body.ff-pickup-off .ff-pickup{display:none !important}
+body.ff-arrivals-off .ff-arrivals{display:none !important}
+
+/* Driveway arrivals feed (Dashboard) — most recent plate detections up top. */
+.arrivals-list{display:flex;flex-direction:column;gap:8px}
+.arrivals-empty{font-size:13px;color:var(--text-muted);font-style:italic;padding:6px 2px}
+.arow{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);
+  border-radius:8px;background:#fff}
+.arow.known{border-left:4px solid #2e7d46}
+.arow.onsite{border-left:4px solid #2c6fb0;background:#f3f8fd}
+.arow.newcar{border-left:4px solid var(--bronze)}
+.arow-plate{font-family:ui-monospace,'Cascadia Code','Segoe UI Mono',Menlo,Consolas,monospace;
+  font-weight:bold;font-size:15px;color:var(--maroon);min-width:78px}
+.arow-body{flex:1;min-width:0}
+.arow-who{font-size:14px;font-weight:600;color:var(--text)}
+.arow-meta{font-size:12px;color:var(--text-muted)}
+.arow-time{font-size:12px;color:var(--text-muted);white-space:nowrap}
+.arow-badge{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;margin-left:6px}
+.arow-badge.vip{background:var(--bronze);color:#fff}
+.arow-badge.onsite{background:#2c6fb0;color:#fff}
+.arow.flash-in{animation:arowIn .9s ease}
+@keyframes arowIn{from{background:#fff7d6}to{background:#fff}}
 
 /* ─── ACTIVE CARS as cards on phones (no sideways table scroll) ─── */
 .active-cards{display:none;flex-direction:column;gap:12px;margin-top:14px}
@@ -1341,6 +1362,19 @@ body.dark-mode .scan-banner {
     <button class="btn btn-secondary btn-sm" onclick="openDashCustomize()">Customize dashboard</button>
   </div>
   <div class="dash-grid" id="dash-infographics"></div>
+
+  <!-- Driveway arrivals feed — recent number-plate detections from the driveway
+       scanner. Only shown when the "Driveway arrivals feed" feature is ON
+       (Settings → Features); hidden entirely via .ff-arrivals-off otherwise. -->
+  <div class="section ff-arrivals" id="arrivals-section" style="margin-top:18px">
+    <div class="section-header">
+      <div class="section-title">🚗 Driveway Arrivals</div>
+      <div style="font-size:12px;color:var(--text-muted)">Live — last few plates seen at the driveway</div>
+    </div>
+    <div class="arrivals-list" id="arrivals-list">
+      <div class="arrivals-empty">Waiting for the driveway scanner…</div>
+    </div>
+  </div>
 
   <!-- Live parking map — each numbered bay turns red when a car is parked there
        (matched by the bay number entered at check-in), green when free. -->
@@ -2387,6 +2421,13 @@ body.dark-mode .scan-banner {
           <div style="font-size:12px;color:var(--text-muted)">Customers tap “bring my car” (5 / 10 / 15 min) from their SMS link. Adds the Queue tab and the pickup alarm for staff.</div>
         </div>
         <button id="ff-pickup-btn" class="btn btn-secondary btn-sm" onclick="setFeatureFlag('pickup', !pickupReqOn())">Off</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;background:var(--sandstone);border-radius:4px">
+        <div style="flex:1;min-width:200px">
+          <div style="font-weight:600;font-size:13px">Driveway arrivals feed</div>
+          <div style="font-size:12px;color:var(--text-muted)">Shows a live “Driveway Arrivals” panel on the Dashboard listing plates the driveway scanner reads. When off, the panel is hidden. (Staff phone alerts still fire either way.)</div>
+        </div>
+        <button id="ff-arrivals-btn" class="btn btn-secondary btn-sm" onclick="setFeatureFlag('arrivals', !arrivalsOn())">Off</button>
       </div>
     </div>
   </div>
@@ -5486,14 +5527,18 @@ function getCapacity() {
 // same flags via the get_public_settings RPC.
 function handsFreeOn() { return !!(cloudSettings && cloudSettings.feature_handsfree); }
 function pickupReqOn() { return !!(cloudSettings && cloudSettings.feature_pickup); }
+function arrivalsOn() { return !!(cloudSettings && cloudSettings.feature_arrivals); }
 function applyFeatureFlags() {
   document.body.classList.toggle('ff-bags-off', !handsFreeOn());
   document.body.classList.toggle('ff-pickup-off', !pickupReqOn());
+  document.body.classList.toggle('ff-arrivals-off', !arrivalsOn());
+  // Load the arrivals feed the moment the feature is on (and it's on the dashboard).
+  if (arrivalsOn()) { try { loadArrivals(); } catch (e) {} }
 }
 // Reflect the On/Off state on the Settings → Features toggle buttons (mirrors
 // the maroon "on" / bone "off" look used by the bag-staff toggles).
 function syncFeatureToggleButtons() {
-  [['ff-bags-btn', handsFreeOn()], ['ff-pickup-btn', pickupReqOn()]].forEach(([id, on]) => {
+  [['ff-bags-btn', handsFreeOn()], ['ff-pickup-btn', pickupReqOn()], ['ff-arrivals-btn', arrivalsOn()]].forEach(([id, on]) => {
     const btn = document.getElementById(id);
     if (!btn) return;
     btn.textContent = on ? 'On' : 'Off';
@@ -5503,7 +5548,13 @@ function syncFeatureToggleButtons() {
   });
 }
 async function setFeatureFlag(which, on) {
-  const key = which === 'bags' ? 'feature_handsfree' : 'feature_pickup';
+  const MAP = {
+    bags:     { key: 'feature_handsfree', name: 'Hands-free shopping' },
+    pickup:   { key: 'feature_pickup',    name: 'Customer car-request' },
+    arrivals: { key: 'feature_arrivals',  name: 'Driveway arrivals feed' },
+  };
+  const conf = MAP[which] || MAP.pickup;
+  const key = conf.key;
   cloudSettings[key] = !!on;
   try { await cloudSaveSetting(key, !!on); } catch (e) {}
   try { cloudAudit('feature_toggle', 'settings', key, { on: !!on }); } catch (e) {}
@@ -5511,8 +5562,7 @@ async function setFeatureFlag(which, on) {
   try { refreshActiveViewOnly(); } catch (e) {}
   try { renderSettings(); } catch (e) {}
   if (typeof quickToast === 'function') {
-    const name = which === 'bags' ? 'Hands-free shopping' : 'Customer car-request';
-    quickToast('✓ ' + name + (on ? ' turned ON' : ' turned OFF'));
+    quickToast('✓ ' + conf.name + (on ? ' turned ON' : ' turned OFF'));
   }
 }
 function saveCapacity() {
@@ -6081,6 +6131,86 @@ function renderDashboard() {
   // (stats, infographics, handover notes, recent activity) from live data.
   renderDashInfographics();
   renderParkingMap();
+  if (arrivalsOn()) { try { loadArrivals(); } catch (e) {} }
+}
+
+// ─── DRIVEWAY ARRIVALS FEED ───
+// Recent plate detections from the driveway scanner (plate_detections table,
+// written by the plate-detected Edge Function). Only meaningful while the
+// "Driveway arrivals feed" feature is on; the panel is hidden by CSS otherwise.
+// The dashboard runs as the authenticated role, so RLS lets it read this table
+// (the public anon key cannot — same lockdown as customer data).
+function arvEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function arrivalTime(iso){
+  try {
+    return new Date(iso).toLocaleTimeString('en-AU', {
+      timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+  } catch (e) { return ''; }
+}
+
+function arrivalRowHtml(r){
+  const matched = !!r.matched;
+  const onsite = matched && !!r.on_site;
+  const cls = !matched ? 'newcar' : (onsite ? 'onsite' : 'known');
+
+  let who, meta;
+  if (!matched){
+    who = 'New car';
+    meta = 'Not in customer records';
+  } else {
+    who = arvEsc(r.customer_name || 'Returning customer');
+    if (r.vip) who += '<span class="arow-badge vip">⭐ VIP</span>';
+    if (onsite) who += '<span class="arow-badge onsite">On-site</span>';
+    const bits = [];
+    if (onsite) bits.push('car already parked');
+    else if (r.visit_count != null && r.visit_count > 0) bits.push(r.visit_count + (r.visit_count === 1 ? ' visit' : ' visits'));
+    if (r.camera) bits.push(arvEsc(r.camera));
+    meta = bits.join(' · ') || 'Returning customer';
+  }
+
+  return '<div class="arow ' + cls + '" data-id="' + arvEsc(r.id) + '">' +
+           '<div class="arow-plate">' + arvEsc(r.plate) + '</div>' +
+           '<div class="arow-body"><div class="arow-who">' + who + '</div>' +
+             '<div class="arow-meta">' + meta + '</div></div>' +
+           '<div class="arow-time">' + arrivalTime(r.detected_at) + '</div>' +
+         '</div>';
+}
+
+async function loadArrivals(){
+  if (!supa || !currentUser || DEMO_MODE) return;
+  const list = document.getElementById('arrivals-list');
+  if (!list) return;
+  try {
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data, error } = await supa
+      .from('plate_detections')
+      .select('id,plate,matched,customer_name,visit_count,on_site,vip,camera,detected_at')
+      .gte('detected_at', since)
+      .order('detected_at', { ascending: false })
+      .limit(25);
+    if (error) return;
+    if (!data || data.length === 0){
+      list.innerHTML = '<div class="arrivals-empty">No arrivals yet today. Plates read at the driveway will appear here.</div>';
+      return;
+    }
+    list.innerHTML = data.map(arrivalRowHtml).join('');
+  } catch (e) { /* leave the current list in place on a transient error */ }
+}
+
+// A new detection streamed in via realtime → prepend it live.
+function handleArrivalInsert(row){
+  if (!arrivalsOn() || !row) return;
+  const list = document.getElementById('arrivals-list');
+  if (!list) return;
+  if (list.querySelector('[data-id="' + (window.CSS && CSS.escape ? CSS.escape(String(row.id)) : row.id) + '"]')) return; // already shown
+  const empty = list.querySelector('.arrivals-empty');
+  if (empty) empty.remove();
+  list.insertAdjacentHTML('afterbegin', arrivalRowHtml(row));
+  const first = list.firstElementChild;
+  if (first) first.classList.add('flash-in');
+  while (list.children.length > 25) list.removeChild(list.lastElementChild);
 }
 
 // ─── LIVE PARKING MAP ───
@@ -12896,6 +13026,10 @@ function startRealtimeSync() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, payload => {
       handleRealtimeSettingsChange(payload);
     })
+    // Driveway scanner detected a plate → prepend it to the arrivals feed live.
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plate_detections' }, payload => {
+      try { handleArrivalInsert(payload.new); } catch (e) {}
+    })
     // A phone (no local printer) asked the print station to print a key tag.
     .on('broadcast', { event: 'print-request' }, ({ payload }) => handleRemotePrintRequest(payload))
     // The print station confirming it printed a tag we asked for.
@@ -13542,7 +13676,7 @@ function handleRealtimeSettingsChange(payload) {
       const osEl = document.getElementById('s-overstay');
       if (osEl) osEl.value = getOverstayHours();
     }
-    if (payload.new.key === 'feature_handsfree' || payload.new.key === 'feature_pickup') {
+    if (payload.new.key === 'feature_handsfree' || payload.new.key === 'feature_pickup' || payload.new.key === 'feature_arrivals') {
       // A feature was switched on/off on another device — apply it here too:
       // show/hide the relevant UI, refresh the open view, and sync the toggles.
       try { applyFeatureFlags(); } catch (e) {}
