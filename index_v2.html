@@ -6312,12 +6312,17 @@ function checkInFromArrival(btn){
   if (typeof quickToast === 'function') quickToast('Checking in ' + plate.toUpperCase() + ' — add bay & save');
 }
 
+// Arrivals drop off the feed this long after they were detected — a car that
+// isn't checked in within the window was likely just an accidental drive-through.
+const ARRIVAL_TTL_MS = 10 * 60 * 1000;
+const ARRIVAL_EMPTY_HTML = '<div class="arrivals-empty">No recent arrivals. Plates read at the driveway show here for 10 minutes.</div>';
+
 async function loadArrivals(){
   if (!supa || !currentUser || DEMO_MODE) return;
   const list = document.getElementById('arrivals-list');
   if (!list) return;
   try {
-    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const since = new Date(Date.now() - ARRIVAL_TTL_MS).toISOString();
     const { data, error } = await supa
       .from('plate_detections')
       .select('id,plate,matched,customer_name,visit_count,on_site,vip,camera,brand,model,colour,detected_at')
@@ -6326,13 +6331,26 @@ async function loadArrivals(){
       .limit(25);
     if (error) return;
     if (!data || data.length === 0){
-      list.innerHTML = '<div class="arrivals-empty">No arrivals yet today. Plates read at the driveway will appear here.</div>';
+      list.innerHTML = ARRIVAL_EMPTY_HTML;
       updateArrivalsCount();
       return;
     }
     list.innerHTML = data.map(arrivalRowHtml).join('');
     updateArrivalsCount();
   } catch (e) { /* leave the current list in place on a transient error */ }
+}
+
+// Drop rows older than the TTL (the "accidental drive-through" cleanup).
+function pruneArrivals(){
+  const list = document.getElementById('arrivals-list');
+  if (!list) return;
+  const cutoff = Date.now() - ARRIVAL_TTL_MS;
+  list.querySelectorAll('.arow[data-time]').forEach(el => {
+    const t = new Date(el.getAttribute('data-time')).getTime();
+    if (!isNaN(t) && t < cutoff) el.remove();
+  });
+  if (!list.querySelector('.arow')) list.innerHTML = ARRIVAL_EMPTY_HTML;
+  updateArrivalsCount();
 }
 
 // A new detection streamed in via realtime → prepend it live.
@@ -6350,25 +6368,25 @@ function handleArrivalInsert(row){
   updateArrivalsCount();
 }
 
-// Count badge: how many arrivals landed in the last hour. Recomputed from each
-// row's data-time so it decays correctly as detections age past the hour mark.
+// Count badge: how many arrivals are currently on the feed (i.e. within the
+// 10-min window). Recomputed from each row's data-time.
 function updateArrivalsCount(){
   const badge = document.getElementById('arrivals-count');
   const list = document.getElementById('arrivals-list');
   if (!badge || !list) return;
-  const cutoff = Date.now() - 3600 * 1000;
+  const cutoff = Date.now() - ARRIVAL_TTL_MS;
   let n = 0;
   list.querySelectorAll('.arow[data-time]').forEach(el => {
     const t = new Date(el.getAttribute('data-time')).getTime();
     if (!isNaN(t) && t >= cutoff) n++;
   });
   badge.style.display = '';
-  badge.textContent = n === 0 ? 'None in the last hour' : (n + ' in the last hour');
+  badge.textContent = n === 0 ? 'None in the last 10 min' : (n + ' in the last 10 min');
   badge.classList.toggle('none', n === 0);
 }
 
-// Refresh the count each minute so it ages out on its own (time-relative window).
-setInterval(() => { if (arrivalsOn()) { try { updateArrivalsCount(); } catch (e) {} } }, 60000);
+// Every 20s: drop arrivals past the 10-min TTL and refresh the count.
+setInterval(() => { if (arrivalsOn()) { try { pruneArrivals(); } catch (e) {} } }, 20000);
 
 // ─── LIVE PARKING MAP ───
 // Schematic recreation of the printed car-park layout (bays 1–77). Each cluster
