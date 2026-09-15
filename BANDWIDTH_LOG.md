@@ -598,3 +598,42 @@ Per-project dashboard, `chatswood-valet` filter, re-verified. Figures are
 identical to the same-day check above (11 Sep partial ~3.17MB, same
 90.2%/8.9%/0.7%/0.2% split) — dashboard says it refreshes hourly, so no
 new data has posted yet. Nothing to flag, still very healthy.
+
+## 2026-09-15: last-week check (08 Sep–15 Sep) — cumulative 0.143GB/250GB, one Realtime-share bump on 12-13 Sep that self-resolved
+
+Per-project dashboard, `chatswood-valet` filter, exact tooltips for each day since the last check:
+
+- **08 Sep 2026 (closed): ~4.08KB** — effectively no traffic (4.078KB
+  PostgREST, 100%). Matches the "~0MB" estimate from the 2026-09-11 entry.
+- **09 Sep 2026 (closed): ~38.45MB total** — 36.543MB PostgREST (95.1%),
+  1.702MB Realtime (4.4%), 141.56KB Auth (0.4%), 61.119KB Functions
+  (0.2%). Unchanged from prior check (CSV backfill / mismatch-audit day).
+- **10 Sep 2026 (closed): ~6.35MB total** — 5.859MB PostgREST (92.3%),
+  413.932KB Realtime (6.4%), 46.566KB Auth (0.7%), 38.482KB Functions
+  (0.6%). Unchanged from prior check.
+- **11 Sep 2026 (closed, was partial ~3.17MB last check): ~8.83MB total**
+  — 8.397MB PostgREST (95.2%), 360.688KB Realtime (4.0%), 57.333KB Auth
+  (0.6%), 14.382KB Functions (0.2%). Grew as expected once the day
+  closed out; normal split.
+- **12 Sep 2026 (closed): ~35.33MB total** — 28.682MB PostgREST (81.2%),
+  6.452MB Realtime (18.3%), 129.527KB Auth (0.4%), 68.151KB Functions
+  (0.2%). Realtime share elevated again (18.3%), echoing the 23 Aug/06
+  Sep pattern.
+- **13 Sep 2026 (closed): ~10.97MB total** — 7.844MB PostgREST (71.5%),
+  3.04MB Realtime (27.7%), 60.489KB Auth (0.5%), 29.052KB Functions
+  (0.3%). Realtime share climbed further (27.7%, biggest share yet on a
+  non-trivial-volume day) — two days in a row of elevated Realtime.
+- **14 Sep 2026 (closed): ~2.62MB total** — 2.554MB PostgREST (97.4%),
+  38.611KB Realtime (1.4%), 27.718KB Auth (1.0%), 2.894KB Functions
+  (0.1%). Realtime share dropped straight back to baseline — the 12-13
+  Sep bump did not persist into a third day.
+- **15 Sep 2026 (partial, still open — NOT closed, today): ~1.35MB so
+  far** — 1.323MB PostgREST (98.2%), 6.671KB Realtime (0.5%), 12.216KB
+  Auth (0.9%), 5.319KB Functions (0.4%).
+- **Cumulative this cycle (06 Sep–15 Sep, chatswood-valet only): 0.143 GB
+  / 250 GB (0.06%).** No budget concern.
+
+**Action item:** the 12-13 Sep Realtime-share bump (18.3% → 27.7%) already
+resolved on its own by 14 Sep, same pattern as the 23 Aug spike — no
+investigation needed unless it recurs on a bigger day or persists past a
+single day next time.
