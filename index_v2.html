@@ -3722,6 +3722,18 @@ function showView(name) {
   const isAdmin = !!(currentUser && currentUser.role === 'admin');
   if (!isAdmin && !MOBILE_VIEWS.includes(name)) name = 'new-entry';
 
+  // Switching tabs in-app doesn't trigger the browser's beforeunload warning
+  // (nothing actually unloads), so a plate typed into New Entry could
+  // silently get abandoned by tapping Dashboard/another tab. Guard that
+  // in-app "leave" the same way the real page-unload/back-button ones are.
+  if (name !== 'new-entry') {
+    const leavingNewEntry = document.getElementById('view-new-entry');
+    if (leavingNewEntry && leavingNewEntry.classList.contains('active') && newEntryHasUnsavedData()) {
+      if (!confirm('You have unsaved car/customer details on this screen. Leave without saving?')) return;
+      clearNewEntryDraft();
+    }
+  }
+
   // Remember the tab per-device (not cloud-synced — matches getUiMode()'s
   // pattern) so a browser refresh reopens on the same screen instead of
   // always snapping back to Dashboard.
